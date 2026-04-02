@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Scraper — Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f8fafc; }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-partial { background: #fef9c3; color: #854d0e; }
+    .badge-failed  { background: #fee2e2; color: #991b1b; }
+    #log-panel { max-height: 240px; overflow-y: auto; font-family: 'JetBrains Mono', monospace, ui-monospace; font-size: 12px; }
+    #log-panel::-webkit-scrollbar { width: 6px; }
+    #log-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-slate-900">News Scraper</h1>
+        <p class="text-xs text-slate-500">Internal scraping tool</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- Input Section -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <label class="block text-sm font-semibold text-slate-700 mb-2">URL Halaman Berita</label>
+      <div class="flex gap-3">
+        <div class="flex-1 relative">
+          <input id="url-input" type="url" placeholder="https://www.kemlu.go.id/cairo/berita"
+            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+          <p id="url-error" class="text-red-500 text-xs mt-1 hidden"></p>
+        </div>
+        <button id="btn-scrape" onclick="startScrape()"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Start Scraping
+        </button>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div id="progress-section" class="hidden">
+      <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-slate-700" id="progress-label">Memulai...</span>
+          <span class="text-sm text-slate-500" id="progress-pct">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2.5">
+          <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-500 uppercase tracking-wide">Total Ditemukan</p>
+        <p class="text-2xl font-bold text-slate-900 mt-1" id="stat-total">0</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-500 uppercase tracking-wide">Berhasil</p>
+        <p class="text-2xl font-bold text-emerald-600 mt-1" id="stat-success">0</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-500 uppercase tracking-wide">Partial</p>
+        <p class="text-2xl font-bold text-amber-600 mt-1" id="stat-partial">0</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-500 uppercase tracking-wide">Gagal</p>
+        <p class="text-2xl font-bold text-red-600 mt-1" id="stat-failed">0</p>
+      </div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="bg-white rounded-xl border border-slate-200">
+      <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Log Scraping
+        </h2>
+        <button onclick="document.getElementById('log-panel').innerHTML=''" class="text-xs text-slate-400 hover:text-slate-600">Clear</button>
+      </div>
+      <div id="log-panel" class="px-5 py-3 bg-slate-50 text-slate-600 space-y-0.5"></div>
+    </div>
+
+    <!-- Export + Search Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex gap-2">
+        <a id="btn-export-json" href="/export/json" class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Export JSON
+        </a>
+        <a id="btn-export-csv" href="/export/csv" class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Export CSV
+        </a>
+      </div>
+      <div class="relative w-full sm:w-72">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="search-input" type="text" placeholder="Cari berdasarkan judul..."
+          class="w-full border border-slate-300 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+          oninput="filterArticles()" />
+      </div>
+    </div>
+
+    <!-- Articles Table -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">#</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Judul</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tanggal</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Preview</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="articles-table" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="py-12 text-center text-slate-400 text-sm hidden">
+        Belum ada data. Masukkan URL dan mulai scraping.
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
