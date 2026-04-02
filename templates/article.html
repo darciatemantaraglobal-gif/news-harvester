@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Artikel — News Scraper</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center gap-3">
+      <a href="/" class="text-slate-400 hover:text-slate-600 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </a>
+      <h1 class="text-lg font-bold text-slate-900">Detail Artikel</h1>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-6 py-8">
+    {% if article %}
+    <article class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="mb-6">
+        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium
+          {% if article.status == 'success' %}badge-success{% elif article.status == 'partial' %}badge-partial{% else %}badge-failed{% endif %}">
+          {{ article.status | upper }}
+        </span>
+      </div>
+      <h2 class="text-2xl font-bold text-slate-900 mb-2">{{ article.title or '(Tanpa Judul)' }}</h2>
+      <div class="flex items-center gap-4 text-sm text-slate-500 mb-6">
+        <span>{{ article.date or '-' }}</span>
+        <a href="{{ article.url }}" target="_blank" class="text-indigo-600 hover:underline truncate max-w-md">{{ article.url }}</a>
+      </div>
+      <hr class="mb-6 border-slate-100">
+      <div class="prose prose-slate max-w-none text-slate-700 leading-relaxed whitespace-pre-line">{{ article.content or '(Konten tidak tersedia)' }}</div>
+    </article>
+    {% else %}
+    <div class="text-center py-20 text-slate-400">Artikel tidak ditemukan.</div>
+    {% endif %}
+  </main>
+
+  <style>
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-partial { background: #fef9c3; color: #854d0e; }
+    .badge-failed  { background: #fee2e2; color: #991b1b; }
+  </style>
+</body>
+</html>
