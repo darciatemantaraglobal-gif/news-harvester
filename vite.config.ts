@@ -12,24 +12,38 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on("error", (err, _req, res) => {
+            console.error("[proxy error]", err.message);
+            if ("writeHead" in res) {
+              res.writeHead(502, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "Backend tidak tersedia (502)" }));
+            }
+          });
+        },
       },
       "/export": {
-        target: "http://localhost:8000",
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        secure: false,
       },
       "/settings": {
-        target: "http://localhost:8000",
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        secure: false,
       },
       "/kb-drafts": {
-        target: "http://localhost:8000",
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        secure: false,
       },
       "/kb": {
-        target: "http://localhost:8000",
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        secure: false,
       },
     },
   },
