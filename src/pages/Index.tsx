@@ -395,12 +395,14 @@ const Index = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) { setUrlError(data.error || "Terjadi kesalahan."); return; }
+      let data: Record<string, string> = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+      if (!res.ok) { setUrlError(data.error || `Server error ${res.status}`); return; }
       wasRunningRef.current = true;
       pollRef.current = setInterval(pollProgress, 1000);
-    } catch {
-      setUrlError("Tidak bisa menghubungi server. Pastikan backend berjalan.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUrlError(`Gagal: ${msg}`);
     }
   };
 
