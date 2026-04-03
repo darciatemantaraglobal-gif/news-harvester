@@ -568,24 +568,24 @@ const Index = () => {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ─── Dark Header Card ─── */}
-        <div className="mx-2 sm:mx-4 mt-2 sm:mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
+          <div className="flex items-center gap-2.5 sm:gap-3 lg:gap-4 min-w-0">
             <img
               src="/AIGYPT_logo.png"
               alt="AINA"
-              className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0"
-              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 4px rgba(200,160,255,0.7))" }}
+              className="w-8 h-8 sm:w-9 sm:h-9 lg:w-12 lg:h-12 object-contain shrink-0"
+              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(200,160,255,0.8))" }}
             />
             <div className="leading-none min-w-0">
-              <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
-              <p className="text-purple-300 text-[11px] mt-0.5">Internal Knowledge Scraping Tool</p>
+              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">AINA Scraper</p>
+              <p className="text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Internal Knowledge Scraping Tool</p>
             </div>
           </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-            <div className="hidden lg:flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1.5 text-xs text-white backdrop-blur-sm">
-              <span className="relative flex h-1.5 w-1.5">
+            <div className="hidden lg:flex items-center gap-1.5 bg-white/15 rounded-full px-4 py-2 text-sm text-white backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
               </span>
               Scheduler aktif · {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"} {schedulerSettings.time_of_day}
               {schedulerSettings.next_run_at && (
@@ -597,8 +597,8 @@ const Index = () => {
           )}
           <Link to="/review">
             <Button data-testid="link-review-dashboard" size="sm"
-              className="gap-1.5 bg-white text-[#2e0d5e] hover:bg-white/90 h-8 text-xs px-3 sm:px-4 font-semibold shadow-sm rounded-full">
-              <CheckSquare className="w-3.5 h-3.5" />
+              className="gap-1.5 bg-white text-[#2e0d5e] hover:bg-white/90 h-8 lg:h-11 text-xs lg:text-sm px-3 sm:px-4 lg:px-6 font-semibold shadow-sm rounded-full">
+              <CheckSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
               <span className="hidden sm:inline">Review KB Draft</span>
               <span className="sm:hidden">Review</span>
             </Button>
@@ -606,26 +606,26 @@ const Index = () => {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 space-y-3 sm:space-y-4 min-w-0">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── URL Input Card ── */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             {/* Animated gradient top bar */}
             <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
 
-            <div className="p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+            <div className="p-3.5 sm:p-5 lg:p-7 space-y-3.5 sm:space-y-4 lg:space-y-5">
 
               {/* Section label */}
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                  <Globe className="w-3.5 h-3.5 text-indigo-500" />
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-indigo-100 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+                  <Globe className="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px] text-indigo-500" />
                 </div>
-                <span className="text-[10px] sm:text-[11px] font-bold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</span>
+                <span className="text-[10px] sm:text-[11px] lg:text-sm font-bold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</span>
               </div>
 
               {/* URL Input with icon + clear button */}
               <div className="relative group">
-                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-200 pointer-events-none" />
+                <Globe className="absolute left-3.5 lg:left-4 top-1/2 -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-200 pointer-events-none" />
                 <input
                   data-testid="input-url"
                   type="url"
@@ -634,7 +634,7 @@ const Index = () => {
                   onChange={e => { setUrl(e.target.value); setUrlError(""); }}
                   onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
                   disabled={isRunning}
-                  className={`w-full h-11 sm:h-12 pl-10 pr-9 rounded-xl text-sm border outline-none transition-all duration-200
+                  className={`w-full h-11 sm:h-12 lg:h-14 pl-10 lg:pl-12 pr-9 rounded-xl lg:rounded-2xl text-sm lg:text-base border outline-none transition-all duration-200
                     placeholder:text-slate-300 disabled:opacity-60 disabled:cursor-not-allowed font-mono tracking-tight
                     ${urlError
                       ? "border-red-300 bg-red-50/40 ring-2 ring-red-200/60 text-red-800"
@@ -645,20 +645,20 @@ const Index = () => {
                   <button
                     onClick={() => { setUrl(""); setUrlError(""); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors duration-150 rounded-full p-0.5 hover:bg-slate-100">
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                   </button>
                 )}
               </div>
               {urlError && (
-                <p className="text-red-500 text-xs flex items-center gap-1.5 -mt-1">
+                <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1.5 -mt-1">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
                 </p>
               )}
 
               {/* Mode pills + Scrape button */}
-              <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="flex flex-col sm:flex-row gap-2.5 lg:gap-3">
                 {/* Mode segmented pills */}
-                <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5 flex-1">
+                <div className="flex items-center bg-slate-100 rounded-xl lg:rounded-2xl p-1 lg:p-1.5 gap-0.5 flex-1">
                   {MODES.map(m => (
                     <button
                       key={m.value}
@@ -666,7 +666,7 @@ const Index = () => {
                       onClick={() => !isRunning && setMode(m.value)}
                       disabled={isRunning}
                       title={m.desc}
-                      className={`flex-1 text-xs font-semibold px-2 py-2 rounded-lg transition-all duration-150 truncate
+                      className={`flex-1 text-xs lg:text-sm font-semibold px-2 lg:px-3 py-2 lg:py-2.5 rounded-lg lg:rounded-xl transition-all duration-150 truncate
                         ${mode === m.value
                           ? "bg-white text-indigo-700 shadow-sm"
                           : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/60"
@@ -681,7 +681,7 @@ const Index = () => {
                   data-testid="button-start-scrape"
                   onClick={startScrape}
                   disabled={isRunning}
-                  className={`relative h-10 sm:h-auto px-5 sm:px-6 rounded-xl font-bold text-sm text-white gap-2 flex items-center justify-center shrink-0
+                  className={`relative h-10 sm:h-auto lg:h-14 px-5 sm:px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 lg:gap-2.5 flex items-center justify-center shrink-0
                     transition-all duration-200 overflow-hidden
                     ${isRunning
                       ? "bg-gradient-to-r from-indigo-500 to-violet-500 opacity-80 cursor-not-allowed"
@@ -692,28 +692,28 @@ const Index = () => {
                     <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
                   )}
                   {isRunning
-                    ? <><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10">Scraping...</span></>
-                    : <><Zap className="w-4 h-4" />Mulai Scraping</>}
+                    ? <><Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin relative z-10" /><span className="relative z-10">Scraping...</span></>
+                    : <><Zap className="w-4 h-4 lg:w-5 lg:h-5" />Mulai Scraping</>}
                 </button>
               </div>
 
               {/* Mode description */}
-              <p className="text-[10px] sm:text-xs text-slate-400 -mt-1 flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />
+              <p className="text-[10px] sm:text-xs lg:text-sm text-slate-400 -mt-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-indigo-400 shrink-0" />
                 {MODES.find(m => m.value === mode)?.desc}
               </p>
 
               {/* Rentang as pill chips */}
-              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-2 lg:gap-3 pt-3 lg:pt-4 border-t border-slate-100">
+                <span className="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
+                <div className="flex flex-wrap gap-1.5 lg:gap-2">
                   {SCRAPE_RANGES.map(r => (
                     <button
                       key={r.value}
                       data-testid={`range-${r.value}`}
                       onClick={() => !isRunning && setScrapeRange(r.value)}
                       disabled={isRunning}
-                      className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold transition-all duration-150
+                      className={`text-[11px] sm:text-xs lg:text-sm px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full font-semibold transition-all duration-150
                         ${scrapeRange === r.value
                           ? "bg-slate-900 text-white shadow-sm"
                           : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
@@ -763,24 +763,24 @@ const Index = () => {
                 </div>
 
                 {/* Desktop layout: label+icon row, large number below */}
-                <div className="hidden sm:block px-3.5 xl:px-4 py-3 xl:py-3.5">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <p className="text-[9px] xl:text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
-                    <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center`}>
-                      <Icon className={`w-3 h-3 ${iconColor}`} />
+                <div className="hidden sm:block px-3.5 lg:px-5 py-3 lg:py-4">
+                  <div className="flex items-center justify-between mb-2.5 lg:mb-3">
+                    <p className="text-[9px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
+                    <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-md lg:rounded-lg ${iconBg} flex items-center justify-center`}>
+                      <Icon className={`w-3 h-3 lg:w-4 lg:h-4 ${iconColor}`} />
                     </div>
                   </div>
-                  <p data-testid={testid} className={`text-2xl xl:text-3xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
+                  <p data-testid={testid} className={`text-2xl lg:text-4xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* ── 3-column Grid ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 items-start">
 
             {/* ═══ Left: Results + KB Pipeline (2 cols) ═══ */}
-            <div className="xl:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-4 lg:space-y-5">
 
               {/* Results Card */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -1573,22 +1573,22 @@ const Index = () => {
 
       {/* ─── Bottom Nav (all screens) ─── */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-14 px-2">
-          <button className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-slate-900 text-white min-w-[60px]">
-            <Newspaper className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">Scraper</span>
+        <div className="flex items-center justify-around h-14 lg:h-16 px-2 lg:px-8 max-w-screen-2xl mx-auto">
+          <button className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl bg-slate-900 text-white min-w-[60px] lg:min-w-[100px]">
+            <Newspaper style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">Scraper</span>
           </button>
-          <Link to="/review" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
-            <CheckSquare style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">Review</span>
+          <Link to="/review" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
+            <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">Review</span>
           </Link>
-          <a href="/export/json" download className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px]">
-            <FileJson style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">JSON</span>
+          <a href="/export/json" download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
+            <FileJson style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">JSON</span>
           </a>
-          <a href="/export/csv" download className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px]">
-            <FileText style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">CSV</span>
+          <a href="/export/csv" download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
+            <FileText style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">CSV</span>
           </a>
         </div>
       </nav>

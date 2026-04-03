@@ -203,41 +203,41 @@ export default function ReviewDashboard() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ─── Dark Header Card ─── */}
-        <div className="mx-2 sm:mx-4 mt-2 sm:mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
+          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
             <Link to="/">
-              <Button variant="ghost" size="sm" className="gap-1 text-white/70 hover:text-white hover:bg-white/15 -ml-1 h-8 px-2 text-xs">
-                <ChevronLeft className="w-3.5 h-3.5" /><span className="hidden sm:inline">Scraper</span>
+              <Button variant="ghost" size="sm" className="gap-1 lg:gap-2 text-white/70 hover:text-white hover:bg-white/15 -ml-1 h-8 lg:h-10 px-2 lg:px-3 text-xs lg:text-sm">
+                <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Scraper</span>
               </Button>
             </Link>
-            <div className="w-px h-4 bg-white/30 shrink-0 hidden sm:block" />
+            <div className="w-px h-4 lg:h-6 bg-white/30 shrink-0 hidden sm:block" />
             <div className="min-w-0">
-              <p className="font-bold text-white text-sm tracking-tight">KB Review Dashboard</p>
-              <p className="hidden sm:block text-purple-300 text-[11px] mt-0.5">AINA Knowledge Base — Approval Workflow</p>
+              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">KB Review Dashboard</p>
+              <p className="hidden sm:block text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">AINA Knowledge Base — Approval Workflow</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
             <a href="/export/kb-approved" download>
               <Button variant="ghost" size="sm"
-                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs rounded-full">
-                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline text-xs">Approved</span>
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full">
+                <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline text-xs lg:text-sm">Approved</span>
               </Button>
             </a>
             <a href="/export/kb-exported" download>
               <Button variant="ghost" size="sm"
-                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs rounded-full">
-                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline text-xs">Exported</span>
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full">
+                <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline text-xs lg:text-sm">Exported</span>
               </Button>
             </a>
             <Button variant="ghost" size="sm" onClick={() => { fetchArticles(); fetchStats(); }}
-              className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/15 rounded-full">
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              className="h-8 lg:h-10 w-8 lg:w-10 p-0 text-white/70 hover:text-white hover:bg-white/15 rounded-full">
+              <RefreshCw className={`w-4 h-4 lg:w-5 lg:h-5 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 space-y-3 sm:space-y-4 min-w-0">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── Stats Row ── */}
           <div className="flex sm:grid sm:grid-cols-6 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
@@ -262,14 +262,14 @@ export default function ReviewDashboard() {
                   </div>
                 </div>
                 {/* Desktop layout */}
-                <div className="hidden sm:block px-3.5 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
-                    <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center`}>
-                      <Icon className={`w-3 h-3 ${iconColor}`} />
+                <div className="hidden sm:block px-3.5 lg:px-5 py-3 lg:py-4">
+                  <div className="flex items-center justify-between mb-2 lg:mb-3">
+                    <p className="text-[9px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
+                    <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-md lg:rounded-lg ${iconBg} flex items-center justify-center`}>
+                      <Icon className={`w-3 h-3 lg:w-4 lg:h-4 ${iconColor}`} />
                     </div>
                   </div>
-                  <p className={`text-2xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
+                  <p className={`text-2xl lg:text-4xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
                 </div>
               </div>
             ))}
@@ -527,18 +527,18 @@ export default function ReviewDashboard() {
 
       {/* ── Bottom Nav (all screens) ── */}
       <nav className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-14 px-2">
-          <Link to="/" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
-            <Newspaper style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">Scraper</span>
+        <div className="flex items-center justify-around h-14 lg:h-16 px-2 lg:px-8 max-w-screen-2xl mx-auto">
+          <Link to="/" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
+            <Newspaper style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">Scraper</span>
           </Link>
-          <div className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-slate-900 text-white min-w-[60px]">
-            <CheckSquare style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">Review</span>
+          <div className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl bg-slate-900 text-white min-w-[60px] lg:min-w-[100px]">
+            <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">Review</span>
           </div>
-          <a href="/export/kb-approved" download className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px]">
-            <Download style={{ width: 18, height: 18 }} />
-            <span className="text-[10px] font-semibold">Export</span>
+          <a href="/export/kb-approved" download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
+            <Download style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">Export</span>
           </a>
         </div>
       </nav>
