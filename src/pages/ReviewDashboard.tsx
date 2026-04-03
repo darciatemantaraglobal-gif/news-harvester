@@ -197,10 +197,10 @@ export default function ReviewDashboard() {
   const someSelected = selected.size > 0 && selected.size < articles.length;
 
   return (
-    <div className="min-h-screen bg-[#EEF0FF] pb-16 sm:pb-0">
+    <div className="min-h-screen bg-[#f0f1f8] pb-20 sm:pb-6">
       {/* Header */}
       <header className="bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] sticky top-0 z-20 shadow-lg shadow-purple-900/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link to="/">
               <Button variant="ghost" size="sm" className="gap-1 sm:gap-1.5 text-white/80 hover:text-white hover:bg-white/15 -ml-2 px-2 sm:px-3">
@@ -237,10 +237,10 @@ export default function ReviewDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-5">
 
         {/* Stats Bar */}
-        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 sm:overflow-visible sm:grid sm:grid-cols-6 snap-x snap-mandatory sm:snap-none -mx-4 px-4 sm:mx-0 sm:px-0 animate-slide-up-fade">
+        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 sm:overflow-visible sm:grid sm:grid-cols-6 snap-x snap-mandatory sm:snap-none -mx-3 px-3 sm:mx-0 sm:px-0">
           {[
             { label: "Total",    value: stats.total,    color: "text-slate-800",   accent: "bg-slate-400" },
             { label: "Pending",  value: stats.pending,  color: "text-amber-600",   accent: "bg-amber-400" },
@@ -529,21 +529,21 @@ export default function ReviewDashboard() {
         )}
       </main>
 
-      {/* ── Mobile Bottom Tab Nav ── */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 sm:hidden bg-white/90 backdrop-blur-lg border-t border-indigo-100 shadow-[0_-4px_24px_rgba(79,70,229,0.10)]">
-        <div className="flex items-stretch h-16 max-w-screen-sm mx-auto">
-          <Link to="/" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-indigo-600 transition-all duration-200 active:scale-90">
-            <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center transition-colors hover:bg-indigo-100">
-              <Newspaper className="w-[18px] h-[18px]" />
-            </div>
-            <span className="text-[10px] font-medium">Scraper</span>
+      {/* ── Mobile Bottom Nav ── */}
+      <nav className="fixed bottom-0 inset-x-0 z-30 sm:hidden bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-around h-14 px-2">
+          <Link to="/" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
+            <Newspaper style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Scraper</span>
           </Link>
-          <Link to="/review" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 transition-all duration-200 active:scale-90">
-            <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <CheckSquare className="w-[18px] h-[18px] text-indigo-600" />
-            </div>
-            <span className="text-[10px] font-semibold text-indigo-600">Review</span>
-          </Link>
+          <div className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-slate-900 text-white min-w-[60px]">
+            <CheckSquare style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Review</span>
+          </div>
+          <a href="/export/kb-approved" download className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px]">
+            <Download style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Export</span>
+          </a>
         </div>
       </nav>
     </div>

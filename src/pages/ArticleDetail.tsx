@@ -1,8 +1,8 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, ExternalLink, Loader2, Newspaper, Calendar, Tag,
-  AlertCircle, CheckCircle2, FileText, Clock,
+  AlertCircle, CheckCircle2, FileText, Clock, CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -52,10 +52,10 @@ const ArticleDetail = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#EEF0FF]">
+    <div className="min-h-screen bg-[#f0f1f8] pb-16 sm:pb-0">
       {/* Header */}
       <header className="bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] sticky top-0 z-20 shadow-lg shadow-purple-900/40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               data-testid="button-back"
@@ -92,7 +92,7 @@ const ArticleDetail = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
+      <main className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
         {/* Loading */}
         {isLoading && (
@@ -204,6 +204,24 @@ const ArticleDetail = () => {
           </div>
         )}
       </main>
+
+      {/* ── Mobile Bottom Nav ── */}
+      <nav className="fixed bottom-0 inset-x-0 z-30 sm:hidden bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-around h-14 px-2">
+          <button onClick={() => navigate("/")} className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
+            <Newspaper style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Scraper</span>
+          </button>
+          <Link to="/review" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
+            <CheckSquare style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Review</span>
+          </Link>
+          <div className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-slate-900 text-white min-w-[60px]">
+            <FileText style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Artikel</span>
+          </div>
+        </div>
+      </nav>
     </div>
   );
 };

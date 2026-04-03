@@ -562,10 +562,10 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f0f0f2] text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-[#f0f1f8] text-slate-900">
 
-      {/* ─── Left Icon Sidebar ─── */}
-      <aside className="w-[68px] shrink-0 bg-white border-r border-gray-100 flex flex-col items-center py-5 z-20 shadow-sm">
+      {/* ─── Left Icon Sidebar (desktop only) ─── */}
+      <aside className="hidden xl:flex w-[68px] shrink-0 bg-white border-r border-slate-100 flex-col items-center py-5 z-20 shadow-sm">
         {/* Logo */}
         <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-5 shadow-md shadow-purple-900/20">
           <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain"
@@ -607,7 +607,7 @@ const Index = () => {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ─── Dark Header Card ─── */}
-        <div className="mx-4 mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-2xl px-5 py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
+        <div className="mx-2 sm:mx-4 mt-2 sm:mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
           <div className="leading-none">
             <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
             <p className="text-purple-300 text-[11px] mt-0.5">Internal Knowledge Scraping Tool</p>
@@ -628,17 +628,19 @@ const Index = () => {
           )}
           <Link to="/review">
             <Button data-testid="link-review-dashboard" size="sm"
-              className="gap-1.5 bg-white text-[#2e0d5e] hover:bg-white/90 h-8 text-xs px-4 font-semibold shadow-sm rounded-full">
-              <CheckSquare className="w-3.5 h-3.5" />Review KB Draft
+              className="gap-1.5 bg-white text-[#2e0d5e] hover:bg-white/90 h-8 text-xs px-3 sm:px-4 font-semibold shadow-sm rounded-full">
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Review KB Draft</span>
+              <span className="sm:hidden">Review</span>
             </Button>
           </Link>
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-w-0">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 xl:pb-4 space-y-3 sm:space-y-4 min-w-0">
 
           {/* ── URL Input Card ── */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+          <div className="bg-white rounded-2xl shadow-sm p-3.5 sm:p-5 space-y-3 sm:space-y-4">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</Label>
               <Input data-testid="input-url" type="url"
@@ -716,7 +718,7 @@ const Index = () => {
           </div>
 
           {/* ── Stats Row ── */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
             {[
               { label: "Total",    value: statTotal, numColor: "text-slate-800",   accent: "bg-slate-400",   testid: "stat-total" },
               { label: "Berhasil", value: statSucc,  numColor: "text-emerald-700", accent: "bg-emerald-500", testid: "stat-success" },
@@ -1528,6 +1530,28 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* ─── Mobile Bottom Nav (hidden on xl) ─── */}
+      <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-around h-14 px-2">
+          <button className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-slate-900 text-white min-w-[60px]">
+            <Newspaper className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Scraper</span>
+          </button>
+          <Link to="/review" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
+            <CheckSquare style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">Review</span>
+          </Link>
+          <a href="/export/json" download className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px]">
+            <FileJson style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">JSON</span>
+          </a>
+          <a href="/export/csv" download className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px]">
+            <FileText style={{ width: 18, height: 18 }} />
+            <span className="text-[10px] font-semibold">CSV</span>
+          </a>
+        </div>
+      </nav>
     </div>
   );
 };
