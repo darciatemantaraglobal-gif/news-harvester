@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Sk-Modernist';
+  src: url('/Sk-Modernist-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Sk-Modernist';
+  src: url('/Sk-Modernist-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,6 +23,9 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  body {
+    font-family: 'Sk-Modernist', sans-serif;
+  }
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
