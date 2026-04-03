@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, jsonify, Response
 from scraper import scrape_all
 from ai_services import generate_ai_summary
 from db_services import push_kb_articles, fetch_kb_articles_from_db
+from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
 app = Flask(__name__)
 
@@ -213,55 +214,77 @@ def export_json():
 KB_FILE = os.path.join(DATA_DIR, "kb_articles.json")
 
 
-def _make_slug(title: str) -> str:
-    """Buat slug sederhana dari title."""
-    title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
-    title = title.lower()
-    title = re.sub(r"[^a-z0-9\s-]", "", title)
-    title = re.sub(r"[\s]+", "-", title.strip())
-    title = re.sub(r"-+", "-", title)
-    return title[:80]
+def _load_kb() -> list:
+    if os.path.exists(KB_FILE):
+        try:
+            with open(KB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
 
 
-def _clean_whitespace(text: str) -> str:
-    """Bersihkan whitespace berlebihan."""
-    lines = [line.strip() for line in text.splitlines()]
-    lines = [l for l in lines if l]
-    return "\n".join(lines)
+def _save_kb(data: list):
+    with open(KB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def _make_summary(content: str, n: int = 3) -> str:
-    """Ambil n kalimat pertama sebagai summary."""
-    sentences = re.split(r"(?<=[.!?])\s+", content.strip())
-    sentences = [s.strip() for s in sentences if s.strip()]
-    return " ".join(sentences[:n])
+@app.route("/api/generate-summary", methods=["POST"])
+def api_generate_summary():
+    """Generate summary singkat untuk semua artikel scraped (tanpa AI)."""
+    articles = _load_articles()
+    if not articles:
+        return jsonify({"error": "Belum ada artikel."}), 400
+
+    updated = 0
+    for a in articles:
+        content = (a.get("content") or "").strip()
+        if content and not a.get("summary"):
+            a["summary"] = generate_summary(content)
+            updated += 1
+
+    _save_articles(articles)
+    return jsonify({"status": "ok", "updated": updated, "total": len(articles)})
+
+
+@app.route("/api/auto-tag", methods=["POST"])
+def api_auto_tag():
+    """Generate tags otomatis untuk semua artikel scraped (berbasis keyword)."""
+    articles = _load_articles()
+    if not articles:
+        return jsonify({"error": "Belum ada artikel."}), 400
+
+    for a in articles:
+        title = (a.get("title") or "").strip()
+        content = (a.get("content") or "").strip()
+        a["tags"] = generate_tags(title, content)
+
+    _save_articles(articles)
+    return jsonify({"status": "ok", "total": len(articles)})
 
 
 @app.route("/api/convert-kb", methods=["POST"])
 def api_convert_kb():
+    """Konversi semua artikel ke format KB draft untuk AINA."""
     articles = _load_articles()
     if not articles:
         return jsonify({"error": "Belum ada artikel untuk dikonversi."}), 400
 
-    kb_articles = []
-    for a in articles:
-        raw_content = a.get("content") or ""
-        clean_content = _clean_whitespace(raw_content)
-        title = (a.get("title") or "").strip()
-        kb_articles.append({
-            "title": title,
-            "slug": _make_slug(title) if title else a.get("id", ""),
-            "source_url": a.get("url", ""),
-            "published_date": a.get("date", ""),
-            "content": clean_content,
-            "summary": _make_summary(clean_content),
-            "tags": ["berita", "kemlu", "kairo"],
-        })
+    # Hanya konversi artikel yang berhasil / partial (skip failed)
+    eligible = [a for a in articles if a.get("status") in ("success", "partial")]
+    if not eligible:
+        return jsonify({"error": "Tidak ada artikel dengan status success/partial."}), 400
 
-    with open(KB_FILE, "w", encoding="utf-8") as f:
-        json.dump(kb_articles, f, ensure_ascii=False, indent=2)
-
+    kb_articles = [convert_to_kb_format(a) for a in eligible]
+    _save_kb(kb_articles)
     return jsonify({"status": "ok", "count": len(kb_articles)})
+
+
+@app.route("/api/kb-draft")
+def api_kb_draft():
+    """Ambil KB draft yang sudah dibuat."""
+    kb = _load_kb()
+    return jsonify(kb)
 
 
 @app.route("/api/push-supabase", methods=["POST"])
@@ -305,13 +328,10 @@ def api_ai_summary():
 
 @app.route("/api/ai-summary-all", methods=["POST"])
 def api_ai_summary_all():
-    """Generate AI summary untuk semua artikel KB dan update KB file."""
-    if not os.path.exists(KB_FILE):
-        return jsonify({"error": "KB belum dikonversi."}), 400
-    with open(KB_FILE, "r", encoding="utf-8") as f:
-        kb_articles = json.load(f)
+    """Generate AI summary (GPT-4o-mini) untuk semua artikel KB dan update KB file."""
+    kb_articles = _load_kb()
     if not kb_articles:
-        return jsonify({"error": "KB kosong."}), 400
+        return jsonify({"error": "KB belum dikonversi. Jalankan Convert to KB Draft terlebih dahulu."}), 400
 
     errors = []
     for art in kb_articles:
@@ -320,12 +340,12 @@ def api_ai_summary_all():
                 title=art.get("title") or "",
                 content=art.get("content") or "",
             )
+            # Update summary field juga jika AI berhasil
+            art["summary"] = art["ai_summary"]
         except Exception as e:
             errors.append({"slug": art.get("slug"), "error": str(e)})
 
-    with open(KB_FILE, "w", encoding="utf-8") as f:
-        json.dump(kb_articles, f, ensure_ascii=False, indent=2)
-
+    _save_kb(kb_articles)
     return jsonify({"status": "ok", "count": len(kb_articles), "errors": errors})
 
 
