@@ -264,7 +264,7 @@ const Index = () => {
 
   const fetchArticles = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/articles");
+      const res = await fetch(apiUrl("/api/articles"));
       if (res.ok) setArticles(await res.json());
     } catch {}
     setLoadingArticles(false);
@@ -272,7 +272,7 @@ const Index = () => {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch(apiUrl("/settings");
+      const res = await fetch(apiUrl("/settings"));
       if (res.ok) setSettings(await res.json());
     } catch {}
   };
@@ -280,7 +280,7 @@ const Index = () => {
   const fetchKbDraft = async () => {
     setKbDraftLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/kb-draft");
+      const res = await fetch(apiUrl("/api/kb-draft"));
       if (res.ok) {
         const data = await res.json();
         setKbDraft(data);
@@ -292,7 +292,7 @@ const Index = () => {
 
   const fetchSchedulerSettings = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/scheduler/settings");
+      const res = await fetch(apiUrl("/api/scheduler/settings"));
       if (res.ok) {
         const data = await res.json();
         setSchedulerSettings(prev => ({ ...prev, ...data }));
@@ -349,7 +349,7 @@ const Index = () => {
 
   const pollProgress = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/progress");
+      const res = await fetch(apiUrl("/api/progress"));
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
       setProgress(data);
@@ -512,7 +512,7 @@ const Index = () => {
   const fetchDbArticles = async () => {
     setDbLoading(true); setDbError("");
     try {
-      const res = await fetch(apiUrl("/api/db-articles");
+      const res = await fetch(apiUrl("/api/db-articles"));
       const data = await res.json();
       if (!res.ok) setDbError(data.error || "Gagal mengambil data.");
       else setDbArticles(data);

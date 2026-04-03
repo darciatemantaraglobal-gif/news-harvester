@@ -110,7 +110,7 @@ export default function ReviewDashboard() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/kb/stats");
+      const res = await fetch(apiUrl("/kb/stats"));
       if (res.ok) setStats(await res.json());
     } catch {}
   }, []);
