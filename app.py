@@ -47,6 +47,7 @@ scrape_state = {
     "success": 0,
     "partial": 0,
     "failed": 0,
+    "duplicate": 0,
     "logs": [],
     "articles": [],
 }
@@ -82,14 +83,29 @@ def _run_scrape(url: str, settings: dict, mode: str):
         scrape_state["success"] = 0
         scrape_state["partial"] = 0
         scrape_state["failed"] = 0
+        scrape_state["duplicate"] = 0
         scrape_state["logs"] = []
         scrape_state["articles"] = []
 
     try:
-        articles = scrape_all(url, settings=settings, mode=mode, progress_callback=_progress_callback)
-        _save_articles(articles)
+        # Load artikel yang sudah ada untuk cross-run deduplication
+        existing = _load_articles()
+
+        new_articles = scrape_all(
+            url,
+            settings=settings,
+            mode=mode,
+            existing_articles=existing,
+            progress_callback=_progress_callback,
+        )
+
+        # Gabungkan dengan artikel lama (skip URL yang sudah ada)
+        existing_urls = {a["url"] for a in existing}
+        merged = existing + [a for a in new_articles if a["url"] not in existing_urls]
+        _save_articles(merged)
+
         with state_lock:
-            scrape_state["articles"] = articles
+            scrape_state["articles"] = merged
             scrape_state["phase"] = "done"
     except Exception as e:
         with state_lock:
@@ -164,6 +180,7 @@ def api_progress():
             "success": scrape_state["success"],
             "partial": scrape_state["partial"],
             "failed": scrape_state["failed"],
+            "duplicate": scrape_state["duplicate"],
             "logs": scrape_state["logs"][-50:],  # kirim 50 log terakhir
         })
 
@@ -339,7 +356,8 @@ def export_kb():
 def export_csv():
     articles = _load_articles()
     si = io.StringIO()
-    writer = csv.DictWriter(si, fieldnames=["id", "title", "date", "url", "content", "status"], extrasaction="ignore")
+    fields = ["id", "title", "date", "url", "content", "status", "error_reason", "mode"]
+    writer = csv.DictWriter(si, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(articles)
     return Response(

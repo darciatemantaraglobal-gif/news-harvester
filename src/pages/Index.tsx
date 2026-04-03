@@ -23,7 +23,8 @@ interface Article {
   date: string;
   url: string;
   content: string;
-  status: "success" | "partial" | "failed";
+  status: "success" | "partial" | "failed" | "duplicate";
+  error_reason?: string;
   mode?: string;
 }
 
@@ -35,6 +36,7 @@ interface ScrapeProgress {
   success: number;
   partial: number;
   failed: number;
+  duplicate: number;
   logs: string[];
 }
 
@@ -60,11 +62,23 @@ const MODES = [
   { value: "kb", label: "KB Mode", desc: "Full article + langsung siap untuk Knowledge Base" },
 ];
 
+const ERROR_REASON_LABELS: Record<string, string> = {
+  timeout: "Timeout",
+  blocked: "Diblokir",
+  selector_not_found: "Selector Tidak Ditemukan",
+  empty_content: "Konten Kosong",
+  duplicate: "Duplikat",
+  request_failed: "Request Gagal",
+  parse_failed: "Parse Gagal",
+};
+
 const statusBadge = (status: Article["status"]) => {
   if (status === "success")
     return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">SUCCESS</Badge>;
   if (status === "partial")
     return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">PARTIAL</Badge>;
+  if (status === "duplicate")
+    return <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100">DUPLIKAT</Badge>;
   return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">FAILED</Badge>;
 };
 
@@ -83,7 +97,7 @@ const Index = () => {
   const [mode, setMode] = useState("full");
   const [progress, setProgress] = useState<ScrapeProgress>({
     running: false, phase: "idle", current: 0, total: 0,
-    success: 0, partial: 0, failed: 0, logs: [],
+    success: 0, partial: 0, failed: 0, duplicate: 0, logs: [],
   });
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
@@ -409,12 +423,13 @@ const Index = () => {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: "Total Ditemukan", value: progress.total || articles.length, color: "text-slate-900", testid: "stat-total" },
             { label: "Berhasil", value: progress.phase !== "idle" ? progress.success : articles.filter(a => a.status === "success").length, color: "text-emerald-600", testid: "stat-success" },
             { label: "Partial", value: progress.phase !== "idle" ? progress.partial : articles.filter(a => a.status === "partial").length, color: "text-yellow-500", testid: "stat-partial" },
             { label: "Gagal", value: progress.phase !== "idle" ? progress.failed : articles.filter(a => a.status === "failed").length, color: "text-red-500", testid: "stat-failed" },
+            { label: "Duplikat", value: progress.phase !== "idle" ? progress.duplicate : 0, color: "text-slate-400", testid: "stat-duplicate" },
           ].map(({ label, value, color, testid }) => (
             <Card key={label}>
               <CardContent className="pt-4">
@@ -464,12 +479,13 @@ const Index = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50">
-                      <th className="text-left px-6 py-3 font-medium text-slate-500 w-16">#</th>
+                      <th className="text-left px-6 py-3 font-medium text-slate-500 w-12">#</th>
                       <th className="text-left px-4 py-3 font-medium text-slate-500">Judul</th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-32">Tanggal</th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-24">Mode</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-28">Tanggal</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-20">Mode</th>
                       <th className="text-left px-4 py-3 font-medium text-slate-500 w-24">Status</th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-16">URL</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-40">Error Reason</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-12">URL</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -492,6 +508,18 @@ const Index = () => {
                           ) : "-"}
                         </td>
                         <td className="px-4 py-3">{statusBadge(article.status)}</td>
+                        <td className="px-4 py-3">
+                          {article.error_reason ? (
+                            <span
+                              data-testid={`reason-${article.id}`}
+                              className="text-xs bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded font-mono whitespace-nowrap"
+                            >
+                              {ERROR_REASON_LABELS[article.error_reason] ?? article.error_reason}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <a href={article.url} target="_blank" rel="noopener noreferrer"
                             data-testid={`link-source-${article.id}`}
