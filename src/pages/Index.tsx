@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink, BookOpen, CheckCircle2 } from "lucide-react";
+import { Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink, BookOpen, CheckCircle2, Sparkles, Database, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Article {
   id: string;
@@ -54,6 +55,16 @@ const Index = () => {
   const [kbConverting, setKbConverting] = useState(false);
   const [kbDone, setKbDone] = useState(false);
   const [kbError, setKbError] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiDone, setAiDone] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushDone, setPushDone] = useState(false);
+  const [pushCount, setPushCount] = useState(0);
+  const [pushError, setPushError] = useState("");
+  const [dbArticles, setDbArticles] = useState<any[]>([]);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbError, setDbError] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +132,53 @@ const Index = () => {
       pollRef.current = setInterval(pollProgress, 1000);
     } catch {
       setUrlError("Tidak bisa menghubungi server. Pastikan backend berjalan.");
+    }
+  };
+
+  const generateAiSummaries = async () => {
+    setAiLoading(true);
+    setAiError("");
+    setAiDone(false);
+    try {
+      const res = await fetch("/api/ai-summary-all", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) setAiError(data.error || "Gagal generate summary.");
+      else setAiDone(true);
+    } catch {
+      setAiError("Tidak bisa menghubungi server.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const pushToSupabase = async () => {
+    setPushLoading(true);
+    setPushError("");
+    setPushDone(false);
+    try {
+      const res = await fetch("/api/push-supabase", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) setPushError(data.error || "Gagal push ke Supabase.");
+      else { setPushDone(true); setPushCount(data.inserted || 0); }
+    } catch {
+      setPushError("Tidak bisa menghubungi server.");
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const fetchDbArticles = async () => {
+    setDbLoading(true);
+    setDbError("");
+    try {
+      const res = await fetch("/api/db-articles");
+      const data = await res.json();
+      if (!res.ok) setDbError(data.error || "Gagal mengambil data dari Supabase.");
+      else setDbArticles(data);
+    } catch {
+      setDbError("Tidak bisa menghubungi server.");
+    } finally {
+      setDbLoading(false);
     }
   };
 
@@ -365,64 +423,160 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Knowledge Base Conversion */}
+        {/* Knowledge Base + AI + Supabase */}
         {articles.length > 0 && (
           <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-indigo-600" />
-                <CardTitle className="text-base">Knowledge Base Format</CardTitle>
-              </div>
+                Knowledge Base & Database
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-slate-500">
-                Konversi {articles.length} artikel hasil scraping ke format KB dengan field:{" "}
-                <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">
-                  title, slug, source_url, published_date, content, summary, tags
-                </span>
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  data-testid="button-convert-kb"
-                  onClick={convertToKb}
-                  disabled={kbConverting || isRunning}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-                >
-                  {kbConverting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : kbDone ? (
-                    <CheckCircle2 className="w-4 h-4" />
-                  ) : (
-                    <BookOpen className="w-4 h-4" />
-                  )}
-                  {kbConverting ? "Mengkonversi..." : kbDone ? "Dikonversi!" : "Convert to KB Format"}
-                </Button>
+            <CardContent>
+              <Tabs defaultValue="kb">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="kb">
+                    <BookOpen className="w-4 h-4 mr-1.5" />
+                    KB Format
+                  </TabsTrigger>
+                  <TabsTrigger value="ai">
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    AI Summary
+                  </TabsTrigger>
+                  <TabsTrigger value="supabase">
+                    <Database className="w-4 h-4 mr-1.5" />
+                    Supabase
+                  </TabsTrigger>
+                </TabsList>
 
-                {kbDone && (
-                  <a href="/export/kb" download>
+                {/* Tab: KB Format */}
+                <TabsContent value="kb" className="space-y-3 mt-0">
+                  <p className="text-sm text-slate-500">
+                    Konversi {articles.length} artikel ke format KB dengan field:{" "}
+                    <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">
+                      title, slug, source_url, published_date, content, summary, tags
+                    </span>
+                  </p>
+                  <div className="flex flex-wrap gap-3">
                     <Button
-                      data-testid="button-download-kb"
-                      variant="outline"
-                      className="gap-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+                      data-testid="button-convert-kb"
+                      onClick={convertToKb}
+                      disabled={kbConverting || isRunning}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
                     >
-                      <FileJson className="w-4 h-4" />
-                      Download kb_articles.json
+                      {kbConverting ? <Loader2 className="w-4 h-4 animate-spin" /> : kbDone ? <CheckCircle2 className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+                      {kbConverting ? "Mengkonversi..." : kbDone ? "Dikonversi!" : "Convert to KB Format"}
                     </Button>
-                  </a>
-                )}
-              </div>
+                    {kbDone && (
+                      <a href="/export/kb" download>
+                        <Button data-testid="button-download-kb" variant="outline" className="gap-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50">
+                          <FileJson className="w-4 h-4" />
+                          Download kb_articles.json
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                  {kbError && <p data-testid="text-kb-error" className="text-red-500 text-sm">{kbError}</p>}
+                  {kbDone && (
+                    <p data-testid="text-kb-success" className="text-emerald-600 text-sm">
+                      Berhasil! Disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span>
+                    </p>
+                  )}
+                </TabsContent>
 
-              {kbError && (
-                <p data-testid="text-kb-error" className="text-red-500 text-sm">
-                  {kbError}
-                </p>
-              )}
+                {/* Tab: AI Summary */}
+                <TabsContent value="ai" className="space-y-3 mt-0">
+                  <p className="text-sm text-slate-500">
+                    Generate ringkasan AI (GPT-4o-mini) untuk semua artikel KB. Pastikan sudah Convert to KB Format terlebih dahulu.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      data-testid="button-ai-summary-all"
+                      onClick={generateAiSummaries}
+                      disabled={aiLoading || !kbDone}
+                      className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
+                    >
+                      {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : aiDone ? <CheckCircle2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                      {aiLoading ? "Generating..." : aiDone ? "Selesai!" : "Generate AI Summary"}
+                    </Button>
+                  </div>
+                  {!kbDone && <p className="text-xs text-slate-400">Jalankan "Convert to KB Format" terlebih dahulu.</p>}
+                  {aiError && <p data-testid="text-ai-error" className="text-red-500 text-sm">{aiError}</p>}
+                  {aiDone && (
+                    <p data-testid="text-ai-success" className="text-emerald-600 text-sm">
+                      AI summary berhasil di-generate dan disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span>
+                    </p>
+                  )}
+                </TabsContent>
 
-              {kbDone && (
-                <p data-testid="text-kb-success" className="text-emerald-600 text-sm">
-                  Berhasil dikonversi! File disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span>
-                </p>
-              )}
+                {/* Tab: Supabase */}
+                <TabsContent value="supabase" className="space-y-3 mt-0">
+                  <p className="text-sm text-slate-500">
+                    Push semua KB articles ke tabel <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">kb_articles</span> di Supabase.
+                    Pastikan sudah membuat tabel menggunakan SQL di <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">supabase_setup.sql</span>.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      data-testid="button-push-supabase"
+                      onClick={pushToSupabase}
+                      disabled={pushLoading || !kbDone}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                    >
+                      {pushLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : pushDone ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                      {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
+                    </Button>
+                    <Button
+                      data-testid="button-fetch-db"
+                      onClick={fetchDbArticles}
+                      disabled={dbLoading}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                      {dbLoading ? "Mengambil..." : "Lihat Data di DB"}
+                    </Button>
+                  </div>
+                  {!kbDone && <p className="text-xs text-slate-400">Jalankan "Convert to KB Format" terlebih dahulu.</p>}
+                  {pushError && <p data-testid="text-push-error" className="text-red-500 text-sm">{pushError}</p>}
+                  {pushDone && (
+                    <p data-testid="text-push-success" className="text-emerald-600 text-sm">
+                      Berhasil push {pushCount} artikel ke Supabase!
+                    </p>
+                  )}
+                  {dbError && <p data-testid="text-db-error" className="text-red-500 text-sm">{dbError}</p>}
+                  {dbArticles.length > 0 && (
+                    <div className="rounded-lg border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500 border-b">
+                        {dbArticles.length} artikel di Supabase
+                      </div>
+                      <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b bg-white">
+                              <th className="text-left px-4 py-2 text-slate-500">Judul</th>
+                              <th className="text-left px-4 py-2 text-slate-500 w-32">Tanggal</th>
+                              <th className="text-left px-4 py-2 text-slate-500 w-20">Tags</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dbArticles.map((a, i) => (
+                              <tr key={i} className="border-b hover:bg-slate-50">
+                                <td className="px-4 py-2 text-slate-900 font-medium line-clamp-1">{a.title || "(Tanpa Judul)"}</td>
+                                <td className="px-4 py-2 text-slate-500">{a.published_date || "-"}</td>
+                                <td className="px-4 py-2">
+                                  {(a.tags || []).map((t: string) => (
+                                    <span key={t} className="inline-block bg-indigo-100 text-indigo-600 text-xs px-1.5 py-0.5 rounded mr-1">{t}</span>
+                                  ))}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         )}

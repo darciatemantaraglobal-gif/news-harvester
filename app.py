@@ -3,6 +3,8 @@ import os, json, csv, io, threading, re, unicodedata
 from flask import Flask, render_template, request, jsonify, Response
 
 from scraper import scrape_all
+from ai_services import generate_ai_summary
+from db_services import push_kb_articles, fetch_kb_articles_from_db
 
 app = Flask(__name__)
 
@@ -193,6 +195,81 @@ def api_convert_kb():
         json.dump(kb_articles, f, ensure_ascii=False, indent=2)
 
     return jsonify({"status": "ok", "count": len(kb_articles)})
+
+
+@app.route("/api/push-supabase", methods=["POST"])
+def api_push_supabase():
+    """Push KB articles ke Supabase."""
+    if not os.path.exists(KB_FILE):
+        return jsonify({"error": "KB belum dikonversi. Jalankan Convert to KB Format terlebih dahulu."}), 400
+    with open(KB_FILE, "r", encoding="utf-8") as f:
+        kb_articles = json.load(f)
+    if not kb_articles:
+        return jsonify({"error": "KB kosong."}), 400
+    try:
+        result = push_kb_articles(kb_articles)
+        return jsonify({"status": "ok", "inserted": result["inserted"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai-summary", methods=["POST"])
+def api_ai_summary():
+    """Generate AI summary untuk satu artikel."""
+    data = request.get_json(force=True)
+    article_id = (data.get("id") or "").strip()
+    if not article_id:
+        return jsonify({"error": "ID artikel diperlukan."}), 400
+
+    articles = _load_articles()
+    article = next((a for a in articles if a["id"] == article_id), None)
+    if not article:
+        return jsonify({"error": "Artikel tidak ditemukan."}), 404
+
+    try:
+        summary = generate_ai_summary(
+            title=article.get("title") or "",
+            content=article.get("content") or "",
+        )
+        return jsonify({"status": "ok", "summary": summary})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai-summary-all", methods=["POST"])
+def api_ai_summary_all():
+    """Generate AI summary untuk semua artikel KB dan update KB file."""
+    if not os.path.exists(KB_FILE):
+        return jsonify({"error": "KB belum dikonversi."}), 400
+    with open(KB_FILE, "r", encoding="utf-8") as f:
+        kb_articles = json.load(f)
+    if not kb_articles:
+        return jsonify({"error": "KB kosong."}), 400
+
+    errors = []
+    for art in kb_articles:
+        try:
+            art["ai_summary"] = generate_ai_summary(
+                title=art.get("title") or "",
+                content=art.get("content") or "",
+            )
+        except Exception as e:
+            errors.append({"slug": art.get("slug"), "error": str(e)})
+
+    with open(KB_FILE, "w", encoding="utf-8") as f:
+        json.dump(kb_articles, f, ensure_ascii=False, indent=2)
+
+    return jsonify({"status": "ok", "count": len(kb_articles), "errors": errors})
+
+
+@app.route("/api/db-articles")
+def api_db_articles():
+    """Ambil semua artikel dari Supabase."""
+    try:
+        articles = fetch_kb_articles_from_db()
+        return jsonify(articles)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/export/kb")
