@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import {
   Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink,
   BookOpen, CheckCircle2, Sparkles, Database, Upload, Settings2,
@@ -7,6 +8,7 @@ import {
   ClipboardList, Download, RefreshCw, CheckSquare, Terminal,
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
+  LayoutList, FileCode2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,6 +223,7 @@ const Index = () => {
   const [justFinished, setJustFinished] = useState(false);
 
   // Results filter states
+  const [viewMode, setViewMode] = useState<"table" | "markdown">("table");
   const [titleFilter, setTitleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -752,12 +755,32 @@ const Index = () => {
                     </span>
                   )}
                 </div>
-                {articles.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={fetchArticles}
-                    className="gap-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 text-xs px-2 rounded-lg">
-                    <RefreshCw className="w-3.5 h-3.5" />Refresh
-                  </Button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {articles.length > 0 && (
+                    <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
+                      <button
+                        onClick={() => setViewMode("table")}
+                        title="Tampilan Tabel"
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "table" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+                        <LayoutList className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Tabel</span>
+                      </button>
+                      <button
+                        onClick={() => setViewMode("markdown")}
+                        title="Tampilan Markdown"
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+                        <FileCode2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Markdown</span>
+                      </button>
+                    </div>
+                  )}
+                  {articles.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={fetchArticles}
+                      className="gap-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 text-xs px-2 rounded-lg">
+                      <RefreshCw className="w-3.5 h-3.5" />Refresh
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Filter Bar */}
@@ -836,6 +859,58 @@ const Index = () => {
                     className="text-xs gap-1.5 h-8 border-slate-200 text-slate-500 hover:text-slate-800">
                     Hapus Semua Filter
                   </Button>
+                </div>
+              ) : viewMode === "markdown" ? (
+                <div className="divide-y divide-slate-100">
+                  {filteredArticles.map((article, i) => {
+                    const md = [
+                      `# ${article.title || "(Tanpa Judul)"}`,
+                      ``,
+                      `## Informasi Artikel`,
+                      ``,
+                      article.date ? `**Tanggal:** ${article.date}` : null,
+                      `**Sumber:** [${article.url}](${article.url})`,
+                      `**Status:** ${article.status}`,
+                      ``,
+                      `### Konten`,
+                      ``,
+                      article.content || "_Konten tidak tersedia._",
+                    ].filter(l => l !== null).join("\n");
+
+                    return (
+                      <div key={article.id} data-testid={`row-article-${article.id}`}
+                        className="px-5 py-5 hover:bg-indigo-50/30 transition-colors group">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <span className="text-[10px] text-slate-300 tabular-nums font-mono mt-1 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <StatusBadge status={article.status} />
+                            <Button data-testid={`button-detail-${article.id}`}
+                              size="sm" variant="outline"
+                              onClick={() => navigate(`/article/${article.id}`)}
+                              className="h-7 text-xs px-2 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
+                              <Eye className="w-3 h-3" />Detail
+                            </Button>
+                            <a href={article.url} target="_blank" rel="noopener noreferrer"
+                              data-testid={`link-source-${article.id}`}
+                              className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors">
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                        <div data-testid={`preview-${article.id}`}
+                          className="prose prose-sm max-w-none
+                            prose-h1:text-base prose-h1:font-bold prose-h1:text-slate-900 prose-h1:mb-2 prose-h1:mt-0
+                            prose-h2:text-xs prose-h2:font-semibold prose-h2:text-indigo-600 prose-h2:uppercase prose-h2:tracking-wide prose-h2:mb-1.5 prose-h2:mt-3
+                            prose-h3:text-xs prose-h3:font-semibold prose-h3:text-slate-600 prose-h3:mb-1 prose-h3:mt-2
+                            prose-p:text-xs prose-p:text-slate-500 prose-p:leading-relaxed prose-p:my-0
+                            prose-strong:text-slate-700 prose-strong:font-semibold
+                            prose-a:text-indigo-500 prose-a:no-underline hover:prose-a:underline
+                            prose-em:text-slate-400">
+                          <ReactMarkdown>{md}</ReactMarkdown>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
