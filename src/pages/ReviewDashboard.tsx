@@ -126,7 +126,7 @@ export default function ReviewDashboard() {
     try {
       const body: Record<string, string> = { id, status };
       if (notes !== undefined) body.notes = notes;
-      const res = await fetch(apiUrl("/kb/update-status", {
+      const res = await fetch(apiUrl("/kb/update-status"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -146,7 +146,7 @@ export default function ReviewDashboard() {
     if (!article || notes === (article.notes || "")) return;
     setSavingId(id);
     try {
-      await fetch(apiUrl("/kb/update-status", {
+      await fetch(apiUrl("/kb/update-status"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: article.approval_status, notes }),
@@ -161,7 +161,7 @@ export default function ReviewDashboard() {
     setBulkLoading(true);
     setBulkMsg("");
     try {
-      const res = await fetch(apiUrl("/kb/bulk-action", {
+      const res = await fetch(apiUrl("/kb/bulk-action"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selected), action }),

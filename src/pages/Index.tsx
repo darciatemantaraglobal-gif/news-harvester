@@ -303,7 +303,7 @@ const Index = () => {
   const saveSchedulerSettings = async () => {
     setSchedulerSaving(true);
     try {
-      const res = await fetch(apiUrl("/api/scheduler/settings", {
+      const res = await fetch(apiUrl("/api/scheduler/settings"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(schedulerSettings),
@@ -329,7 +329,7 @@ const Index = () => {
   const triggerRunNow = async () => {
     setSchedulerRunNow(true);
     try {
-      const res = await fetch(apiUrl("/api/scheduler/run-now", { method: "POST" });
+      const res = await fetch(apiUrl("/api/scheduler/run-now"), { method: "POST" });
       const data = await res.json();
       if (res.ok) {
         toast({ title: "Scraping dimulai", description: "Menggunakan URL dan mode dari pengaturan scheduler." });
@@ -391,7 +391,7 @@ const Index = () => {
         if (customStart) body.start_date = customStart;
         if (customEnd) body.end_date = customEnd;
       }
-      const res = await fetch(apiUrl("/api/scrape", {
+      const res = await fetch(apiUrl("/api/scrape"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -410,7 +410,7 @@ const Index = () => {
   const saveSettings = async () => {
     setSettingsSaving(true); setSettingsError("");
     try {
-      const res = await fetch(apiUrl("/settings", {
+      const res = await fetch(apiUrl("/settings"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
@@ -429,7 +429,7 @@ const Index = () => {
   const resetSettings = async () => {
     setSettings(DEFAULT_SETTINGS);
     try {
-      await fetch(apiUrl("/settings", {
+      await fetch(apiUrl("/settings"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(DEFAULT_SETTINGS),
@@ -441,7 +441,7 @@ const Index = () => {
   const doGenerateSummary = async () => {
     setSummaryLoading(true); setSummaryError(""); setSummaryDone(false); setSummaryResult(null);
     try {
-      const res = await fetch(apiUrl("/api/generate-summary", { method: "POST" });
+      const res = await fetch(apiUrl("/api/generate-summary"), { method: "POST" });
       const data = await res.json();
       if (!res.ok) setSummaryError(data.error || "Gagal generate summary.");
       else {
@@ -455,7 +455,7 @@ const Index = () => {
   const doAutoTag = async () => {
     setTagLoading(true); setTagError(""); setTagDone(false);
     try {
-      const res = await fetch(apiUrl("/api/auto-tag", { method: "POST" });
+      const res = await fetch(apiUrl("/api/auto-tag"), { method: "POST" });
       const data = await res.json();
       if (!res.ok) setTagError(data.error || "Gagal auto tag.");
       else {
@@ -469,7 +469,7 @@ const Index = () => {
   const doConvertKb = async () => {
     setKbLoading(true); setKbError(""); setKbDone(false);
     try {
-      const res = await fetch(apiUrl("/api/convert-kb", { method: "POST" });
+      const res = await fetch(apiUrl("/api/convert-kb"), { method: "POST" });
       const data = await res.json();
       if (!res.ok) setKbError(data.error || "Gagal mengkonversi.");
       else {
@@ -484,7 +484,7 @@ const Index = () => {
   const generateAiSummaries = async () => {
     setAiLoading(true); setAiError(""); setAiDone(false);
     try {
-      const res = await fetch(apiUrl("/api/ai-summary-all", { method: "POST" });
+      const res = await fetch(apiUrl("/api/ai-summary-all"), { method: "POST" });
       const data = await res.json();
       if (!res.ok) setAiError(data.error || "Gagal generate AI summary.");
       else {
@@ -498,7 +498,7 @@ const Index = () => {
   const pushToSupabase = async () => {
     setPushLoading(true); setPushError(""); setPushDone(false);
     try {
-      const res = await fetch(apiUrl("/api/push-supabase", { method: "POST" });
+      const res = await fetch(apiUrl("/api/push-supabase"), { method: "POST" });
       const data = await res.json();
       if (!res.ok) setPushError(data.error || "Gagal push ke Supabase.");
       else {
