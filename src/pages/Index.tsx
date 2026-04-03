@@ -1320,74 +1320,80 @@ const Index = () => {
           <div className="space-y-4 animate-slide-in-right animation-delay-300">
 
             {/* ── Live Log Panel ── */}
-            {showLog && (
-              <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-scale-in">
-                <div className="flex items-center justify-between px-4 py-3.5 border-b border-indigo-50">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
-                      <Terminal className="w-3.5 h-3.5 text-slate-500" />
-                    </div>
-                    <span className="text-sm font-bold text-slate-800">Log Proses</span>
-                    {isRunning && (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                        </span>
-                        Live
-                      </span>
-                    )}
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-scale-in">
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-indigo-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <Terminal className="w-3.5 h-3.5 text-slate-500" />
                   </div>
-                  {progress.phase === "scraping" && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
-                      <div className="w-16">
-                        <Progress value={pct} className="h-1" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status strip */}
-                <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 border-b border-slate-600">
-                  <Circle className="w-2 h-2 text-red-400 fill-red-400" />
-                  <Circle className="w-2 h-2 text-amber-400 fill-amber-400" />
-                  <Circle className="w-2 h-2 text-emerald-400 fill-emerald-400" />
-                  <span className="text-slate-400 text-[10px] ml-2 font-mono">{phaseLabel[progress.phase] || progress.phase}</span>
-                  {isRunning && <Loader2 className="w-3 h-3 text-slate-500 animate-spin ml-auto" />}
-                </div>
-
-                {/* Log lines */}
-                <div ref={logRef} data-testid="log-panel"
-                  className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
-                  {progress.logs.length === 0 ? (
-                    <p className="text-slate-600 text-xs">Menunggu log...</p>
-                  ) : (
-                    progress.logs.map((line, i) => (
-                      <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
-                        <span className="text-slate-700 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
-                        {line}
-                      </div>
-                    ))
-                  )}
+                  <span className="text-sm font-bold text-slate-800">Log Proses</span>
                   {isRunning && (
-                    <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
-                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                      <span className="animate-pulse">memproses...</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                      </span>
+                      Live
+                    </span>
                   )}
                 </div>
-
-                {progress.phase === "done" && (
-                  <div className="px-4 py-2.5 bg-slate-700 border-t border-slate-600 flex flex-wrap items-center gap-3 text-[11px]">
-                    <span className="text-emerald-400 font-medium">✓ {progress.success} berhasil</span>
-                    <span className="text-amber-400">⚠ {progress.partial} partial</span>
-                    <span className="text-red-400">✗ {progress.failed} gagal</span>
-                    <span className="text-slate-400">↺ {progress.duplicate} duplikat</span>
+                {progress.phase === "scraping" && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
+                    <div className="w-16">
+                      <Progress value={pct} className="h-1" />
+                    </div>
                   </div>
                 )}
               </div>
-            )}
+
+              {/* Status strip */}
+              <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 border-b border-slate-600">
+                <Circle className="w-2 h-2 text-red-400 fill-red-400" />
+                <Circle className="w-2 h-2 text-amber-400 fill-amber-400" />
+                <Circle className="w-2 h-2 text-emerald-400 fill-emerald-400" />
+                <span className="text-slate-400 text-[10px] ml-2 font-mono">
+                  {progress.phase === "idle" ? "Menunggu perintah scraping..." : (phaseLabel[progress.phase] || progress.phase)}
+                </span>
+                {isRunning && <Loader2 className="w-3 h-3 text-slate-500 animate-spin ml-auto" />}
+              </div>
+
+              {/* Log lines */}
+              <div ref={logRef} data-testid="log-panel"
+                className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
+                {progress.phase === "idle" || progress.logs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+                    <Terminal className="w-6 h-6 text-slate-700" />
+                    <p className="text-slate-600 text-xs leading-relaxed">
+                      Log scraping akan tampil di sini<br />
+                      <span className="text-slate-700">setelah kamu klik Mulai Scraping</span>
+                    </p>
+                  </div>
+                ) : (
+                  progress.logs.map((line, i) => (
+                    <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
+                      <span className="text-slate-700 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
+                      {line}
+                    </div>
+                  ))
+                )}
+                {isRunning && (
+                  <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                    <span className="animate-pulse">memproses...</span>
+                  </div>
+                )}
+              </div>
+
+              {progress.phase === "done" && (
+                <div className="px-4 py-2.5 bg-slate-700 border-t border-slate-600 flex flex-wrap items-center gap-3 text-[11px]">
+                  <span className="text-emerald-400 font-medium">✓ {progress.success} berhasil</span>
+                  <span className="text-amber-400">⚠ {progress.partial} partial</span>
+                  <span className="text-red-400">✗ {progress.failed} gagal</span>
+                  <span className="text-slate-400">↺ {progress.duplicate} duplikat</span>
+                </div>
+              )}
+            </div>
 
             {/* ── Scheduler Card ── */}
             <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover">
