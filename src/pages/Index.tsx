@@ -572,15 +572,13 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#EEF0FF] text-slate-900 pb-16 sm:pb-0">
+    <div className="flex h-screen overflow-hidden bg-[#f0f0f2] text-slate-900">
 
-      {/* ── Navbar ── */}
-      <header className="bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] sticky top-0 z-20 shadow-lg shadow-purple-900/40">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
-          {/* Brand */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10">
-              <img src="/AIGYPT.png" alt="AINA" className="w-6 h-6 object-contain" style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.4))" }} />
+      {/* ─── Left Icon Sidebar ─── */}
+      <aside className="w-[68px] shrink-0 bg-white border-r border-gray-100 flex flex-col items-center py-5 gap-3 z-20 shadow-sm">
+        {/* Logo */}
+        <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-3 shadow-md shadow-purple-900/20">
+          <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain" style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.5))" }} />
             </div>
             <div className="leading-none">
               <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
