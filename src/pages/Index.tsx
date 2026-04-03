@@ -8,7 +8,7 @@ import {
   ClipboardList, Download, RefreshCw, CheckSquare, Terminal,
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
-  LayoutList, FileCode2,
+  LayoutList, FileCode2, XCircle, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -718,19 +718,39 @@ const Index = () => {
           </div>
 
           {/* ── Stats Row ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
+          {/* Mobile: horizontal scroll · sm+: 5-col grid */}
+          <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
             {[
-              { label: "Total",    value: statTotal, numColor: "text-slate-800",   accent: "bg-slate-400",   testid: "stat-total" },
-              { label: "Berhasil", value: statSucc,  numColor: "text-emerald-700", accent: "bg-emerald-500", testid: "stat-success" },
-              { label: "Partial",  value: statPart,  numColor: "text-amber-700",   accent: "bg-amber-500",   testid: "stat-partial" },
-              { label: "Gagal",    value: statFail,  numColor: "text-red-600",     accent: "bg-red-500",     testid: "stat-failed" },
-              { label: "Duplikat", value: statDupe,  numColor: "text-slate-400",   accent: "bg-slate-300",   testid: "stat-duplicate" },
-            ].map(({ label, value, numColor, accent, testid }) => (
-              <div key={label} className="bg-white rounded-2xl shadow-sm overflow-hidden flex">
-                <div className={`w-1 shrink-0 ${accent}`} />
-                <div className="px-4 py-4 min-w-0 flex-1">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest leading-none">{label}</p>
-                  <p data-testid={testid} className={`text-2xl font-bold mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
+              { label: "Total",    value: statTotal, icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",    iconColor: "text-slate-500",   top: "bg-slate-300",    testid: "stat-total" },
+              { label: "Berhasil", value: statSucc,  icon: CheckCircle2, numColor: "text-emerald-600", iconBg: "bg-emerald-100",  iconColor: "text-emerald-600", top: "bg-emerald-400",  testid: "stat-success" },
+              { label: "Partial",  value: statPart,  icon: AlertCircle,  numColor: "text-amber-600",   iconBg: "bg-amber-100",    iconColor: "text-amber-500",   top: "bg-amber-400",    testid: "stat-partial" },
+              { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",      iconColor: "text-red-500",     top: "bg-red-400",      testid: "stat-failed" },
+              { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-600",  iconBg: "bg-violet-100",   iconColor: "text-violet-500",  top: "bg-violet-400",   testid: "stat-duplicate" },
+            ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid }) => (
+              <div key={label} className="snap-start shrink-0 w-[116px] sm:w-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+                {/* Coloured top accent */}
+                <div className={`h-[3px] w-full ${top}`} />
+
+                {/* Mobile layout: icon left, number+label right */}
+                <div className="sm:hidden flex items-center gap-2.5 px-3 py-2.5">
+                  <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className={`w-4 h-4 ${iconColor}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p data-testid={testid} className={`text-[22px] font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide mt-0.5 truncate">{label}</p>
+                  </div>
+                </div>
+
+                {/* Desktop layout: label+icon row, large number below */}
+                <div className="hidden sm:block px-3.5 xl:px-4 py-3 xl:py-3.5">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <p className="text-[9px] xl:text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
+                    <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center`}>
+                      <Icon className={`w-3 h-3 ${iconColor}`} />
+                    </div>
+                  </div>
+                  <p data-testid={testid} className={`text-2xl xl:text-3xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
                 </div>
               </div>
             ))}
