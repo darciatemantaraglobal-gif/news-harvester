@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronUp, Save, RotateCcw, Tag, AlignLeft,
   ClipboardList, Download, RefreshCw, CheckSquare, Terminal,
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
+  Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,36 @@ interface ScraperSettings {
   date_selector: string;
   content_selector: string;
 }
+
+interface SchedulerSettings {
+  enabled: boolean;
+  interval: "manual" | "daily" | "weekly";
+  day_of_week: string;
+  time_of_day: string;
+  url: string;
+  scrape_mode: string;
+  incremental: boolean;
+  last_run_at: string | null;
+  last_run_articles_added: number;
+  last_run_url: string;
+  last_run_mode: string;
+  next_run_at: string | null;
+}
+
+const DEFAULT_SCHEDULER_SETTINGS: SchedulerSettings = {
+  enabled: false,
+  interval: "manual",
+  day_of_week: "mon",
+  time_of_day: "06:00",
+  url: "",
+  scrape_mode: "full",
+  incremental: true,
+  last_run_at: null,
+  last_run_articles_added: 0,
+  last_run_url: "",
+  last_run_mode: "full",
+  next_run_at: null,
+};
 
 const DEFAULT_SETTINGS: ScraperSettings = {
   article_link_selector: 'a[href*="/berita/"]',
@@ -213,6 +244,12 @@ const Index = () => {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState("");
 
+  // Scheduler state
+  const [schedulerSettings, setSchedulerSettings] = useState<SchedulerSettings>(DEFAULT_SCHEDULER_SETTINGS);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [schedulerSaving, setSchedulerSaving] = useState(false);
+  const [schedulerRunNow, setSchedulerRunNow] = useState(false);
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
@@ -245,6 +282,59 @@ const Index = () => {
     setKbDraftLoading(false);
   };
 
+  const fetchSchedulerSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/scheduler/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setSchedulerSettings(prev => ({ ...prev, ...data }));
+      }
+    } catch {}
+  }, []);
+
+  const saveSchedulerSettings = async () => {
+    setSchedulerSaving(true);
+    try {
+      const res = await fetch("/api/scheduler/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(schedulerSettings),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSchedulerSettings(prev => ({ ...prev, ...data.settings }));
+        toast({
+          title: "Pengaturan disimpan",
+          description: schedulerSettings.interval === "manual"
+            ? "Scheduler dinonaktifkan (mode manual)."
+            : `Scraping dijadwalkan ${schedulerSettings.interval === "daily" ? "setiap hari" : "setiap minggu"} pukul ${schedulerSettings.time_of_day}.`,
+        });
+      } else {
+        toast({ title: "Gagal menyimpan", description: "Coba lagi.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Gagal menyimpan", description: "Tidak dapat terhubung ke server.", variant: "destructive" });
+    }
+    setSchedulerSaving(false);
+  };
+
+  const triggerRunNow = async () => {
+    setSchedulerRunNow(true);
+    try {
+      const res = await fetch("/api/scheduler/run-now", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Scraping dimulai", description: "Menggunakan URL dan mode dari pengaturan scheduler." });
+        await fetchArticles();
+      } else {
+        toast({ title: "Gagal", description: data.error || "Tidak bisa memulai scraping.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Gagal", description: "Tidak dapat terhubung ke server.", variant: "destructive" });
+    }
+    setSchedulerRunNow(false);
+  };
+
   const stopPoll = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
@@ -273,6 +363,7 @@ const Index = () => {
     fetchArticles();
     fetchSettings();
     fetchKbDraft();
+    fetchSchedulerSettings();
     pollProgress();
     return () => stopPoll();
   }, []);
@@ -782,6 +873,277 @@ const Index = () => {
             </Card>
           </div>
         )}
+
+        {/* ── Section: Scheduler ── */}
+        <div className="space-y-2">
+          {/* Header (collapsible trigger) */}
+          <button
+            onClick={() => setSchedulerOpen(o => !o)}
+            className="w-full flex items-center justify-between group"
+            data-testid="scheduler-toggle"
+          >
+            <div className="flex items-center gap-2">
+              <Timer className="w-4 h-4 text-indigo-500" />
+              <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Scheduler & Incremental</h2>
+              {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
+                <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-xs px-2 py-0.5">
+                  Aktif · {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
+                </Badge>
+              )}
+            </div>
+            <span className="text-slate-400 group-hover:text-slate-600">
+              {schedulerOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </span>
+          </button>
+
+          {schedulerOpen && (
+            <div className="space-y-3">
+              {/* ── Status cards ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Last Run */}
+                <Card className="shadow-none border-slate-200">
+                  <CardContent className="px-4 py-3 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Last Run</p>
+                      {schedulerSettings.last_run_at ? (
+                        <>
+                          <p className="text-sm font-semibold text-slate-700 tabular-nums">
+                            {new Date(schedulerSettings.last_run_at).toLocaleString("id-ID", {
+                              day: "2-digit", month: "short", year: "numeric",
+                              hour: "2-digit", minute: "2-digit",
+                            })}
+                          </p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {schedulerSettings.last_run_url || "–"}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">Belum pernah dijalankan</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Next Run */}
+                <Card className="shadow-none border-slate-200">
+                  <CardContent className="px-4 py-3 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5">
+                      <CalendarDays className="w-4 h-4 text-indigo-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Next Run</p>
+                      {schedulerSettings.next_run_at ? (
+                        <p className="text-sm font-semibold text-indigo-700 tabular-nums">
+                          {new Date(schedulerSettings.next_run_at).toLocaleString("id-ID", {
+                            day: "2-digit", month: "short", year: "numeric",
+                            hour: "2-digit", minute: "2-digit",
+                          })}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">
+                          {schedulerSettings.interval === "manual" ? "Mode manual" : "Tidak terjadwal"}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Articles last run */}
+                <Card className="shadow-none border-slate-200">
+                  <CardContent className="px-4 py-3 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                      <Newspaper className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Artikel Baru (Last Run)</p>
+                      <p className="text-2xl font-bold text-emerald-600 tabular-nums leading-none mt-0.5">
+                        {schedulerSettings.last_run_articles_added}
+                      </p>
+                      {schedulerSettings.last_run_mode && schedulerSettings.last_run_at && (
+                        <p className="text-xs text-slate-400 mt-0.5">Mode: {schedulerSettings.last_run_mode}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ── Settings card ── */}
+              <Card className="shadow-none border-slate-200">
+                <CardContent className="px-5 py-4 space-y-4">
+                  {/* Row 1: Interval + time */}
+                  <div className="flex flex-wrap items-end gap-4">
+                    {/* Interval */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-600">Mode Jadwal</Label>
+                      <Select
+                        value={schedulerSettings.interval}
+                        onValueChange={v => setSchedulerSettings(s => ({
+                          ...s,
+                          interval: v as "manual" | "daily" | "weekly",
+                          enabled: v !== "manual",
+                        }))}
+                      >
+                        <SelectTrigger data-testid="scheduler-interval" className="w-44 bg-slate-50 border-slate-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">Manual Only</SelectItem>
+                          <SelectItem value="daily">Daily (Harian)</SelectItem>
+                          <SelectItem value="weekly">Weekly (Mingguan)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Time of day (shown when not manual) */}
+                    {schedulerSettings.interval !== "manual" && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">Jam Eksekusi (WIB)</Label>
+                        <Input
+                          data-testid="scheduler-time"
+                          type="time"
+                          value={schedulerSettings.time_of_day}
+                          onChange={e => setSchedulerSettings(s => ({ ...s, time_of_day: e.target.value }))}
+                          className="w-32 bg-slate-50 border-slate-200"
+                        />
+                      </div>
+                    )}
+
+                    {/* Day of week (only for weekly) */}
+                    {schedulerSettings.interval === "weekly" && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">Hari</Label>
+                        <Select
+                          value={schedulerSettings.day_of_week}
+                          onValueChange={v => setSchedulerSettings(s => ({ ...s, day_of_week: v }))}
+                        >
+                          <SelectTrigger data-testid="scheduler-dow" className="w-36 bg-slate-50 border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[
+                              { v: "mon", l: "Senin" }, { v: "tue", l: "Selasa" },
+                              { v: "wed", l: "Rabu" }, { v: "thu", l: "Kamis" },
+                              { v: "fri", l: "Jumat" }, { v: "sat", l: "Sabtu" },
+                              { v: "sun", l: "Minggu" },
+                            ].map(d => (
+                              <SelectItem key={d.v} value={d.v}>{d.l}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 2: URL + Mode */}
+                  <div className="flex flex-wrap items-end gap-4">
+                    <div className="flex-1 space-y-1.5 min-w-[220px]">
+                      <Label className="text-xs font-semibold text-slate-600">URL Default Scheduler</Label>
+                      <Input
+                        data-testid="scheduler-url"
+                        type="url"
+                        placeholder="https://www.kemlu.go.id/cairo/berita"
+                        value={schedulerSettings.url}
+                        onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
+                        className="bg-slate-50 border-slate-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-600">Scrape Mode</Label>
+                      <Select
+                        value={schedulerSettings.scrape_mode}
+                        onValueChange={v => setSchedulerSettings(s => ({ ...s, scrape_mode: v }))}
+                      >
+                        <SelectTrigger data-testid="scheduler-mode" className="w-44 bg-slate-50 border-slate-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MODES.map(m => (
+                            <SelectItem key={m.value} value={m.value}>
+                              <div>
+                                <p className="font-medium text-sm">{m.label}</p>
+                                <p className="text-xs text-slate-400">{m.desc}</p>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Incremental toggle */}
+                  <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Incremental Scraping</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {schedulerSettings.incremental
+                          ? "Hanya ambil artikel baru — URL yang sudah ada di-skip otomatis."
+                          : "Full refresh — bersihkan data lama sebelum scraping baru."}
+                      </p>
+                    </div>
+                    <button
+                      data-testid="scheduler-incremental-toggle"
+                      onClick={() => setSchedulerSettings(s => ({ ...s, incremental: !s.incremental }))}
+                      className="shrink-0 ml-4"
+                    >
+                      {schedulerSettings.incremental
+                        ? <ToggleRight className="w-8 h-8 text-indigo-600" />
+                        : <ToggleLeft className="w-8 h-8 text-slate-400" />}
+                    </button>
+                  </div>
+
+                  {/* Row 4: Actions */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <Button
+                      data-testid="scheduler-save"
+                      onClick={saveSchedulerSettings}
+                      disabled={schedulerSaving}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                    >
+                      {schedulerSaving
+                        ? <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
+                        : <><Save className="w-4 h-4" />Simpan Pengaturan</>}
+                    </Button>
+                    <Button
+                      data-testid="scheduler-run-now"
+                      variant="outline"
+                      onClick={triggerRunNow}
+                      disabled={schedulerRunNow || !schedulerSettings.url.trim()}
+                      className="gap-2 border-slate-300"
+                      title={!schedulerSettings.url.trim() ? "Isi URL Scheduler terlebih dahulu" : ""}
+                    >
+                      {schedulerRunNow
+                        ? <><Loader2 className="w-4 h-4 animate-spin" />Memulai...</>
+                        : <><Play className="w-4 h-4" />Jalankan Sekarang</>}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={fetchSchedulerSettings}
+                      className="gap-1.5 text-slate-400 hover:text-slate-600 text-xs ml-auto"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />Refresh Status
+                    </Button>
+                  </div>
+
+                  {schedulerSettings.interval !== "manual" && schedulerSettings.enabled && (
+                    <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg">
+                      ✅ Scheduler aktif — scraping otomatis berjalan{" "}
+                      {schedulerSettings.interval === "daily"
+                        ? `setiap hari pukul ${schedulerSettings.time_of_day}`
+                        : `setiap ${
+                            ({ mon:"Senin",tue:"Selasa",wed:"Rabu",thu:"Kamis",fri:"Jumat",sat:"Sabtu",sun:"Minggu" })[schedulerSettings.day_of_week] || schedulerSettings.day_of_week
+                          } pukul ${schedulerSettings.time_of_day}`}{" "}
+                      WIB.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
 
         {/* ── Section: Results Table ── */}
         <div className="space-y-3">

@@ -72,7 +72,22 @@ A React + Vite frontend with a Flask Python backend for scraping Indonesian news
 
 ## Error Reasons
 
-- `timeout`, `blocked`, `request_failed`, `parse_failed`, `selector_not_found`, `empty_content`, `duplicate`
+- `timeout`, `blocked`, `request_failed`, `parse_failed`, `selector_not_found`, `empty_content`, `duplicate`, `date_unknown`
+
+## Scheduler
+
+- **Library**: APScheduler `BackgroundScheduler` (started on Flask startup)
+- **Config file**: `config/scheduler_settings.json`
+- **Intervals**: `manual` (no schedule), `daily` (CronTrigger), `weekly` (CronTrigger + day_of_week)
+- **Timezone**: Asia/Jakarta (WIB)
+- **Incremental mode**: skip URLs already in `data/scraped_articles.json`; full refresh clears existing data before scraping
+- **Logging**: `[SCHEDULED]` vs `[MANUAL]` prefix in scrape logs
+
+### Scheduler API
+- `GET /api/scheduler/settings` — full settings + next_run_at
+- `POST /api/scheduler/settings` — save and re-apply APScheduler job
+- `GET /api/scheduler/status` — live status (last_run, next_run, articles_added)
+- `POST /api/scheduler/run-now` — trigger scheduled scrape immediately
 
 ## KB Draft Format
 

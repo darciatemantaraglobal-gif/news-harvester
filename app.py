@@ -1,7 +1,9 @@
 # app.py — Flask server untuk News Scraper
-import os, json, csv, io, threading, re, unicodedata
+import os, json, csv, io, threading, re, unicodedata, logging
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, Response
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from scraper import scrape_all
 from ai_services import generate_ai_summary
@@ -11,9 +13,129 @@ from kb_processor import generate_slug, generate_summary, generate_tags, convert
 app = Flask(__name__)
 
 DATA_DIR = "data"
+CONFIG_DIR = "config"
 DATA_FILE = os.path.join(DATA_DIR, "scraped_articles.json")
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
+SCHEDULER_FILE = os.path.join(CONFIG_DIR, "scheduler_settings.json")
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(CONFIG_DIR, exist_ok=True)
+
+DEFAULT_SCHEDULER = {
+    "enabled": False,
+    "interval": "manual",   # "manual" | "daily" | "weekly"
+    "day_of_week": "mon",   # used when weekly (mon/tue/wed/thu/fri/sat/sun)
+    "time_of_day": "06:00", # HH:MM
+    "url": "",
+    "scrape_mode": "full",  # "full" | "kb"
+    "incremental": True,
+    "last_run_at": None,
+    "last_run_articles_added": 0,
+    "last_run_url": "",
+    "last_run_mode": "full",
+}
+
+# APScheduler — background, survives across requests
+_scheduler = BackgroundScheduler(timezone="Asia/Jakarta")
+_scheduler.start()
+
+
+def _load_scheduler_settings() -> dict:
+    if os.path.exists(SCHEDULER_FILE):
+        try:
+            with open(SCHEDULER_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                return {**DEFAULT_SCHEDULER, **saved}
+        except Exception:
+            pass
+    return dict(DEFAULT_SCHEDULER)
+
+
+def _save_scheduler_settings(data: dict):
+    with open(SCHEDULER_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _next_run_iso() -> str | None:
+    """Kembalikan waktu eksekusi berikutnya dari APScheduler sebagai ISO string."""
+    job = _scheduler.get_job("scheduled_scrape")
+    if job and job.next_run_time:
+        return job.next_run_time.strftime("%Y-%m-%dT%H:%M:%S")
+    return None
+
+
+def _run_scheduled_scrape():
+    """Dipanggil oleh APScheduler. Gunakan settings yang tersimpan."""
+    cfg = _load_scheduler_settings()
+    url = cfg.get("url", "").strip()
+    mode = cfg.get("scrape_mode", "full")
+    incremental = cfg.get("incremental", True)
+
+    if not url:
+        logging.warning("[SCHEDULER] URL belum dikonfigurasi, scraping dibatalkan.")
+        return
+
+    with state_lock:
+        if scrape_state["running"]:
+            logging.warning("[SCHEDULER] Scraping sedang berjalan, jadwal dilewati.")
+            return
+
+    logging.info(f"[SCHEDULER] Memulai scraping terjadwal: {url} | mode={mode} | incremental={incremental}")
+    settings = _load_settings()
+
+    # Hitung artikel sebelum
+    before_count = len(_load_articles())
+
+    _run_scrape(url, settings, mode,
+                scheduled=True, incremental=incremental)
+
+    # Hitung artikel baru
+    after_count = len(_load_articles())
+    added = max(0, after_count - before_count)
+
+    cfg = _load_scheduler_settings()
+    cfg["last_run_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    cfg["last_run_articles_added"] = added
+    cfg["last_run_url"] = url
+    cfg["last_run_mode"] = mode
+    _save_scheduler_settings(cfg)
+    logging.info(f"[SCHEDULER] Selesai. {added} artikel baru ditambahkan.")
+
+
+def _apply_scheduler(cfg: dict):
+    """Terapkan job APScheduler sesuai settings. Hapus job lama dahulu."""
+    _scheduler.remove_job("scheduled_scrape") if _scheduler.get_job("scheduled_scrape") else None
+
+    if not cfg.get("enabled") or cfg.get("interval") == "manual":
+        return  # Tidak ada jadwal
+
+    time_str = cfg.get("time_of_day", "06:00")
+    try:
+        h, m = time_str.split(":")
+        hour, minute = int(h), int(m)
+    except Exception:
+        hour, minute = 6, 0
+
+    interval = cfg.get("interval")
+    if interval == "daily":
+        trigger = CronTrigger(hour=hour, minute=minute, timezone="Asia/Jakarta")
+    elif interval == "weekly":
+        dow = cfg.get("day_of_week", "mon")
+        trigger = CronTrigger(day_of_week=dow, hour=hour, minute=minute, timezone="Asia/Jakarta")
+    else:
+        return
+
+    _scheduler.add_job(
+        _run_scheduled_scrape,
+        trigger=trigger,
+        id="scheduled_scrape",
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
+    logging.info(f"[SCHEDULER] Job terdaftar: interval={interval}, jam={hour:02d}:{minute:02d}")
+
+
+# Terapkan scheduler dari settings yang tersimpan saat startup
+_apply_scheduler(_load_scheduler_settings())
 
 DEFAULT_SETTINGS = {
     "article_link_selector": 'a[href*="/berita/"]',
@@ -77,7 +199,9 @@ def _progress_callback(msg, **kwargs):
 
 
 def _run_scrape(url: str, settings: dict, mode: str,
-                start_date: date | None = None, end_date: date | None = None):
+                start_date: date | None = None, end_date: date | None = None,
+                incremental: bool = True, scheduled: bool = False):
+    run_label = "[SCHEDULED]" if scheduled else "[MANUAL]"
     with state_lock:
         scrape_state["running"] = True
         scrape_state["phase"] = "listing"
@@ -87,12 +211,14 @@ def _run_scrape(url: str, settings: dict, mode: str,
         scrape_state["partial"] = 0
         scrape_state["failed"] = 0
         scrape_state["duplicate"] = 0
-        scrape_state["logs"] = []
+        scrape_state["logs"] = [f"{run_label} Memulai scraping: {url}"]
         scrape_state["articles"] = []
 
     try:
-        # Load artikel yang sudah ada untuk cross-run deduplication
-        existing = _load_articles()
+        # Incremental: load existing untuk deduplication; Full refresh: start clean
+        existing = _load_articles() if incremental else []
+        if not incremental:
+            _progress_callback(f"{run_label} Mode full refresh — data lama dibersihkan.")
 
         new_articles = scrape_all(
             url,
@@ -586,6 +712,67 @@ def export_kb_exported():
         mimetype="application/json",
         headers={"Content-Disposition": "attachment; filename=kb_exported.json"},
     )
+
+
+# ─── Scheduler API ───────────────────────────────────────────────────────────
+
+@app.route("/api/scheduler/settings", methods=["GET"])
+def scheduler_get_settings():
+    cfg = _load_scheduler_settings()
+    cfg["next_run_at"] = _next_run_iso()
+    return jsonify(cfg)
+
+
+@app.route("/api/scheduler/settings", methods=["POST"])
+def scheduler_post_settings():
+    data = request.get_json(force=True)
+    cfg = _load_scheduler_settings()
+
+    allowed = {"enabled", "interval", "day_of_week", "time_of_day",
+               "url", "scrape_mode", "incremental"}
+    for k in allowed:
+        if k in data:
+            cfg[k] = data[k]
+
+    # Validasi interval
+    if cfg["interval"] not in ("manual", "daily", "weekly"):
+        cfg["interval"] = "manual"
+    if cfg["interval"] == "manual":
+        cfg["enabled"] = False
+
+    _save_scheduler_settings(cfg)
+    _apply_scheduler(cfg)
+
+    cfg["next_run_at"] = _next_run_iso()
+    return jsonify({"status": "ok", "settings": cfg})
+
+
+@app.route("/api/scheduler/status", methods=["GET"])
+def scheduler_status():
+    cfg = _load_scheduler_settings()
+    return jsonify({
+        "enabled": cfg.get("enabled", False),
+        "interval": cfg.get("interval", "manual"),
+        "last_run_at": cfg.get("last_run_at"),
+        "last_run_articles_added": cfg.get("last_run_articles_added", 0),
+        "last_run_url": cfg.get("last_run_url", ""),
+        "last_run_mode": cfg.get("last_run_mode", "full"),
+        "next_run_at": _next_run_iso(),
+        "scraper_running": scrape_state["running"],
+    })
+
+
+@app.route("/api/scheduler/run-now", methods=["POST"])
+def scheduler_run_now():
+    """Jalankan scheduled scrape sekarang juga (manual trigger)."""
+    with state_lock:
+        if scrape_state["running"]:
+            return jsonify({"error": "Scraping sedang berjalan"}), 409
+    cfg = _load_scheduler_settings()
+    if not cfg.get("url", "").strip():
+        return jsonify({"error": "URL scheduler belum dikonfigurasi"}), 400
+    threading.Thread(target=_run_scheduled_scrape, daemon=True).start()
+    return jsonify({"status": "started"})
 
 
 if __name__ == "__main__":

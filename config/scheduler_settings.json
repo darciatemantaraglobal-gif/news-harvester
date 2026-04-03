@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "interval": "manual",
+  "day_of_week": "mon",
+  "time_of_day": "07:30",
+  "url": "",
+  "scrape_mode": "full",
+  "incremental": true,
+  "last_run_at": null,
+  "last_run_articles_added": 0,
+  "last_run_url": "",
+  "last_run_mode": "full",
+  "next_run_at": null
+}
