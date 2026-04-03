@@ -147,21 +147,37 @@ const SELECTOR_FIELDS: { key: keyof ScraperSettings; label: string; hint: string
 
 function StatusBadge({ status }: { status: Article["status"] }) {
   if (status === "success")
-    return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-xs font-semibold">Berhasil</Badge>;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />Berhasil
+      </span>
+    );
   if (status === "partial")
-    return <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs font-semibold">Partial</Badge>;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />Partial
+      </span>
+    );
   if (status === "duplicate")
-    return <Badge className="bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-100 text-xs font-semibold">Duplikat</Badge>;
-  return <Badge className="bg-red-100 text-red-600 border-red-200 hover:bg-red-100 text-xs font-semibold">Gagal</Badge>;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />Duplikat
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />Gagal
+    </span>
+  );
 }
 
 function StepBadge({ n, done }: { n: number; done?: boolean }) {
   return done ? (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white shrink-0">
-      <CheckCircle2 className="w-3.5 h-3.5" />
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shrink-0 shadow-sm">
+      <CheckCircle2 className="w-4 h-4" />
     </span>
   ) : (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">{n}</span>
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0 shadow-sm">{n}</span>
   );
 }
 
@@ -608,7 +624,7 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-7 space-y-6">
+      <main className="max-w-screen-xl mx-auto px-6 py-8 space-y-5">
 
         {/* ── Hero: URL + Mode + Start ── */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
@@ -702,17 +718,17 @@ const Index = () => {
         {/* ── Stats Row ── */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {[
-            { label: "Total",    value: statTotal, color: "text-slate-800",   bg: "bg-slate-100",   icon: <BarChart3 className="w-4 h-4 text-slate-500" />,   testid: "stat-total" },
-            { label: "Berhasil", value: statSucc,  color: "text-emerald-700", bg: "bg-emerald-100", icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />, testid: "stat-success" },
-            { label: "Partial",  value: statPart,  color: "text-amber-700",   bg: "bg-amber-100",   icon: <AlertCircle className="w-4 h-4 text-amber-500" />,   testid: "stat-partial" },
-            { label: "Gagal",    value: statFail,  color: "text-red-600",     bg: "bg-red-100",     icon: <AlertCircle className="w-4 h-4 text-red-500" />,     testid: "stat-failed" },
-            { label: "Duplikat", value: statDupe,  color: "text-slate-500",   bg: "bg-slate-100",   icon: <RefreshCw className="w-4 h-4 text-slate-400" />,     testid: "stat-duplicate" },
-          ].map(({ label, value, color, bg, icon, testid }) => (
-            <div key={label} className="bg-white rounded-xl border border-slate-200 px-4 py-4 flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
-              <div className="min-w-0">
-                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide leading-none">{label}</p>
-                <p data-testid={testid} className={`text-2xl font-bold mt-1 leading-none tabular-nums ${color}`}>{value}</p>
+            { label: "Total",    value: statTotal, numColor: "text-slate-800",   accent: "bg-slate-400",    testid: "stat-total" },
+            { label: "Berhasil", value: statSucc,  numColor: "text-emerald-700", accent: "bg-emerald-500",  testid: "stat-success" },
+            { label: "Partial",  value: statPart,  numColor: "text-amber-700",   accent: "bg-amber-500",    testid: "stat-partial" },
+            { label: "Gagal",    value: statFail,  numColor: "text-red-600",     accent: "bg-red-500",      testid: "stat-failed" },
+            { label: "Duplikat", value: statDupe,  numColor: "text-slate-400",   accent: "bg-slate-300",    testid: "stat-duplicate" },
+          ].map(({ label, value, numColor, accent, testid }) => (
+            <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex">
+              <div className={`w-1 shrink-0 ${accent}`} />
+              <div className="px-4 py-4 min-w-0">
+                <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest leading-none">{label}</p>
+                <p data-testid={testid} className={`text-[26px] font-bold mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
               </div>
             </div>
           ))}
@@ -788,30 +804,37 @@ const Index = () => {
 
               {/* Table Body */}
               {loadingArticles ? (
-                <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm">Memuat data...</span>
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <div className="relative w-10 h-10">
+                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-indigo-400 animate-spin" />
+                  </div>
+                  <p className="text-sm text-slate-500">Memuat artikel...</p>
                 </div>
               ) : articles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center py-20 gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center shadow-inner">
                     <Newspaper className="w-7 h-7 text-slate-300" />
                   </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-semibold text-slate-600">Belum ada artikel</p>
-                    <p className="text-xs text-slate-400">Masukkan URL berita di atas lalu klik <strong>Mulai Scraping</strong></p>
+                  <div className="text-center space-y-1.5">
+                    <p className="text-sm font-semibold text-slate-700">Belum ada artikel</p>
+                    <p className="text-xs text-slate-400 max-w-xs">Masukkan URL halaman berita di atas, pilih mode, lalu klik <strong className="text-slate-600">Mulai Scraping</strong></p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5">
+                    <Zap className="w-3 h-3 text-indigo-400" />
+                    Scraping → Stats → KB Pipeline
                   </div>
                 </div>
               ) : filteredArticles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center py-14 gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
                     <AlertCircle className="w-5 h-5 text-slate-300" />
                   </div>
                   <div className="text-center space-y-1">
-                    <p className="text-sm font-semibold text-slate-600">Tidak ada hasil</p>
-                    <p className="text-xs text-slate-400">{articles.length} artikel tersimpan, tidak ada yang cocok filter.</p>
+                    <p className="text-sm font-semibold text-slate-700">Tidak ada hasil yang cocok</p>
+                    <p className="text-xs text-slate-400">{articles.length} artikel tersimpan, tapi tidak ada yang cocok filter aktif.</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs gap-1.5 h-8">
+                  <Button variant="outline" size="sm" onClick={clearFilters}
+                    className="text-xs gap-1.5 h-8 border-slate-200 text-slate-500 hover:text-slate-800">
                     Hapus Semua Filter
                   </Button>
                 </div>
@@ -819,53 +842,53 @@ const Index = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px]">
+                      <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px]">
                         <th className="text-left px-5 py-3 font-semibold text-slate-400 w-9">#</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500">Artikel</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-44">Preview</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-26">Tanggal</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-20">Status</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-24">Aksi</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Artikel</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-44">Preview</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Tanggal</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-20">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-24">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-50">
                       {filteredArticles.map((article, i) => (
                         <tr key={article.id} data-testid={`row-article-${article.id}`}
-                          className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/30" : ""}`}>
-                          <td className="px-5 py-3.5 text-slate-300 text-xs tabular-nums">{i + 1}</td>
-                          <td className="px-4 py-3.5 max-w-[200px]">
+                          className="hover:bg-slate-50/70 transition-colors align-top group">
+                          <td className="px-5 py-4 text-slate-300 text-xs tabular-nums">{i + 1}</td>
+                          <td className="px-4 py-4 max-w-[220px]">
                             <button data-testid={`link-article-${article.id}`}
                               onClick={() => navigate(`/article/${article.id}`)}
-                              className="text-slate-800 hover:text-indigo-600 text-left font-medium text-xs line-clamp-2 transition-colors leading-snug">
+                              className="text-slate-800 hover:text-indigo-600 text-left font-medium text-xs line-clamp-2 transition-colors leading-snug group-hover:text-indigo-600">
                               {article.title || "(Tanpa Judul)"}
                             </button>
                             {article.error_reason && (
-                              <span className="mt-1 inline-block text-[10px] text-orange-500 bg-orange-50 border border-orange-100 px-1.5 py-px rounded font-mono">
+                              <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-px rounded-full font-medium">
                                 {ERROR_REASON_LABELS[article.error_reason] ?? article.error_reason}
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3.5 w-44">
+                          <td className="px-4 py-4 w-44">
                             <p data-testid={`preview-${article.id}`}
                               className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
                               {article.content
                                 ? article.content.slice(0, 160) + (article.content.length > 160 ? "…" : "")
-                                : <span className="italic">—</span>}
+                                : <span className="italic text-slate-300">—</span>}
                             </p>
                           </td>
-                          <td className="px-4 py-3.5 text-slate-400 text-xs whitespace-nowrap">{article.date || "—"}</td>
-                          <td className="px-4 py-3.5"><StatusBadge status={article.status} /></td>
-                          <td className="px-4 py-3.5">
+                          <td className="px-4 py-4 text-slate-400 text-xs whitespace-nowrap tabular-nums">{article.date || "—"}</td>
+                          <td className="px-4 py-4"><StatusBadge status={article.status} /></td>
+                          <td className="px-4 py-4">
                             <div className="flex items-center gap-1.5">
                               <Button data-testid={`button-detail-${article.id}`}
                                 size="sm" variant="outline"
                                 onClick={() => navigate(`/article/${article.id}`)}
-                                className="h-7 text-xs px-2.5 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 gap-1">
+                                className="h-7 text-xs px-2.5 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
                                 <Eye className="w-3 h-3" />Detail
                               </Button>
                               <a href={article.url} target="_blank" rel="noopener noreferrer"
                                 data-testid={`link-source-${article.id}`}
-                                className="flex items-center justify-center w-7 h-7 rounded border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 transition-colors">
+                                className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors">
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             </div>
@@ -909,16 +932,21 @@ const Index = () => {
               </div>
 
               {articles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-slate-300" />
+                <div className="flex flex-col items-center justify-center py-16 gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-50 border border-indigo-100 flex items-center justify-center shadow-inner">
+                    <BookOpen className="w-7 h-7 text-indigo-300" />
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-slate-500">Pipeline belum tersedia</p>
-                    <p className="text-xs text-slate-400 mt-1">Lakukan scraping terlebih dahulu</p>
+                  <div className="text-center space-y-1.5">
+                    <p className="text-sm font-semibold text-slate-700">Pipeline belum tersedia</p>
+                    <p className="text-xs text-slate-400">Lakukan scraping terlebih dahulu untuk mengaktifkan KB Pipeline</p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-4 py-1.5 mt-1">
-                    <ArrowRight className="w-3 h-3" />Scraping → Summary → Tag → KB Draft → Review
+                  <div className="flex items-center gap-2 text-[11px] flex-wrap justify-center">
+                    {["Scraping", "Summary", "Auto Tag", "KB Draft", "Review"].map((s, i, arr) => (
+                      <span key={s} className="flex items-center gap-2">
+                        <span className="text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-medium">{s}</span>
+                        {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-slate-300" />}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ) : (
@@ -937,79 +965,100 @@ const Index = () => {
                     </TabsList>
 
                     {/* KB Draft Tab */}
-                    <TabsContent value="kb-draft" className="space-y-3 mt-0">
-                      {/* Step 1 */}
-                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${summaryDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200"}`}>
-                        <div className="flex items-start gap-3">
-                          <StepBadge n={1} done={summaryDone} />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-slate-800">Generate Summary</h3>
-                            <p className="text-xs text-slate-500 mt-0.5">Buat ringkasan 2–4 kalimat secara otomatis untuk artikel yang belum memiliki summary.</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 pl-9">
-                          <Button data-testid="button-generate-summary" onClick={doGenerateSummary}
-                            disabled={summaryLoading || isRunning} size="sm"
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8">
-                            {summaryLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : summaryDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlignLeft className="w-3.5 h-3.5" />}
-                            {summaryLoading ? "Generating..." : summaryDone ? "Done" : "Generate Summary"}
-                          </Button>
-                          {summaryDone && summaryResult && (
-                            <span className="text-xs text-emerald-600">{summaryResult.updated} dari {summaryResult.total} artikel</span>
-                          )}
-                          {summaryError && <span className="text-xs text-red-500">{summaryError}</span>}
-                        </div>
-                      </div>
+                    <TabsContent value="kb-draft" className="mt-0">
+                      {/* Steps container with connector line */}
+                      <div className="relative space-y-0">
+                        {/* Vertical connector line */}
+                        <div className="absolute left-[13.5px] top-7 bottom-7 w-px bg-slate-200 z-0" />
 
-                      {/* Step 2 */}
-                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${tagDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200"}`}>
-                        <div className="flex items-start gap-3">
-                          <StepBadge n={2} done={tagDone} />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-slate-800">Auto Tagging</h3>
-                            <p className="text-xs text-slate-500 mt-0.5">Generate tags otomatis: paspor, visa, iqomah, kbri, palestina, beasiswa, dll.</p>
+                        {/* Step 1 */}
+                        <div className="relative z-10 pb-3">
+                          <div className={`border rounded-xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "border-emerald-200 bg-emerald-50/30 shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : "border-slate-200 bg-white"}`}>
+                            <div className="flex items-start gap-3">
+                              <StepBadge n={1} done={summaryDone} />
+                              <div className="flex-1 min-w-0 pt-0.5">
+                                <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                                  Generate Summary
+                                  {summaryDone && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Selesai</span>}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Buat ringkasan 2–4 kalimat secara otomatis untuk artikel yang belum memiliki summary.</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 pl-10">
+                              <Button data-testid="button-generate-summary" onClick={doGenerateSummary}
+                                disabled={summaryLoading || isRunning} size="sm"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8 shadow-sm">
+                                {summaryLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : summaryDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlignLeft className="w-3.5 h-3.5" />}
+                                {summaryLoading ? "Generating..." : summaryDone ? "Re-generate" : "Generate Summary"}
+                              </Button>
+                              {summaryDone && summaryResult && (
+                                <span className="text-xs text-emerald-600 font-medium">{summaryResult.updated} dari {summaryResult.total} artikel diberi summary</span>
+                              )}
+                              {summaryError && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{summaryError}</span>}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 pl-9">
-                          <Button data-testid="button-auto-tag" onClick={doAutoTag}
-                            disabled={tagLoading || isRunning} size="sm"
-                            className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-8">
-                            {tagLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : tagDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Tag className="w-3.5 h-3.5" />}
-                            {tagLoading ? "Tagging..." : tagDone ? "Tagged" : "Auto Tag"}
-                          </Button>
-                          {tagDone && <span className="text-xs text-emerald-600">Semua artikel berhasil di-tag.</span>}
-                          {tagError && <span className="text-xs text-red-500">{tagError}</span>}
-                        </div>
-                      </div>
 
-                      {/* Step 3 */}
-                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${kbDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200"}`}>
-                        <div className="flex items-start gap-3">
-                          <StepBadge n={3} done={kbDone} />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-slate-800">Convert to KB Draft</h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                              Konversi artikel success/partial ke format KB draft AINA. Status awal:{" "}
-                              <span className="font-mono bg-yellow-50 text-yellow-700 px-1 rounded">pending</span>.
-                            </p>
+                        {/* Step 2 */}
+                        <div className="relative z-10 pb-3">
+                          <div className={`border rounded-xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "border-emerald-200 bg-emerald-50/30 shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : "border-slate-200 bg-white"}`}>
+                            <div className="flex items-start gap-3">
+                              <StepBadge n={2} done={tagDone} />
+                              <div className="flex-1 min-w-0 pt-0.5">
+                                <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                                  Auto Tagging
+                                  {tagDone && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Selesai</span>}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Generate tags otomatis: paspor, visa, iqomah, kbri, palestina, beasiswa, dll.</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 pl-10">
+                              <Button data-testid="button-auto-tag" onClick={doAutoTag}
+                                disabled={tagLoading || isRunning} size="sm"
+                                className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-8 shadow-sm">
+                                {tagLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : tagDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Tag className="w-3.5 h-3.5" />}
+                                {tagLoading ? "Tagging..." : tagDone ? "Re-tag" : "Auto Tag"}
+                              </Button>
+                              {tagDone && <span className="text-xs text-emerald-600 font-medium">Semua artikel berhasil di-tag.</span>}
+                              {tagError && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{tagError}</span>}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 pl-9">
-                          <Button data-testid="button-convert-kb" onClick={doConvertKb}
-                            disabled={kbLoading || isRunning || eligibleArticles.length === 0}
-                            size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8">
-                            {kbLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : kbDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}
-                            {kbLoading ? "Mengkonversi..." : kbDone ? `${kbDraft.length} artikel di-draft` : "Convert to KB Draft"}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={fetchKbDraft} disabled={kbDraftLoading}
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
-                            <RefreshCw className={`w-3.5 h-3.5 ${kbDraftLoading ? "animate-spin" : ""}`} />
-                          </Button>
+
+                        {/* Step 3 */}
+                        <div className="relative z-10">
+                          <div className={`border rounded-xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "border-emerald-200 bg-emerald-50/30 shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : "border-slate-200 bg-white"}`}>
+                            <div className="flex items-start gap-3">
+                              <StepBadge n={3} done={kbDone} />
+                              <div className="flex-1 min-w-0 pt-0.5">
+                                <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                                  Convert to KB Draft
+                                  {kbDone && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">{kbDraft.length} artikel</span>}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                  Konversi artikel success/partial ke format KB draft AINA. Status awal:{" "}
+                                  <span className="font-mono text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-px rounded-full text-[10px] font-medium">pending</span>.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 pl-10">
+                              <Button data-testid="button-convert-kb" onClick={doConvertKb}
+                                disabled={kbLoading || isRunning || eligibleArticles.length === 0}
+                                size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 shadow-sm">
+                                {kbLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : kbDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}
+                                {kbLoading ? "Mengkonversi..." : kbDone ? "Re-convert" : "Convert to KB Draft"}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={fetchKbDraft} disabled={kbDraftLoading}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
+                                <RefreshCw className={`w-3.5 h-3.5 ${kbDraftLoading ? "animate-spin" : ""}`} />
+                              </Button>
+                            </div>
+                            {kbError && <p data-testid="text-kb-error" className="text-red-500 text-xs pl-10 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{kbError}</p>}
+                            {eligibleArticles.length === 0 && !kbDone && (
+                              <p className="text-xs text-slate-400 pl-10 italic">Tidak ada artikel success/partial untuk dikonversi.</p>
+                            )}
+                          </div>
                         </div>
-                        {kbError && <p data-testid="text-kb-error" className="text-red-500 text-xs pl-9">{kbError}</p>}
-                        {eligibleArticles.length === 0 && (
-                          <p className="text-xs text-slate-400 pl-9">Tidak ada artikel success/partial untuk dikonversi.</p>
-                        )}
                       </div>
 
                       {/* KB Draft Preview */}
