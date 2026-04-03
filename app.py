@@ -1,5 +1,6 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, Response
 
 from scraper import scrape_all
@@ -212,6 +213,20 @@ def export_json():
 
 
 KB_FILE = os.path.join(DATA_DIR, "kb_articles.json")
+KB_APPROVED_FILE = os.path.join(DATA_DIR, "kb_approved.json")
+KB_EXPORTED_FILE = os.path.join(DATA_DIR, "kb_exported.json")
+
+VALID_STATUSES = {"pending", "reviewed", "approved", "rejected", "exported"}
+BULK_ACTION_MAP = {
+    "mark_reviewed": "reviewed",
+    "approve": "approved",
+    "reject": "rejected",
+    "export": "exported",
+}
+
+
+def _now_iso() -> str:
+    return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def _load_kb() -> list:
@@ -227,6 +242,36 @@ def _load_kb() -> list:
 def _save_kb(data: list):
     with open(KB_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _load_file(path: str) -> list:
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+def _save_file(path: str, data: list):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _sync_article_to(path: str, article: dict):
+    """Upsert artikel ke file JSON (approved atau exported)."""
+    items = _load_file(path)
+    art_id = article.get("id")
+    replaced = False
+    for i, item in enumerate(items):
+        if item.get("id") == art_id:
+            items[i] = article
+            replaced = True
+            break
+    if not replaced:
+        items.append(article)
+    _save_file(path, items)
 
 
 @app.route("/api/generate-summary", methods=["POST"])
@@ -270,12 +315,23 @@ def api_convert_kb():
     if not articles:
         return jsonify({"error": "Belum ada artikel untuk dikonversi."}), 400
 
-    # Hanya konversi artikel yang berhasil / partial (skip failed)
     eligible = [a for a in articles if a.get("status") in ("success", "partial")]
     if not eligible:
         return jsonify({"error": "Tidak ada artikel dengan status success/partial."}), 400
 
-    kb_articles = [convert_to_kb_format(a) for a in eligible]
+    now = _now_iso()
+    # Preserve existing status/notes if re-converting
+    existing_kb = {a["id"]: a for a in _load_kb() if a.get("id")}
+
+    kb_articles = []
+    for a in eligible:
+        kb = convert_to_kb_format(a)
+        prev = existing_kb.get(kb["id"], {})
+        kb["approval_status"] = prev.get("approval_status", "pending")
+        kb["last_updated"] = prev.get("last_updated", now)
+        kb["notes"] = prev.get("notes", "")
+        kb_articles.append(kb)
+
     _save_kb(kb_articles)
     return jsonify({"status": "ok", "count": len(kb_articles)})
 
@@ -384,6 +440,115 @@ def export_csv():
         si.getvalue(),
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=scraped_articles.csv"},
+    )
+
+
+# ─── KB Review Workflow ───────────────────────────────────────────────────────
+
+@app.route("/kb-drafts")
+def kb_drafts():
+    """Ambil semua KB draft, dengan optional filter ?status=pending|reviewed|approved|rejected|exported."""
+    status_filter = request.args.get("status", "").strip().lower()
+    kb = _load_kb()
+    if status_filter and status_filter != "all":
+        kb = [a for a in kb if a.get("approval_status") == status_filter]
+    return jsonify(kb)
+
+
+@app.route("/kb/update-status", methods=["POST"])
+def kb_update_status():
+    """Update status dan/atau notes satu artikel KB."""
+    data = request.get_json(force=True)
+    article_id = (data.get("id") or "").strip()
+    new_status = (data.get("status") or "").strip()
+    notes = data.get("notes")
+
+    if new_status not in VALID_STATUSES:
+        return jsonify({"error": f"Status tidak valid: {new_status}. Pilih: {', '.join(VALID_STATUSES)}"}), 400
+
+    kb = _load_kb()
+    article = next((a for a in kb if a.get("id") == article_id), None)
+    if not article:
+        return jsonify({"error": "Artikel tidak ditemukan"}), 404
+
+    article["approval_status"] = new_status
+    article["last_updated"] = _now_iso()
+    if notes is not None:
+        article["notes"] = str(notes)
+
+    _save_kb(kb)
+
+    # Sync ke file approved/exported
+    if new_status == "approved":
+        _sync_article_to(KB_APPROVED_FILE, article)
+    elif new_status == "exported":
+        _sync_article_to(KB_EXPORTED_FILE, article)
+
+    return jsonify({"status": "ok", "article": article})
+
+
+@app.route("/kb/bulk-action", methods=["POST"])
+def kb_bulk_action():
+    """Ubah status banyak artikel sekaligus."""
+    data = request.get_json(force=True)
+    ids = data.get("ids", [])
+    action = (data.get("action") or "").strip()
+
+    if action not in BULK_ACTION_MAP:
+        return jsonify({"error": f"Action tidak valid: {action}. Pilih: {', '.join(BULK_ACTION_MAP)}"}), 400
+    if not ids:
+        return jsonify({"error": "Tidak ada ID yang dipilih"}), 400
+
+    new_status = BULK_ACTION_MAP[action]
+    id_set = set(ids)
+    kb = _load_kb()
+    now = _now_iso()
+    updated = 0
+
+    for a in kb:
+        if a.get("id") in id_set:
+            a["approval_status"] = new_status
+            a["last_updated"] = now
+            updated += 1
+            if new_status == "approved":
+                _sync_article_to(KB_APPROVED_FILE, a)
+            elif new_status == "exported":
+                _sync_article_to(KB_EXPORTED_FILE, a)
+
+    _save_kb(kb)
+    return jsonify({"status": "ok", "updated": updated, "new_status": new_status})
+
+
+@app.route("/kb/stats")
+def kb_stats():
+    """Hitung jumlah artikel per status."""
+    kb = _load_kb()
+    counts: dict[str, int] = {s: 0 for s in VALID_STATUSES}
+    counts["total"] = len(kb)
+    for a in kb:
+        s = a.get("approval_status", "pending")
+        if s in counts:
+            counts[s] += 1
+    return jsonify(counts)
+
+
+@app.route("/export/kb-approved")
+def export_kb_approved():
+    items = _load_file(KB_APPROVED_FILE)
+    return Response(
+        json.dumps(items, ensure_ascii=False, indent=2),
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=kb_approved.json"},
+    )
+
+
+@app.route("/export/kb-exported")
+def export_kb_exported():
+    items = _load_file(KB_EXPORTED_FILE)
+    return Response(
+        json.dumps(items, ensure_ascii=False, indent=2),
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=kb_exported.json"},
     )
 
 

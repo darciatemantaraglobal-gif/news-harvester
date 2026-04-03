@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink,
   BookOpen, CheckCircle2, Sparkles, Database, Upload, Settings2,
   ChevronDown, ChevronUp, Save, RotateCcw, Tag, AlignLeft,
-  ClipboardList, Download, RefreshCw,
+  ClipboardList, Download, RefreshCw, CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -351,14 +351,22 @@ const Index = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <Newspaper className="w-5 h-5 text-white" />
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <Newspaper className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900">News Scraper</h1>
+              <p className="text-xs text-slate-500">Internal scraping tool — AINA KB Pipeline</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">News Scraper</h1>
-            <p className="text-xs text-slate-500">Internal scraping tool — AINA KB Pipeline</p>
-          </div>
+          <Link to="/review">
+            <Button data-testid="link-review-dashboard" variant="outline" size="sm"
+              className="gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+              <CheckSquare className="w-4 h-4" />Review KB Draft
+            </Button>
+          </Link>
         </div>
       </header>
 

@@ -23,6 +23,14 @@ export default defineConfig({
         target: "http://localhost:8000",
         changeOrigin: true,
       },
+      "/kb-drafts": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+      "/kb": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [react()],
