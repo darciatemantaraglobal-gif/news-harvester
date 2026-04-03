@@ -10,7 +10,33 @@ app = Flask(__name__)
 
 DATA_DIR = "data"
 DATA_FILE = os.path.join(DATA_DIR, "scraped_articles.json")
+SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 os.makedirs(DATA_DIR, exist_ok=True)
+
+DEFAULT_SETTINGS = {
+    "article_link_selector": 'a[href*="/berita/"]',
+    "next_page_selector": 'a[rel="next"], a.next, .pagination a',
+    "title_selector": "h1, h2, .title, .news-title, .post-title",
+    "date_selector": ".date, .news-date, time, .published-date, .post-date",
+    "content_selector": ".ck-content, .post-content, .news-content, .article-content, .content, article, .entry-content",
+}
+
+
+def _load_settings() -> dict:
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                merged = {**DEFAULT_SETTINGS, **saved}
+                return merged
+        except Exception:
+            pass
+    return dict(DEFAULT_SETTINGS)
+
+
+def _save_settings(data: dict):
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 # State global untuk progress tracking
 scrape_state = {
@@ -47,7 +73,7 @@ def _progress_callback(msg, **kwargs):
                 scrape_state[k] = v
 
 
-def _run_scrape(url: str):
+def _run_scrape(url: str, settings: dict, mode: str):
     with state_lock:
         scrape_state["running"] = True
         scrape_state["phase"] = "listing"
@@ -60,7 +86,7 @@ def _run_scrape(url: str):
         scrape_state["articles"] = []
 
     try:
-        articles = scrape_all(url, progress_callback=_progress_callback)
+        articles = scrape_all(url, settings=settings, mode=mode, progress_callback=_progress_callback)
         _save_articles(articles)
         with state_lock:
             scrape_state["articles"] = articles
@@ -88,6 +114,26 @@ def article_detail(article_id):
     return render_template("article.html", article=article)
 
 
+@app.route("/settings", methods=["GET"])
+def get_settings():
+    return jsonify(_load_settings())
+
+
+@app.route("/settings", methods=["POST"])
+def post_settings():
+    data = request.get_json(force=True)
+    allowed_keys = {
+        "article_link_selector", "next_page_selector",
+        "title_selector", "date_selector", "content_selector",
+    }
+    current = _load_settings()
+    for k in allowed_keys:
+        if k in data:
+            current[k] = str(data[k]).strip()
+    _save_settings(current)
+    return jsonify({"status": "ok", "settings": current})
+
+
 @app.route("/api/scrape", methods=["POST"])
 def api_scrape():
     with state_lock:
@@ -95,11 +141,15 @@ def api_scrape():
             return jsonify({"error": "Scraping sedang berjalan"}), 409
     data = request.get_json(force=True)
     url = (data.get("url") or "").strip()
+    mode = (data.get("mode") or "full").strip()
+    if mode not in ("list", "full", "kb"):
+        mode = "full"
     if not url:
         return jsonify({"error": "URL tidak boleh kosong"}), 400
     if not url.startswith("http"):
         return jsonify({"error": "URL tidak valid, harus dimulai dengan http:// atau https://"}), 400
-    threading.Thread(target=_run_scrape, args=(url,), daemon=True).start()
+    settings = _load_settings()
+    threading.Thread(target=_run_scrape, args=(url, settings, mode), daemon=True).start()
     return jsonify({"status": "started"})
 
 

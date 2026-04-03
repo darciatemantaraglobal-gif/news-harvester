@@ -1,12 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink, BookOpen, CheckCircle2, Sparkles, Database, Upload } from "lucide-react";
+import {
+  Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink,
+  BookOpen, CheckCircle2, Sparkles, Database, Upload, Settings2,
+  ChevronDown, ChevronUp, Save, RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 interface Article {
   id: string;
@@ -15,6 +24,7 @@ interface Article {
   url: string;
   content: string;
   status: "success" | "partial" | "failed";
+  mode?: string;
 }
 
 interface ScrapeProgress {
@@ -28,6 +38,28 @@ interface ScrapeProgress {
   logs: string[];
 }
 
+interface ScraperSettings {
+  article_link_selector: string;
+  next_page_selector: string;
+  title_selector: string;
+  date_selector: string;
+  content_selector: string;
+}
+
+const DEFAULT_SETTINGS: ScraperSettings = {
+  article_link_selector: 'a[href*="/berita/"]',
+  next_page_selector: 'a[rel="next"], a.next, .pagination a',
+  title_selector: "h1, h2, .title, .news-title, .post-title",
+  date_selector: ".date, .news-date, time, .published-date, .post-date",
+  content_selector: ".ck-content, .post-content, .news-content, .article-content, .content, article, .entry-content",
+};
+
+const MODES = [
+  { value: "list", label: "List Only", desc: "Ambil title, date & URL saja (cepat)" },
+  { value: "full", label: "Full Article", desc: "Ambil title, date, URL & konten lengkap" },
+  { value: "kb", label: "KB Mode", desc: "Full article + langsung siap untuk Knowledge Base" },
+];
+
 const statusBadge = (status: Article["status"]) => {
   if (status === "success")
     return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">SUCCESS</Badge>;
@@ -36,22 +68,34 @@ const statusBadge = (status: Article["status"]) => {
   return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">FAILED</Badge>;
 };
 
+const SELECTOR_FIELDS: { key: keyof ScraperSettings; label: string; hint: string }[] = [
+  { key: "article_link_selector", label: "Article Link Selector", hint: "Selector untuk link artikel di halaman list. Pisahkan dengan koma untuk beberapa kandidat." },
+  { key: "next_page_selector", label: "Next Page Selector", hint: "Selector untuk tombol halaman berikutnya (pagination)." },
+  { key: "title_selector", label: "Title Selector", hint: "Selector untuk judul artikel." },
+  { key: "date_selector", label: "Date Selector", hint: "Selector untuk tanggal artikel." },
+  { key: "content_selector", label: "Content Selector", hint: "Selector untuk konten/isi artikel." },
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
+  const [mode, setMode] = useState("full");
   const [progress, setProgress] = useState<ScrapeProgress>({
-    running: false,
-    phase: "idle",
-    current: 0,
-    total: 0,
-    success: 0,
-    partial: 0,
-    failed: 0,
-    logs: [],
+    running: false, phase: "idle", current: 0, total: 0,
+    success: 0, partial: 0, failed: 0, logs: [],
   });
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
+
+  // Settings state
+  const [settings, setSettings] = useState<ScraperSettings>(DEFAULT_SETTINGS);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
+
+  // KB / AI / Supabase state
   const [kbConverting, setKbConverting] = useState(false);
   const [kbDone, setKbDone] = useState(false);
   const [kbError, setKbError] = useState("");
@@ -65,18 +109,23 @@ const Index = () => {
   const [dbArticles, setDbArticles] = useState<any[]>([]);
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState("");
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const fetchArticles = async () => {
     try {
       const res = await fetch("/api/articles");
-      if (res.ok) {
-        const data = await res.json();
-        setArticles(data);
-      }
+      if (res.ok) setArticles(await res.json());
     } catch {}
     setLoadingArticles(false);
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/settings");
+      if (res.ok) setSettings(await res.json());
+    } catch {}
   };
 
   const pollProgress = async () => {
@@ -85,9 +134,7 @@ const Index = () => {
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
       setProgress(data);
-      if (logRef.current) {
-        logRef.current.scrollTop = logRef.current.scrollHeight;
-      }
+      if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
       if (!data.running && data.phase === "done") {
         stopPoll();
         fetchArticles();
@@ -96,120 +143,115 @@ const Index = () => {
   };
 
   const stopPoll = () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
 
   useEffect(() => {
     fetchArticles();
+    fetchSettings();
     pollProgress();
     return () => stopPoll();
   }, []);
 
   const startScrape = async () => {
     setUrlError("");
-    if (!url.trim()) {
-      setUrlError("URL tidak boleh kosong.");
-      return;
-    }
-    if (!url.startsWith("http")) {
-      setUrlError("URL tidak valid, harus dimulai dengan http:// atau https://");
-      return;
-    }
+    if (!url.trim()) { setUrlError("URL tidak boleh kosong."); return; }
+    if (!url.startsWith("http")) { setUrlError("URL tidak valid, harus dimulai dengan http:// atau https://"); return; }
     try {
       const res = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, mode }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setUrlError(data.error || "Terjadi kesalahan.");
-        return;
-      }
+      if (!res.ok) { setUrlError(data.error || "Terjadi kesalahan."); return; }
       pollRef.current = setInterval(pollProgress, 1000);
     } catch {
       setUrlError("Tidak bisa menghubungi server. Pastikan backend berjalan.");
     }
   };
 
+  const saveSettings = async () => {
+    setSettingsSaving(true);
+    setSettingsError("");
+    setSettingsSaved(false);
+    try {
+      const res = await fetch("/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json();
+      if (!res.ok) setSettingsError(data.error || "Gagal menyimpan settings.");
+      else { setSettings(data.settings); setSettingsSaved(true); setTimeout(() => setSettingsSaved(false), 3000); }
+    } catch {
+      setSettingsError("Tidak bisa menghubungi server.");
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const resetSettings = async () => {
+    setSettings(DEFAULT_SETTINGS);
+    try {
+      await fetch("/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(DEFAULT_SETTINGS),
+      });
+    } catch {}
+  };
+
   const generateAiSummaries = async () => {
-    setAiLoading(true);
-    setAiError("");
-    setAiDone(false);
+    setAiLoading(true); setAiError(""); setAiDone(false);
     try {
       const res = await fetch("/api/ai-summary-all", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setAiError(data.error || "Gagal generate summary.");
       else setAiDone(true);
-    } catch {
-      setAiError("Tidak bisa menghubungi server.");
-    } finally {
-      setAiLoading(false);
-    }
+    } catch { setAiError("Tidak bisa menghubungi server."); }
+    finally { setAiLoading(false); }
   };
 
   const pushToSupabase = async () => {
-    setPushLoading(true);
-    setPushError("");
-    setPushDone(false);
+    setPushLoading(true); setPushError(""); setPushDone(false);
     try {
       const res = await fetch("/api/push-supabase", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setPushError(data.error || "Gagal push ke Supabase.");
       else { setPushDone(true); setPushCount(data.inserted || 0); }
-    } catch {
-      setPushError("Tidak bisa menghubungi server.");
-    } finally {
-      setPushLoading(false);
-    }
+    } catch { setPushError("Tidak bisa menghubungi server."); }
+    finally { setPushLoading(false); }
   };
 
   const fetchDbArticles = async () => {
-    setDbLoading(true);
-    setDbError("");
+    setDbLoading(true); setDbError("");
     try {
       const res = await fetch("/api/db-articles");
       const data = await res.json();
-      if (!res.ok) setDbError(data.error || "Gagal mengambil data dari Supabase.");
+      if (!res.ok) setDbError(data.error || "Gagal mengambil data.");
       else setDbArticles(data);
-    } catch {
-      setDbError("Tidak bisa menghubungi server.");
-    } finally {
-      setDbLoading(false);
-    }
+    } catch { setDbError("Tidak bisa menghubungi server."); }
+    finally { setDbLoading(false); }
   };
 
   const convertToKb = async () => {
-    setKbConverting(true);
-    setKbError("");
-    setKbDone(false);
+    setKbConverting(true); setKbError(""); setKbDone(false);
     try {
       const res = await fetch("/api/convert-kb", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) {
-        setKbError(data.error || "Gagal mengkonversi.");
-      } else {
-        setKbDone(true);
-      }
-    } catch {
-      setKbError("Tidak bisa menghubungi server.");
-    } finally {
-      setKbConverting(false);
-    }
+      if (!res.ok) setKbError(data.error || "Gagal mengkonversi.");
+      else setKbDone(true);
+    } catch { setKbError("Tidak bisa menghubungi server."); }
+    finally { setKbConverting(false); }
   };
 
   const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
   const isRunning = progress.running;
   const showProgress = progress.phase !== "idle";
-
   const phaseLabel: Record<string, string> = {
-    idle: "Siap",
-    listing: "Mengumpulkan daftar artikel...",
-    scraping: `Scraping artikel ${progress.current} / ${progress.total}`,
-    done: "Selesai!",
+    idle: "Siap", listing: "Mengumpulkan daftar artikel...",
+    scraping: `Scraping artikel ${progress.current} / ${progress.total}`, done: "Selesai!",
   };
 
   return (
@@ -227,40 +269,121 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Input Section */}
+      <main className="max-w-7xl mx-auto px-6 py-6 space-y-5">
+
+        {/* Scraper Settings Card */}
+        <Card>
+          <CardHeader className="pb-2 cursor-pointer select-none" onClick={() => setSettingsOpen(v => !v)}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-slate-500" />
+                <CardTitle className="text-sm font-semibold text-slate-700">Scraper Settings</CardTitle>
+                <span className="text-xs text-slate-400">— konfigurasi selector HTML</span>
+              </div>
+              {settingsOpen
+                ? <ChevronUp className="w-4 h-4 text-slate-400" />
+                : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </div>
+          </CardHeader>
+
+          {settingsOpen && (
+            <CardContent className="pt-0 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {SELECTOR_FIELDS.map(({ key, label, hint }) => (
+                  <div key={key} className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-600">{label}</Label>
+                    <Textarea
+                      data-testid={`input-${key}`}
+                      rows={2}
+                      value={settings[key]}
+                      onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
+                      className="font-mono text-xs resize-none"
+                      placeholder={DEFAULT_SETTINGS[key]}
+                    />
+                    <p className="text-xs text-slate-400">{hint}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <Button
+                  data-testid="button-save-settings"
+                  onClick={saveSettings}
+                  disabled={settingsSaving}
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
+                >
+                  {settingsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : settingsSaved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                  {settingsSaved ? "Tersimpan!" : "Simpan Settings"}
+                </Button>
+                <Button
+                  data-testid="button-reset-settings"
+                  onClick={resetSettings}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-slate-600"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset ke Default
+                </Button>
+                {settingsError && <p className="text-xs text-red-500">{settingsError}</p>}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Input + Mode */}
         <Card>
           <CardContent className="pt-5">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              URL Halaman Berita
-            </label>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  data-testid="input-url"
-                  type="url"
-                  placeholder="https://www.kemlu.go.id/cairo/berita"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !isRunning && startScrape()}
+            <div className="space-y-3">
+              <Label className="block text-sm font-semibold text-slate-700">URL Halaman Berita</Label>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Input
+                    data-testid="input-url"
+                    type="url"
+                    placeholder="https://www.kemlu.go.id/cairo/berita"
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
+                    disabled={isRunning}
+                    className={urlError ? "border-red-400 focus-visible:ring-red-400" : ""}
+                  />
+                  {urlError && <p className="text-red-500 text-xs mt-1">{urlError}</p>}
+                </div>
+
+                {/* Mode dropdown */}
+                <Select value={mode} onValueChange={setMode} disabled={isRunning}>
+                  <SelectTrigger data-testid="select-mode" className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODES.map(m => (
+                      <SelectItem key={m.value} value={m.value}>
+                        <div>
+                          <p className="font-medium text-sm">{m.label}</p>
+                          <p className="text-xs text-slate-400">{m.desc}</p>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  data-testid="button-start-scrape"
+                  onClick={startScrape}
                   disabled={isRunning}
-                  className={urlError ? "border-red-400 focus-visible:ring-red-400" : ""}
-                />
-                {urlError && <p className="text-red-500 text-xs mt-1">{urlError}</p>}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
+                >
+                  {isRunning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
+                  {isRunning ? "Sedang Scraping..." : "Start Scraping"}
+                </Button>
               </div>
-              <Button
-                data-testid="button-start-scrape"
-                onClick={startScrape}
-                disabled={isRunning}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
-              >
-                {isRunning ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="w-4 h-4 mr-2" />
-                )}
-                {isRunning ? "Sedang Scraping..." : "Start Scraping"}
-              </Button>
+
+              {/* Mode description hint */}
+              <p className="text-xs text-slate-400">
+                Mode: <span className="font-medium text-slate-600">{MODES.find(m => m.value === mode)?.label}</span>
+                {" — "}{MODES.find(m => m.value === mode)?.desc}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -270,26 +393,14 @@ const Index = () => {
           <Card>
             <CardContent className="pt-5 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">
-                  {phaseLabel[progress.phase] || progress.phase}
-                </span>
-                {progress.phase === "scraping" && (
-                  <span className="text-sm text-slate-500">{pct}%</span>
-                )}
+                <span className="text-sm font-medium text-slate-700">{phaseLabel[progress.phase] || progress.phase}</span>
+                {progress.phase === "scraping" && <span className="text-sm text-slate-500">{pct}%</span>}
               </div>
-              {progress.phase === "scraping" && (
-                <Progress value={pct} className="h-2.5" />
-              )}
+              {progress.phase === "scraping" && <Progress value={pct} className="h-2.5" />}
               {progress.logs.length > 0 && (
-                <div
-                  ref={logRef}
-                  data-testid="log-panel"
-                  className="bg-slate-900 rounded-lg p-3 max-h-48 overflow-y-auto"
-                >
+                <div ref={logRef} data-testid="log-panel" className="bg-slate-900 rounded-lg p-3 max-h-48 overflow-y-auto">
                   {progress.logs.map((log, i) => (
-                    <p key={i} className="text-xs text-slate-300 font-mono leading-relaxed">
-                      {log}
-                    </p>
+                    <p key={i} className="text-xs text-slate-300 font-mono leading-relaxed">{log}</p>
                   ))}
                 </div>
               )}
@@ -299,38 +410,19 @@ const Index = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Total Ditemukan</p>
-              <p data-testid="stat-total" className="text-2xl font-bold text-slate-900 mt-1">
-                {progress.total || articles.length}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Berhasil</p>
-              <p data-testid="stat-success" className="text-2xl font-bold text-emerald-600 mt-1">
-                {progress.phase !== "idle" ? progress.success : articles.filter((a) => a.status === "success").length}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Partial</p>
-              <p data-testid="stat-partial" className="text-2xl font-bold text-yellow-500 mt-1">
-                {progress.phase !== "idle" ? progress.partial : articles.filter((a) => a.status === "partial").length}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Gagal</p>
-              <p data-testid="stat-failed" className="text-2xl font-bold text-red-500 mt-1">
-                {progress.phase !== "idle" ? progress.failed : articles.filter((a) => a.status === "failed").length}
-              </p>
-            </CardContent>
-          </Card>
+          {[
+            { label: "Total Ditemukan", value: progress.total || articles.length, color: "text-slate-900", testid: "stat-total" },
+            { label: "Berhasil", value: progress.phase !== "idle" ? progress.success : articles.filter(a => a.status === "success").length, color: "text-emerald-600", testid: "stat-success" },
+            { label: "Partial", value: progress.phase !== "idle" ? progress.partial : articles.filter(a => a.status === "partial").length, color: "text-yellow-500", testid: "stat-partial" },
+            { label: "Gagal", value: progress.phase !== "idle" ? progress.failed : articles.filter(a => a.status === "failed").length, color: "text-red-500", testid: "stat-failed" },
+          ].map(({ label, value, color, testid }) => (
+            <Card key={label}>
+              <CardContent className="pt-4">
+                <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+                <p data-testid={testid} className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Articles Table */}
@@ -339,22 +431,18 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">
                 Artikel Terscrape
-                {articles.length > 0 && (
-                  <span className="ml-2 text-sm font-normal text-slate-500">({articles.length})</span>
-                )}
+                {articles.length > 0 && <span className="ml-2 text-sm font-normal text-slate-500">({articles.length})</span>}
               </CardTitle>
               {articles.length > 0 && (
                 <div className="flex gap-2">
                   <a href="/export/json" download>
                     <Button data-testid="button-export-json" variant="outline" size="sm" className="gap-1.5">
-                      <FileJson className="w-4 h-4" />
-                      JSON
+                      <FileJson className="w-4 h-4" />JSON
                     </Button>
                   </a>
                   <a href="/export/csv" download>
                     <Button data-testid="button-export-csv" variant="outline" size="sm" className="gap-1.5">
-                      <FileText className="w-4 h-4" />
-                      CSV
+                      <FileText className="w-4 h-4" />CSV
                     </Button>
                   </a>
                 </div>
@@ -364,8 +452,7 @@ const Index = () => {
           <CardContent className="p-0">
             {loadingArticles ? (
               <div className="flex items-center justify-center py-16 text-slate-400">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Memuat artikel...
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />Memuat artikel...
               </div>
             ) : articles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
@@ -380,17 +467,14 @@ const Index = () => {
                       <th className="text-left px-6 py-3 font-medium text-slate-500 w-16">#</th>
                       <th className="text-left px-4 py-3 font-medium text-slate-500">Judul</th>
                       <th className="text-left px-4 py-3 font-medium text-slate-500 w-32">Tanggal</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-24">Mode</th>
                       <th className="text-left px-4 py-3 font-medium text-slate-500 w-24">Status</th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-24">Aksi</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 w-16">URL</th>
                     </tr>
                   </thead>
                   <tbody>
                     {articles.map((article, i) => (
-                      <tr
-                        key={article.id}
-                        data-testid={`row-article-${article.id}`}
-                        className="border-b border-slate-50 hover:bg-slate-50 transition-colors"
-                      >
+                      <tr key={article.id} data-testid={`row-article-${article.id}`} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-3 text-slate-400">{i + 1}</td>
                         <td className="px-4 py-3">
                           <button
@@ -402,15 +486,16 @@ const Index = () => {
                           </button>
                         </td>
                         <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{article.date || "-"}</td>
+                        <td className="px-4 py-3">
+                          {article.mode ? (
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">{article.mode}</span>
+                          ) : "-"}
+                        </td>
                         <td className="px-4 py-3">{statusBadge(article.status)}</td>
                         <td className="px-4 py-3">
-                          <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <a href={article.url} target="_blank" rel="noopener noreferrer"
                             data-testid={`link-source-${article.id}`}
-                            className="text-indigo-500 hover:text-indigo-700 transition-colors"
-                          >
+                            className="text-indigo-500 hover:text-indigo-700 transition-colors">
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </td>
@@ -435,127 +520,78 @@ const Index = () => {
             <CardContent>
               <Tabs defaultValue="kb">
                 <TabsList className="mb-4">
-                  <TabsTrigger value="kb">
-                    <BookOpen className="w-4 h-4 mr-1.5" />
-                    KB Format
-                  </TabsTrigger>
-                  <TabsTrigger value="ai">
-                    <Sparkles className="w-4 h-4 mr-1.5" />
-                    AI Summary
-                  </TabsTrigger>
-                  <TabsTrigger value="supabase">
-                    <Database className="w-4 h-4 mr-1.5" />
-                    Supabase
-                  </TabsTrigger>
+                  <TabsTrigger value="kb"><BookOpen className="w-4 h-4 mr-1.5" />KB Format</TabsTrigger>
+                  <TabsTrigger value="ai"><Sparkles className="w-4 h-4 mr-1.5" />AI Summary</TabsTrigger>
+                  <TabsTrigger value="supabase"><Database className="w-4 h-4 mr-1.5" />Supabase</TabsTrigger>
                 </TabsList>
 
-                {/* Tab: KB Format */}
                 <TabsContent value="kb" className="space-y-3 mt-0">
                   <p className="text-sm text-slate-500">
-                    Konversi {articles.length} artikel ke format KB dengan field:{" "}
-                    <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">
-                      title, slug, source_url, published_date, content, summary, tags
-                    </span>
+                    Konversi {articles.length} artikel ke format KB:{" "}
+                    <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">title, slug, source_url, published_date, content, summary, tags</span>
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <Button
-                      data-testid="button-convert-kb"
-                      onClick={convertToKb}
-                      disabled={kbConverting || isRunning}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-                    >
+                    <Button data-testid="button-convert-kb" onClick={convertToKb} disabled={kbConverting || isRunning}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
                       {kbConverting ? <Loader2 className="w-4 h-4 animate-spin" /> : kbDone ? <CheckCircle2 className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
                       {kbConverting ? "Mengkonversi..." : kbDone ? "Dikonversi!" : "Convert to KB Format"}
                     </Button>
                     {kbDone && (
                       <a href="/export/kb" download>
                         <Button data-testid="button-download-kb" variant="outline" className="gap-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50">
-                          <FileJson className="w-4 h-4" />
-                          Download kb_articles.json
+                          <FileJson className="w-4 h-4" />Download kb_articles.json
                         </Button>
                       </a>
                     )}
                   </div>
                   {kbError && <p data-testid="text-kb-error" className="text-red-500 text-sm">{kbError}</p>}
-                  {kbDone && (
-                    <p data-testid="text-kb-success" className="text-emerald-600 text-sm">
-                      Berhasil! Disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span>
-                    </p>
-                  )}
+                  {kbDone && <p data-testid="text-kb-success" className="text-emerald-600 text-sm">Berhasil! Disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span></p>}
                 </TabsContent>
 
-                {/* Tab: AI Summary */}
                 <TabsContent value="ai" className="space-y-3 mt-0">
-                  <p className="text-sm text-slate-500">
-                    Generate ringkasan AI (GPT-4o-mini) untuk semua artikel KB. Pastikan sudah Convert to KB Format terlebih dahulu.
-                  </p>
+                  <p className="text-sm text-slate-500">Generate ringkasan AI (GPT-4o-mini) untuk semua artikel KB. Pastikan sudah Convert to KB Format terlebih dahulu.</p>
                   <div className="flex flex-wrap gap-3">
-                    <Button
-                      data-testid="button-ai-summary-all"
-                      onClick={generateAiSummaries}
-                      disabled={aiLoading || !kbDone}
-                      className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
-                    >
+                    <Button data-testid="button-ai-summary-all" onClick={generateAiSummaries} disabled={aiLoading || !kbDone}
+                      className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
                       {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : aiDone ? <CheckCircle2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                       {aiLoading ? "Generating..." : aiDone ? "Selesai!" : "Generate AI Summary"}
                     </Button>
                   </div>
                   {!kbDone && <p className="text-xs text-slate-400">Jalankan "Convert to KB Format" terlebih dahulu.</p>}
                   {aiError && <p data-testid="text-ai-error" className="text-red-500 text-sm">{aiError}</p>}
-                  {aiDone && (
-                    <p data-testid="text-ai-success" className="text-emerald-600 text-sm">
-                      AI summary berhasil di-generate dan disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span>
-                    </p>
-                  )}
+                  {aiDone && <p data-testid="text-ai-success" className="text-emerald-600 text-sm">AI summary berhasil di-generate dan disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span></p>}
                 </TabsContent>
 
-                {/* Tab: Supabase */}
                 <TabsContent value="supabase" className="space-y-3 mt-0">
                   <p className="text-sm text-slate-500">
                     Push semua KB articles ke tabel <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">kb_articles</span> di Supabase.
-                    Pastikan sudah membuat tabel menggunakan SQL di <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">supabase_setup.sql</span>.
+                    Pastikan sudah menjalankan SQL dari <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">supabase_setup.sql</span>.
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <Button
-                      data-testid="button-push-supabase"
-                      onClick={pushToSupabase}
-                      disabled={pushLoading || !kbDone}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-                    >
+                    <Button data-testid="button-push-supabase" onClick={pushToSupabase} disabled={pushLoading || !kbDone}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
                       {pushLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : pushDone ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                       {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
                     </Button>
-                    <Button
-                      data-testid="button-fetch-db"
-                      onClick={fetchDbArticles}
-                      disabled={dbLoading}
-                      variant="outline"
-                      className="gap-2"
-                    >
+                    <Button data-testid="button-fetch-db" onClick={fetchDbArticles} disabled={dbLoading} variant="outline" className="gap-2">
                       {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                       {dbLoading ? "Mengambil..." : "Lihat Data di DB"}
                     </Button>
                   </div>
                   {!kbDone && <p className="text-xs text-slate-400">Jalankan "Convert to KB Format" terlebih dahulu.</p>}
                   {pushError && <p data-testid="text-push-error" className="text-red-500 text-sm">{pushError}</p>}
-                  {pushDone && (
-                    <p data-testid="text-push-success" className="text-emerald-600 text-sm">
-                      Berhasil push {pushCount} artikel ke Supabase!
-                    </p>
-                  )}
+                  {pushDone && <p data-testid="text-push-success" className="text-emerald-600 text-sm">Berhasil push {pushCount} artikel ke Supabase!</p>}
                   {dbError && <p data-testid="text-db-error" className="text-red-500 text-sm">{dbError}</p>}
                   {dbArticles.length > 0 && (
                     <div className="rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500 border-b">
-                        {dbArticles.length} artikel di Supabase
-                      </div>
+                      <div className="bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500 border-b">{dbArticles.length} artikel di Supabase</div>
                       <div className="overflow-x-auto max-h-60 overflow-y-auto">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b bg-white">
                               <th className="text-left px-4 py-2 text-slate-500">Judul</th>
                               <th className="text-left px-4 py-2 text-slate-500 w-32">Tanggal</th>
-                              <th className="text-left px-4 py-2 text-slate-500 w-20">Tags</th>
+                              <th className="text-left px-4 py-2 text-slate-500 w-24">Tags</th>
                             </tr>
                           </thead>
                           <tbody>
