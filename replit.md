@@ -123,7 +123,7 @@ Keyword-based additional tags: `paspor, visa, iqomah, pendidikan, beasiswa, maha
 
 ## Notes
 
-- Migrated from Lovable: removed `lovable-tagger`, updated Vite config for Replit (host `0.0.0.0`, `allowedHosts: true`)
+- Vite config: host `0.0.0.0`, `allowedHosts: true` for Replit environment
 - Supabase table must be created manually via `supabase_setup.sql`
 - Settings persisted to `data/settings.json`
 - Content is auto-cleaned via `content_cleaner.py` after scraping

@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# AINA Scraper
 
-TODO: Document your project here
+Internal Knowledge Scraping Tool — scrapes Indonesian news articles and converts them into Knowledge Base drafts for AINA.
