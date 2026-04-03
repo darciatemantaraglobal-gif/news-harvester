@@ -52,9 +52,9 @@ const ArticleDetail = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7]">
+    <div className="min-h-screen bg-[#EEF0FF]">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <header className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 sticky top-0 z-20 shadow-lg shadow-indigo-500/20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
@@ -62,17 +62,17 @@ const ArticleDetail = () => {
               variant="ghost"
               size="sm"
               onClick={() => navigate("/")}
-              className="gap-1.5 text-slate-500 hover:text-slate-800 h-8 px-3 -ml-2"
+              className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-3 -ml-2"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm">Kembali</span>
             </Button>
-            <div className="w-px h-4 bg-slate-200" />
+            <div className="w-px h-4 bg-white/30" />
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
+              <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
                 <Newspaper className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-slate-700">Detail Artikel</span>
+              <span className="text-sm font-bold text-white">Detail Artikel</span>
             </div>
           </div>
           {article && (
@@ -82,8 +82,8 @@ const ArticleDetail = () => {
               rel="noopener noreferrer"
               data-testid="link-source-url"
             >
-              <Button variant="outline" size="sm"
-                className="gap-1.5 h-8 text-xs border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200">
+              <Button variant="ghost" size="sm"
+                className="gap-1.5 h-8 text-xs text-white/80 hover:text-white hover:bg-white/15">
                 <ExternalLink className="w-3.5 h-3.5" />
                 Sumber Asli
               </Button>
@@ -96,9 +96,9 @@ const ArticleDetail = () => {
 
         {/* Loading */}
         {isLoading && (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 animate-spin" />
+          <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] p-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
             </div>
             <p className="text-sm">Memuat artikel...</p>
           </div>
@@ -106,7 +106,7 @@ const ArticleDetail = () => {
 
         {/* Error */}
         {isError && (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 flex flex-col items-center justify-center gap-4">
+          <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] p-12 flex flex-col items-center justify-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
               <FileText className="w-7 h-7 text-red-300" />
             </div>
@@ -125,7 +125,7 @@ const ArticleDetail = () => {
         {article && (
           <div className="space-y-5">
             {/* Meta card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-5 space-y-4">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] px-6 py-5 space-y-4">
               {/* Status + mode */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span data-testid="status-badge">
@@ -178,17 +178,19 @@ const ArticleDetail = () => {
 
             {/* Summary card */}
             {article.summary && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-6 py-4">
-                <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wider mb-2">Ringkasan</p>
+              <div className="bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl px-6 py-4">
+                <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-widest mb-2">Ringkasan</p>
                 <p className="text-sm text-indigo-900 leading-relaxed">{article.summary}</p>
               </div>
             )}
 
             {/* Content card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-6">
-              <div className="flex items-center gap-2 mb-5 pb-4 border-b border-slate-100">
-                <FileText className="w-4 h-4 text-slate-400" />
-                <h2 className="text-sm font-semibold text-slate-600">Konten Artikel</h2>
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] px-6 py-6">
+              <div className="flex items-center gap-2 mb-5 pb-4 border-b border-indigo-50">
+                <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <h2 className="text-sm font-bold text-slate-700">Konten Artikel</h2>
               </div>
               <div
                 data-testid="text-content"

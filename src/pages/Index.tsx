@@ -569,32 +569,32 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7] text-slate-900">
+    <div className="min-h-screen bg-[#EEF0FF] text-slate-900">
 
       {/* ── Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <header className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 sticky top-0 z-20 shadow-lg shadow-indigo-500/20">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
               <Newspaper className="w-4 h-4 text-white" />
             </div>
             <div className="leading-none">
-              <p className="font-semibold text-slate-900 text-sm tracking-tight">AINA Scraper</p>
-              <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">Internal Knowledge Scraping Tool</p>
+              <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
+              <p className="hidden sm:block text-[10px] text-indigo-200 mt-0.5">Internal Knowledge Scraping Tool</p>
             </div>
           </div>
 
           {/* Center: scheduler status pill */}
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-            <div className="hidden md:flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1 text-xs text-indigo-700">
+            <div className="hidden md:flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1 text-xs text-white backdrop-blur-sm">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
               </span>
               Scheduler aktif · {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"} {schedulerSettings.time_of_day}
               {schedulerSettings.next_run_at && (
-                <span className="text-indigo-500 font-medium ml-1">
+                <span className="text-indigo-200 font-medium ml-1">
                   · next: {new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
                 </span>
               )}
@@ -604,19 +604,19 @@ const Index = () => {
           {/* Right actions */}
           <div className="flex items-center gap-1">
             <a href="/export/json" download data-testid="button-export-json">
-              <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
+              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/15 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
                 <FileJson className="w-3.5 h-3.5" /><span className="hidden sm:inline">JSON</span>
               </Button>
             </a>
             <a href="/export/csv" download data-testid="button-export-csv">
-              <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
+              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/15 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
                 <FileText className="w-3.5 h-3.5" /><span className="hidden sm:inline">CSV</span>
               </Button>
             </a>
-            <div className="w-px h-5 bg-slate-200 mx-1" />
+            <div className="w-px h-5 bg-white/25 mx-1" />
             <Link to="/review">
               <Button data-testid="link-review-dashboard" size="sm"
-                className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs px-2.5 sm:px-3.5">
+                className="gap-1.5 bg-white text-indigo-700 hover:bg-indigo-50 h-8 text-xs px-2.5 sm:px-3.5 font-semibold shadow-sm">
                 <CheckSquare className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Review KB Draft</span>
                 <span className="sm:hidden">Review</span>
@@ -629,16 +629,16 @@ const Index = () => {
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-5">
 
         {/* ── Hero: URL + Mode + Start ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+        <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.10)] p-4 sm:p-5 space-y-4">
           {/* Row 1: URL */}
           <div className="space-y-1">
-            <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Halaman Berita</Label>
+            <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</Label>
             <Input data-testid="input-url" type="url"
               placeholder="https://www.kemlu.go.id/cairo/berita"
               value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
               onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
               disabled={isRunning}
-              className={`h-10 border-slate-200 bg-slate-50/50 text-sm ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-200"}`} />
+              className={`h-10 rounded-xl border-indigo-100 bg-indigo-50/40 text-sm focus-visible:ring-2 ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-300"}`} />
             {urlError && (
               <p className="text-red-500 text-xs flex items-center gap-1.5 mt-1">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
@@ -648,10 +648,10 @@ const Index = () => {
           {/* Row 2: Mode + Start button */}
           <div className="flex gap-2.5">
             <Select value={mode} onValueChange={setMode} disabled={isRunning}>
-              <SelectTrigger data-testid="select-mode" className="flex-1 sm:flex-none sm:w-44 h-10 bg-slate-50/50 border-slate-200">
+              <SelectTrigger data-testid="select-mode" className="flex-1 sm:flex-none sm:w-44 h-10 rounded-xl border-indigo-100 bg-indigo-50/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 {MODES.map(m => (
                   <SelectItem key={m.value} value={m.value}>
                     <div>
@@ -664,17 +664,17 @@ const Index = () => {
             </Select>
             <Button data-testid="button-start-scrape" onClick={startScrape}
               disabled={isRunning}
-              className="flex-1 sm:flex-none h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 whitespace-nowrap font-medium shadow-sm">
+              className="flex-1 sm:flex-none h-10 px-5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-2 whitespace-nowrap font-semibold shadow-lg shadow-indigo-300/40 transition-all">
               {isRunning
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
                 : <><Zap className="w-4 h-4" />Mulai Scraping</>}
             </Button>
           </div>
           {/* Row 3: Date range filter (subtle) */}
-          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide shrink-0">Rentang</span>
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-indigo-50">
+            <span className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest shrink-0">Rentang</span>
             <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
-              <SelectTrigger data-testid="select-scrape-range" className="w-40 h-8 bg-slate-50 border-slate-200 text-xs">
+              <SelectTrigger data-testid="select-scrape-range" className="w-40 h-8 rounded-full bg-indigo-50/60 border-indigo-100 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -719,10 +719,10 @@ const Index = () => {
             { label: "Gagal",    value: statFail,  numColor: "text-red-600",     accent: "bg-red-500",      testid: "stat-failed" },
             { label: "Duplikat", value: statDupe,  numColor: "text-slate-400",   accent: "bg-slate-300",    testid: "stat-duplicate" },
           ].map(({ label, value, numColor, accent, testid }) => (
-            <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex">
+            <div key={label} className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-hidden flex">
               <div className={`w-1 shrink-0 ${accent}`} />
               <div className="px-3 py-3 sm:px-4 sm:py-4 min-w-0">
-                <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold uppercase tracking-wide sm:tracking-widest leading-none">{label}</p>
+                <p className="text-[10px] sm:text-[11px] text-indigo-400/80 font-semibold uppercase tracking-wide sm:tracking-widest leading-none">{label}</p>
                 <p data-testid={testid} className={`text-xl sm:text-[26px] font-bold mt-1 sm:mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
               </div>
             </div>
@@ -736,21 +736,23 @@ const Index = () => {
           <div className="lg:col-span-2 space-y-5">
 
             {/* ── Results Table ── */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
               {/* Table Header */}
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-50">
                 <div className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-slate-400" />
-                  <h2 className="text-sm font-semibold text-slate-700">Hasil Scraping</h2>
+                  <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
+                  </div>
+                  <h2 className="text-sm font-bold text-slate-800">Hasil Scraping</h2>
                   {articles.length > 0 && (
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
                       {hasActiveFilter ? `${filteredArticles.length} / ${articles.length}` : articles.length}
                     </span>
                   )}
                 </div>
                 {articles.length > 0 && (
                   <Button variant="ghost" size="sm" onClick={fetchArticles}
-                    className="gap-1.5 text-slate-400 hover:text-slate-600 h-7 text-xs px-2">
+                    className="gap-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 text-xs px-2 rounded-lg">
                     <RefreshCw className="w-3.5 h-3.5" />Refresh
                   </Button>
                 )}
@@ -758,7 +760,7 @@ const Index = () => {
 
               {/* Filter Bar */}
               {articles.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3 border-b border-indigo-50 bg-indigo-50/30">
                   <div className="relative flex-1 min-w-[120px]">
                     <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -767,10 +769,10 @@ const Index = () => {
                     </svg>
                     <Input data-testid="filter-title" value={titleFilter}
                       onChange={e => setTitleFilter(e.target.value)}
-                      placeholder="Cari judul..." className="pl-8 h-8 text-xs border-slate-200 w-full bg-white" />
+                      placeholder="Cari judul..." className="pl-8 h-8 text-xs border-indigo-100 w-full bg-white rounded-full focus-visible:ring-indigo-300" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger data-testid="filter-status" className="w-28 sm:w-32 h-8 text-xs border-slate-200 bg-white">
+                    <SelectTrigger data-testid="filter-status" className="w-28 sm:w-32 h-8 text-xs border-indigo-100 bg-white rounded-full">
                       <SelectValue placeholder="Semua" />
                     </SelectTrigger>
                     <SelectContent>
@@ -899,13 +901,15 @@ const Index = () => {
             </div>
 
             {/* ── KB Pipeline ── */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-50">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-slate-400" />
-                  <h2 className="text-sm font-semibold text-slate-700">KB Pipeline</h2>
+                  <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                  </div>
+                  <h2 className="text-sm font-bold text-slate-800">KB Pipeline</h2>
                   {eligibleArticles.length > 0 && (
-                    <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
                       {eligibleArticles.length} eligible
                     </span>
                   )}
@@ -913,14 +917,14 @@ const Index = () => {
                 {kbDraft.length > 0 && (
                   <div className="flex items-center gap-2">
                     <a href="/export/kb" download>
-                      <Button data-testid="button-download-kb" variant="outline" size="sm"
-                        className="h-7 text-xs gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                      <Button data-testid="button-download-kb" variant="ghost" size="sm"
+                        className="h-7 text-xs gap-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
                         <Download className="w-3 h-3" />Export JSON
                       </Button>
                     </a>
                     <Link to="/review">
-                      <Button variant="outline" size="sm"
-                        className="h-7 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                      <Button variant="ghost" size="sm"
+                        className="h-7 text-xs gap-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
                         <CheckSquare className="w-3 h-3" />Review
                       </Button>
                     </Link>
@@ -970,7 +974,7 @@ const Index = () => {
 
                         {/* Step 1 */}
                         <div className="relative z-10 pb-3">
-                          <div className={`border rounded-xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "border-emerald-200 bg-emerald-50/30 shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : "border-slate-200 bg-white"}`}>
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "bg-emerald-50/40 shadow-[0_2px_12px_rgba(52,211,153,0.12)]" : "bg-slate-50/60 shadow-sm"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={1} done={summaryDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
@@ -984,7 +988,7 @@ const Index = () => {
                             <div className="flex items-center gap-3 pl-10">
                               <Button data-testid="button-generate-summary" onClick={doGenerateSummary}
                                 disabled={summaryLoading || isRunning} size="sm"
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8 shadow-sm">
+                                className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-1.5 h-8 px-4 shadow-sm">
                                 {summaryLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : summaryDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlignLeft className="w-3.5 h-3.5" />}
                                 {summaryLoading ? "Generating..." : summaryDone ? "Re-generate" : "Generate Summary"}
                               </Button>
@@ -998,7 +1002,7 @@ const Index = () => {
 
                         {/* Step 2 */}
                         <div className="relative z-10 pb-3">
-                          <div className={`border rounded-xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "border-emerald-200 bg-emerald-50/30 shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : "border-slate-200 bg-white"}`}>
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "bg-emerald-50/40 shadow-[0_2px_12px_rgba(52,211,153,0.12)]" : "bg-slate-50/60 shadow-sm"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={2} done={tagDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
@@ -1024,7 +1028,7 @@ const Index = () => {
 
                         {/* Step 3 */}
                         <div className="relative z-10">
-                          <div className={`border rounded-xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "border-emerald-200 bg-emerald-50/30 shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : "border-slate-200 bg-white"}`}>
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "bg-emerald-50/40 shadow-[0_2px_12px_rgba(52,211,153,0.12)]" : "bg-slate-50/60 shadow-sm"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={3} done={kbDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
@@ -1240,11 +1244,13 @@ const Index = () => {
 
             {/* ── Live Log Panel ── */}
             {showLog && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-indigo-50">
                   <div className="flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-semibold text-slate-700">Log Proses</span>
+                    <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <Terminal className="w-3.5 h-3.5 text-slate-500" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">Log Proses</span>
                     {isRunning && (
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
                         <span className="relative flex h-1.5 w-1.5">
@@ -1307,29 +1313,31 @@ const Index = () => {
             )}
 
             {/* ── Scheduler Card ── */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
               <button
                 onClick={() => setSchedulerOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-indigo-50 hover:bg-indigo-50/40 transition-colors"
                 data-testid="scheduler-toggle"
               >
                 <div className="flex items-center gap-2">
-                  <Timer className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-semibold text-slate-700">Scheduler</span>
+                  <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <Timer className="w-3.5 h-3.5 text-indigo-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">Scheduler</span>
                   {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
                       {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
                     </span>
                   )}
                 </div>
-                {schedulerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                {schedulerOpen ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-indigo-400" />}
               </button>
 
               {schedulerOpen && (
                 <div className="p-4 space-y-4">
                   {/* Status mini-cards */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-lg border border-slate-200 p-2.5 text-center">
+                    <div className="rounded-xl bg-slate-50 p-2.5 text-center">
                       <p className="text-[10px] text-slate-400 uppercase tracking-wide">Last Run</p>
                       <p className="text-xs font-semibold text-slate-700 mt-0.5 tabular-nums leading-tight">
                         {schedulerSettings.last_run_at
@@ -1337,7 +1345,7 @@ const Index = () => {
                           : "—"}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-2.5 text-center">
+                    <div className="rounded-xl bg-indigo-50 p-2.5 text-center">
                       <p className="text-[10px] text-indigo-400 uppercase tracking-wide">Next</p>
                       <p className="text-xs font-semibold text-indigo-700 mt-0.5 tabular-nums leading-tight">
                         {schedulerSettings.next_run_at
@@ -1345,7 +1353,7 @@ const Index = () => {
                           : "—"}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 text-center">
+                    <div className="rounded-xl bg-emerald-50 p-2.5 text-center">
                       <p className="text-[10px] text-emerald-500 uppercase tracking-wide">Artikel</p>
                       <p className="text-xl font-bold text-emerald-700 mt-0.5 tabular-nums leading-none">
                         {schedulerSettings.last_run_articles_added}
@@ -1473,22 +1481,24 @@ const Index = () => {
             </div>
 
             {/* ── Selector Settings Card ── */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
               <button
-                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-indigo-50 hover:bg-indigo-50/40 transition-colors"
                 onClick={() => setSettingsOpen(v => !v)}
               >
                 <div className="flex items-center gap-2">
-                  <Settings2 className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-semibold text-slate-700">CSS Selector</span>
+                  <div className="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center">
+                    <Settings2 className="w-3.5 h-3.5 text-violet-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">CSS Selector</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {!settingsOpen && (
-                    <span className="text-[10px] text-slate-400 font-mono hidden sm:inline truncate max-w-[120px]">
+                    <span className="text-[10px] text-indigo-400 font-mono hidden sm:inline truncate max-w-[120px]">
                       {settings.article_link_selector}
                     </span>
                   )}
-                  {settingsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                  {settingsOpen ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-indigo-400" />}
                 </div>
               </button>
               {settingsOpen && (
@@ -1496,10 +1506,10 @@ const Index = () => {
                   <div className="space-y-3">
                     {SELECTOR_FIELDS.map(({ key, label, hint }) => (
                       <div key={key} className="space-y-1">
-                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{label}</Label>
+                        <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">{label}</Label>
                         <Textarea data-testid={`input-${key}`} rows={2} value={settings[key]}
                           onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
-                          className="font-mono text-xs resize-none bg-slate-50 border-slate-200"
+                          className="font-mono text-xs resize-none bg-indigo-50/40 border-indigo-100 rounded-xl focus-visible:ring-indigo-300"
                           placeholder={DEFAULT_SETTINGS[key]} />
                         <p className="text-[10px] text-slate-400">{hint}</p>
                       </div>
@@ -1508,12 +1518,12 @@ const Index = () => {
                   <div className="flex items-center gap-2">
                     <Button data-testid="button-save-settings" onClick={saveSettings}
                       disabled={settingsSaving} size="sm"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8">
+                      className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-1.5 h-8 px-4 shadow-sm">
                       {settingsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                       Simpan
                     </Button>
                     <Button data-testid="button-reset-settings" onClick={resetSettings}
-                      variant="outline" size="sm" className="gap-1.5 text-slate-500 border-slate-200 h-8">
+                      variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 h-8 rounded-full">
                       <RotateCcw className="w-3.5 h-3.5" />Reset
                     </Button>
                     {settingsError && (

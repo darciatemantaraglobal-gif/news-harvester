@@ -197,40 +197,40 @@ export default function ReviewDashboard() {
   const someSelected = selected.size > 0 && selected.size < articles.length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#EEF0FF]">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <header className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 sticky top-0 z-20 shadow-lg shadow-indigo-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link to="/">
-              <Button variant="ghost" size="sm" className="gap-1 sm:gap-1.5 text-slate-500 hover:text-slate-700 -ml-2 px-2 sm:px-3">
+              <Button variant="ghost" size="sm" className="gap-1 sm:gap-1.5 text-white/80 hover:text-white hover:bg-white/15 -ml-2 px-2 sm:px-3">
                 <ChevronLeft className="w-4 h-4" /><span className="hidden sm:inline">Scraper</span>
               </Button>
             </Link>
-            <div className="w-px h-5 bg-slate-200 shrink-0" />
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-px h-5 bg-white/30 shrink-0" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
               <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold text-slate-900 truncate">KB Review Dashboard</h1>
-              <p className="hidden sm:block text-xs text-slate-500">AINA Knowledge Base — Approval Workflow</p>
+              <h1 className="text-sm sm:text-base font-bold text-white truncate">KB Review Dashboard</h1>
+              <p className="hidden sm:block text-xs text-indigo-200">AINA Knowledge Base — Approval Workflow</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <a href="/export/kb-approved" download>
-              <Button variant="outline" size="sm"
-                className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-8 px-2 sm:px-3 text-xs">
+              <Button variant="ghost" size="sm"
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs">
                 <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Approved</span>
               </Button>
             </a>
             <a href="/export/kb-exported" download>
-              <Button variant="outline" size="sm"
-                className="gap-1.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50 h-8 px-2 sm:px-3 text-xs">
+              <Button variant="ghost" size="sm"
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs">
                 <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Exported</span>
               </Button>
             </a>
             <Button variant="ghost" size="sm" onClick={() => { fetchArticles(); fetchStats(); }}
-              className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
+              className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/15">
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
@@ -249,10 +249,10 @@ export default function ReviewDashboard() {
             { label: "Rejected", value: stats.rejected, color: "text-red-600",     accent: "bg-red-500" },
             { label: "Exported", value: stats.exported, color: "text-indigo-600",  accent: "bg-indigo-500" },
           ].map(({ label, value, color, accent }) => (
-            <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex">
+            <div key={label} className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-hidden flex">
               <div className={`w-1 shrink-0 ${accent}`} />
               <div className="px-2.5 py-2.5 sm:px-4 sm:py-3 min-w-0">
-                <p className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wide leading-none truncate">{label}</p>
+                <p className="text-[10px] sm:text-xs text-indigo-400/80 font-semibold uppercase tracking-wide leading-none truncate">{label}</p>
                 <p className={`text-lg sm:text-xl font-bold mt-1 leading-none tabular-nums ${color}`}>{value}</p>
               </div>
             </div>
@@ -262,16 +262,16 @@ export default function ReviewDashboard() {
         {/* Filter + Bulk Action Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Filter tabs — scrollable on mobile */}
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm overflow-x-auto max-w-full">
-            <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5 shrink-0" />
+          <div className="flex items-center gap-1 bg-white rounded-xl p-1 shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-x-auto max-w-full">
+            <Filter className="w-3.5 h-3.5 text-indigo-400 ml-1.5 mr-0.5 shrink-0" />
             {STATUS_FILTERS.map(f => (
               <button key={f.value}
                 data-testid={`filter-${f.value}`}
                 onClick={() => setStatusFilter(f.value)}
-                className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all whitespace-nowrap ${
+                className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
                   statusFilter === f.value
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-sm"
+                    : "text-slate-500 hover:text-indigo-700 hover:bg-indigo-50"
                 }`}>
                 {f.label}
                 {f.value !== "all" && (
@@ -285,7 +285,7 @@ export default function ReviewDashboard() {
 
           {/* Bulk action bar */}
           {selected.size > 0 && (
-            <div className="flex items-center gap-2 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 shadow-sm">
+            <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-1.5 shadow-[0_4px_20px_rgba(79,70,229,0.07)]">
               <span className="text-xs font-semibold text-indigo-700 mr-1">
                 {selected.size} dipilih
               </span>
@@ -293,7 +293,7 @@ export default function ReviewDashboard() {
                 <Button key={ba.action} data-testid={`bulk-${ba.action}`}
                   size="sm" disabled={bulkLoading}
                   onClick={() => doBulkAction(ba.action)}
-                  className={`text-white text-xs py-1 h-7 px-3 ${ba.color}`}>
+                  className={`text-white text-xs py-1 h-7 px-3 rounded-full ${ba.color}`}>
                   {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : ba.label}
                 </Button>
               ))}
@@ -304,14 +304,14 @@ export default function ReviewDashboard() {
             </div>
           )}
           {bulkMsg && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl">
               <CheckCircle2 className="w-3.5 h-3.5" />{bulkMsg}
             </div>
           )}
         </div>
 
         {/* Table */}
-        <Card className="shadow-sm">
+        <Card className="shadow-[0_4px_24px_rgba(79,70,229,0.08)] rounded-2xl border-0">
           <CardContent className="p-0">
             {loading ? (
               <div className="flex items-center justify-center py-20 text-slate-400 gap-2">
