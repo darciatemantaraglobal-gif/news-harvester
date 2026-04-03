@@ -608,9 +608,17 @@ const Index = () => {
 
         {/* ─── Dark Header Card ─── */}
         <div className="mx-2 sm:mx-4 mt-2 sm:mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
-          <div className="leading-none">
-            <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
-            <p className="text-purple-300 text-[11px] mt-0.5">Internal Knowledge Scraping Tool</p>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <img
+              src="/AIGYPT_logo.png"
+              alt="AINA"
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0"
+              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 4px rgba(200,160,255,0.7))" }}
+            />
+            <div className="leading-none min-w-0">
+              <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
+              <p className="text-purple-300 text-[11px] mt-0.5">Internal Knowledge Scraping Tool</p>
+            </div>
           </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
             <div className="hidden lg:flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1.5 text-xs text-white backdrop-blur-sm">
