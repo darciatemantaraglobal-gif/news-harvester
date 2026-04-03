@@ -569,7 +569,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#EEF0FF] text-slate-900">
+    <div className="min-h-screen bg-[#EEF0FF] text-slate-900 pb-16 sm:pb-0">
 
       {/* ── Navbar ── */}
       <header className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 sticky top-0 z-20 shadow-lg shadow-indigo-500/20">
@@ -629,7 +629,7 @@ const Index = () => {
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-5">
 
         {/* ── Hero: URL + Mode + Start ── */}
-        <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.10)] p-4 sm:p-5 space-y-4">
+        <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.10)] p-4 sm:p-5 space-y-4 animate-slide-up-fade card-hover">
           {/* Row 1: URL */}
           <div className="space-y-1">
             <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</Label>
@@ -664,7 +664,7 @@ const Index = () => {
             </Select>
             <Button data-testid="button-start-scrape" onClick={startScrape}
               disabled={isRunning}
-              className="flex-1 sm:flex-none h-10 px-5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-2 whitespace-nowrap font-semibold shadow-lg shadow-indigo-300/40 transition-all">
+              className="flex-1 sm:flex-none h-10 px-5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-2 whitespace-nowrap font-semibold shadow-lg shadow-indigo-300/40 transition-all duration-300 btn-press hover:scale-[1.03] hover:shadow-indigo-400/50">
               {isRunning
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
                 : <><Zap className="w-4 h-4" />Mulai Scraping</>}
@@ -711,17 +711,19 @@ const Index = () => {
         </div>
 
         {/* ── Stats Row ── */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-1 sm:overflow-visible sm:grid sm:grid-cols-5 snap-x snap-mandatory sm:snap-none -mx-4 px-4 sm:mx-0 sm:px-0 animate-slide-up-fade animation-delay-100">
           {[
             { label: "Total",    value: statTotal, numColor: "text-slate-800",   accent: "bg-slate-400",    testid: "stat-total" },
             { label: "Berhasil", value: statSucc,  numColor: "text-emerald-700", accent: "bg-emerald-500",  testid: "stat-success" },
             { label: "Partial",  value: statPart,  numColor: "text-amber-700",   accent: "bg-amber-500",    testid: "stat-partial" },
             { label: "Gagal",    value: statFail,  numColor: "text-red-600",     accent: "bg-red-500",      testid: "stat-failed" },
             { label: "Duplikat", value: statDupe,  numColor: "text-slate-400",   accent: "bg-slate-300",    testid: "stat-duplicate" },
-          ].map(({ label, value, numColor, accent, testid }) => (
-            <div key={label} className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-hidden flex">
+          ].map(({ label, value, numColor, accent, testid }, i) => (
+            <div key={label}
+              className={`bg-white rounded-2xl shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-hidden flex flex-none min-w-[120px] sm:flex-auto sm:min-w-0 snap-start transition-all duration-300 cursor-default stat-glow animate-count-up`}
+              style={{ animationDelay: `${i * 70}ms` }}>
               <div className={`w-1 shrink-0 ${accent}`} />
-              <div className="px-3 py-3 sm:px-4 sm:py-4 min-w-0">
+              <div className="px-3 py-3 sm:px-4 sm:py-4 min-w-0 flex-1">
                 <p className="text-[10px] sm:text-[11px] text-indigo-400/80 font-semibold uppercase tracking-wide sm:tracking-widest leading-none">{label}</p>
                 <p data-testid={testid} className={`text-xl sm:text-[26px] font-bold mt-1 sm:mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
               </div>
@@ -736,7 +738,7 @@ const Index = () => {
           <div className="lg:col-span-2 space-y-5">
 
             {/* ── Results Table ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-slide-up-fade animation-delay-200">
               {/* Table Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-50">
                 <div className="flex items-center gap-2">
@@ -809,8 +811,8 @@ const Index = () => {
                 </div>
               ) : articles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center shadow-inner">
-                    <Newspaper className="w-7 h-7 text-slate-300" />
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-50 flex items-center justify-center shadow-[0_4px_20px_rgba(79,70,229,0.08)] animate-float">
+                    <Newspaper className="w-7 h-7 text-indigo-300" />
                   </div>
                   <div className="text-center space-y-1.5">
                     <p className="text-sm font-semibold text-slate-700">Belum ada artikel</p>
@@ -901,7 +903,7 @@ const Index = () => {
             </div>
 
             {/* ── KB Pipeline ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-slide-up-fade animation-delay-300">
               <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-50">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -934,7 +936,7 @@ const Index = () => {
 
               {articles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-50 border border-indigo-100 flex items-center justify-center shadow-inner">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center shadow-[0_4px_20px_rgba(79,70,229,0.10)] animate-float">
                     <BookOpen className="w-7 h-7 text-indigo-300" />
                   </div>
                   <div className="text-center space-y-1.5">
@@ -1240,11 +1242,11 @@ const Index = () => {
           </div>
 
           {/* ═══════════════ RIGHT COLUMN (Sidebar) ═══════════════ */}
-          <div className="space-y-4">
+          <div className="space-y-4 animate-slide-in-right animation-delay-300">
 
             {/* ── Live Log Panel ── */}
             {showLog && (
-              <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-scale-in">
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-indigo-50">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
@@ -1313,7 +1315,7 @@ const Index = () => {
             )}
 
             {/* ── Scheduler Card ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover">
               <button
                 onClick={() => setSchedulerOpen(o => !o)}
                 className="w-full flex items-center justify-between px-4 py-3.5 border-b border-indigo-50 hover:bg-indigo-50/40 transition-colors"
@@ -1539,6 +1541,24 @@ const Index = () => {
           </div>
         </div>
       </main>
+
+      {/* ── Mobile Bottom Tab Nav ── */}
+      <nav className="fixed bottom-0 inset-x-0 z-30 sm:hidden bg-white/90 backdrop-blur-lg border-t border-indigo-100 shadow-[0_-4px_24px_rgba(79,70,229,0.10)]">
+        <div className="flex items-stretch h-16 max-w-screen-sm mx-auto">
+          <Link to="/" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 transition-all duration-200 active:scale-90">
+            <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Newspaper className="w-[18px] h-[18px] text-indigo-600" />
+            </div>
+            <span className="text-[10px] font-semibold text-indigo-600">Scraper</span>
+          </Link>
+          <Link to="/review" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-indigo-600 transition-all duration-200 active:scale-90">
+            <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-indigo-100 transition-colors">
+              <CheckSquare className="w-[18px] h-[18px]" />
+            </div>
+            <span className="text-[10px] font-medium">Review</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 };
