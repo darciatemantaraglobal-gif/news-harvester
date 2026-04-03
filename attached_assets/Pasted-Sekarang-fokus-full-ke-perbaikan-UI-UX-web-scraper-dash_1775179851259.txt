@@ -1,0 +1,205 @@
+Sekarang fokus full ke perbaikan UI/UX web scraper dashboard ini.
+
+Saya ingin tampilannya dirombak agar terasa seperti internal admin tool yang modern, clean, profesional, dan enak dipakai setiap hari. Jangan fokus menambah fitur backend baru dulu. Fokus utama adalah redesign UI, merapikan hierarchy visual, layout, spacing, typography, dan pengalaman penggunaan.
+
+Gaya visual yang saya mau:
+- clean
+- modern
+- minimal
+- profesional
+- internal dashboard feel
+- tidak terlalu ramai
+- warna netral, elegan, nyaman dilihat lama
+- terasa seperti tools admin startup/product internal
+- hindari tampilan jadul, terlalu bootstrap-like, atau terlalu polos
+
+Gunakan TailwindCSS secara maksimal.
+
+Tujuan redesign:
+1. Dashboard terlihat matang dan meyakinkan
+2. Informasi penting langsung kebaca
+3. User flow jelas dari atas ke bawah
+4. Tabel hasil scraping lebih enak dibaca
+5. Log panel lebih hidup tapi tetap rapi
+6. Semua section punya visual hierarchy yang jelas
+7. Tampilannya terasa premium walaupun sederhana
+
+Struktur layout yang saya mau:
+
+1. Top Navbar / Header
+- logo atau nama tool di kiri, misalnya “AINA Scraper”
+- subtext kecil: “Internal Knowledge Scraping Tool”
+- di kanan ada area kecil untuk status system / last run / mode
+- header sticky ringan kalau perlu
+- clean, tipis, modern
+
+2. Hero Control Section
+Di bagian atas dashboard, buat section utama berisi:
+- input URL
+- dropdown scraping mode
+- tombol Start Scraping
+- tombol Export JSON
+- tombol Export CSV
+- tombol Convert to KB Draft
+Susun dengan layout yang rapi, tidak terlalu padat, gunakan card/container besar yang elegan.
+Tombol primary harus paling menonjol.
+Tombol secondary lebih subtle.
+
+3. Statistics Cards
+Buat statistik dalam card modern:
+- Total Articles
+- Success
+- Partial
+- Failed
+- Duplicate
+- KB Drafts
+Setiap card harus:
+- punya angka besar
+- label jelas
+- icon kecil jika perlu
+- border halus / shadow lembut
+- spacing lega
+- tidak terlalu penuh warna
+Gunakan warna status dengan halus, jangan terlalu mencolok.
+
+4. Main Content Layout
+Bagi konten utama menjadi 2 kolom responsif:
+- kolom kiri lebih besar: tabel hasil scraping / KB draft
+- kolom kanan lebih kecil: log panel + settings + quick actions
+
+Pada layar kecil, kolom bisa turun menjadi 1 kolom.
+
+5. Results Table
+Tabel hasil scraping harus dirombak agar terasa modern:
+Kolom:
+- No
+- Title
+- Date
+- Status
+- Preview
+- Actions
+
+Ketentuan:
+- title lebih menonjol
+- URL tidak perlu terlalu dominan
+- preview content maksimal 2 baris / 200 karakter
+- gunakan badge status modern:
+  - success
+  - partial
+  - failed
+  - duplicate
+- tombol aksi kecil:
+  - View Detail
+  - Approve / Review jika ada
+- table header sticky jika memungkinkan
+- zebra rows halus atau hover effect lembut
+- spacing antar row enak dibaca
+
+6. Log Panel
+Log panel harus terlihat seperti console modern yang rapi:
+- card terpisah
+- tinggi fixed dengan scroll
+- log item per baris
+- gunakan warna/status ringan
+- tampilkan timestamp kecil
+- tampilkan jenis log:
+  - info
+  - success
+  - warning
+  - error
+Jangan terlalu gelap seperti terminal hacker. Tetap clean dan profesional.
+
+7. Settings Panel
+Settings selector dan scraping options jangan terlihat teknis/berantakan.
+Buat sebagai collapsible card atau tab yang rapi.
+Setiap field:
+- label jelas
+- helper text kecil
+- input rounded
+- spacing nyaman
+- save button rapi
+Buat settings tidak mendominasi halaman utama.
+
+8. KB Draft / Review Section
+Kalau ada section KB draft dan review workflow:
+- buat tampilannya konsisten dengan results table
+- approval status pakai badge elegan
+- bulk action buttons dibuat rapi
+- checkbox styling lebih modern
+- ada top action bar untuk:
+  - Mark Reviewed
+  - Approve Selected
+  - Reject Selected
+  - Export Selected
+
+9. Empty State
+Kalau belum ada data:
+- tampilkan empty state yang bagus
+- icon sederhana
+- judul: “Belum ada hasil scraping”
+- deskripsi singkat
+- ajak user mulai scraping
+Jangan biarkan area kosong polos.
+
+10. Loading State
+Saat scraping berjalan:
+- tombol Start Scraping berubah jadi loading
+- ada progress indicator / spinner modern
+- tampilkan status “Scraping in progress...”
+- disable tombol tertentu sementara
+- berikan feedback visual yang jelas bahwa proses sedang berjalan
+
+11. Notifications / Toast
+Tambahkan toast notification modern untuk:
+- scraping selesai
+- export berhasil
+- settings tersimpan
+- bulk action berhasil
+- error terjadi
+Toast kecil, clean, muncul di pojok kanan atas.
+
+12. Typography dan Spacing
+Perbaiki typography agar terasa premium:
+- heading tegas
+- subheading lembut
+- text body mudah dibaca
+- gunakan hierarchy ukuran font yang baik
+- jangan terlalu kecil
+- padding dan margin harus lega
+- hindari tampilan sempit / mepet
+
+13. Visual Style Rules
+- rounded corners modern
+- shadow lembut
+- border tipis
+- warna netral
+- gunakan aksen warna seperlunya
+- jangan terlalu banyak gradien
+- jangan terlalu ramai
+- jangan terlalu “developer ugly”
+- feel seperti SaaS admin dashboard yang matang
+
+14. Responsiveness
+Pastikan UI tetap enak dipakai di laptop dan tablet.
+Fokus utama desktop/laptop, tapi tetap responsive.
+
+15. Code Quality
+- rapikan templates HTML
+- pisahkan section-section dengan struktur yang jelas
+- jika perlu, pecah komponen UI ke partial templates agar lebih rapi
+- rapikan class Tailwind yang berantakan
+- jangan mengubah logic backend jika tidak perlu
+- fokus pada frontend polish dan presentasi visual
+
+Saya ingin hasil akhirnya terasa seperti:
+“ini tools internal yang serius, rapi, dan siap dipakai operasional”
+bukan seperti prototype kasar.
+
+Silakan redesign semua halaman utama yang relevan:
+- dashboard utama
+- detail article page
+- KB review section
+- settings area
+- log panel
+
+Tolong implementasikan langsung perubahan UI tersebut pada project yang sudah ada.

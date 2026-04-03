@@ -1,6 +1,6 @@
-# News Scraper — AINA KB Pipeline
+# AINA Scraper — News KB Pipeline
 
-A React + Vite frontend with a Flask Python backend for scraping Indonesian news articles and converting them into Knowledge Base drafts for AINA.
+A React + Vite frontend with a Flask Python backend for scraping Indonesian news articles and converting them into Knowledge Base drafts for AINA. Features a modern 2-column admin dashboard layout.
 
 ## Stack
 

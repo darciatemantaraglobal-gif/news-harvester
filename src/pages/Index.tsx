@@ -553,36 +553,54 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[#f4f5f7] text-slate-900">
 
-      {/* ── Top Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-indigo-600 rounded-md flex items-center justify-center shrink-0">
+      {/* ── Navbar ── */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          {/* Brand */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <Newspaper className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-slate-900 text-base tracking-tight">News Scraper</span>
-            <span className="hidden sm:block text-slate-300 text-sm">|</span>
-            <span className="hidden sm:block text-slate-400 text-xs">AINA KB Pipeline</span>
+            <div className="leading-none">
+              <p className="font-semibold text-slate-900 text-sm tracking-tight">AINA Scraper</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Internal Knowledge Scraping Tool</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <a href="/export/json" download>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 text-xs"
-                data-testid="button-export-json">
+
+          {/* Center: scheduler status pill */}
+          {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
+            <div className="hidden md:flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1 text-xs text-indigo-700">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500" />
+              </span>
+              Scheduler aktif · {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"} {schedulerSettings.time_of_day}
+              {schedulerSettings.next_run_at && (
+                <span className="text-indigo-500 font-medium ml-1">
+                  · next: {new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Right actions */}
+          <div className="flex items-center gap-1.5">
+            <a href="/export/json" download data-testid="button-export-json">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 h-8 text-xs px-3">
                 <FileJson className="w-3.5 h-3.5" />JSON
               </Button>
             </a>
-            <a href="/export/csv" download>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 text-xs"
-                data-testid="button-export-csv">
+            <a href="/export/csv" download data-testid="button-export-csv">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 h-8 text-xs px-3">
                 <FileText className="w-3.5 h-3.5" />CSV
               </Button>
             </a>
-            <div className="w-px h-5 bg-slate-200 mx-1" />
+            <div className="w-px h-5 bg-slate-200 mx-0.5" />
             <Link to="/review">
               <Button data-testid="link-review-dashboard" size="sm"
-                className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs">
+                className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs px-3.5">
                 <CheckSquare className="w-3.5 h-3.5" />Review KB Draft
               </Button>
             </Link>
@@ -590,669 +608,210 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6 space-y-5">
+      <main className="max-w-screen-xl mx-auto px-6 py-7 space-y-6">
 
-        {/* ── Section: Scraping Controls ── */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Scraping</h2>
+        {/* ── Hero: URL + Mode + Start ── */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          {/* Row 1: URL + Mode + Start */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 space-y-1">
+              <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Halaman Berita</Label>
+              <Input data-testid="input-url" type="url"
+                placeholder="https://www.kemlu.go.id/cairo/berita"
+                value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
+                onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
+                disabled={isRunning}
+                className={`h-10 border-slate-200 bg-slate-50/50 text-sm ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-200"}`} />
+              {urlError && (
+                <p className="text-red-500 text-xs flex items-center gap-1.5 mt-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2.5 sm:items-end">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide hidden sm:block">Mode</Label>
+                <Select value={mode} onValueChange={setMode} disabled={isRunning}>
+                  <SelectTrigger data-testid="select-mode" className="w-40 h-10 bg-slate-50/50 border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODES.map(m => (
+                      <SelectItem key={m.value} value={m.value}>
+                        <div>
+                          <p className="font-medium">{m.label}</p>
+                          <p className="text-xs text-slate-400">{m.desc}</p>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:pt-[22px]">
+                <Button data-testid="button-start-scrape" onClick={startScrape}
+                  disabled={isRunning}
+                  className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 whitespace-nowrap font-medium shadow-sm">
+                  {isRunning
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
+                    : <><Zap className="w-4 h-4" />Mulai Scraping</>}
+                </Button>
+              </div>
+            </div>
           </div>
 
-          {/* Settings Accordion */}
-          <Card className="shadow-none border-slate-200">
-            <button
-              className="w-full text-left"
-              onClick={() => setSettingsOpen(v => !v)}
-            >
-              <CardHeader className="py-3 px-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Settings2 className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-medium text-slate-600">Konfigurasi Selector</span>
-                    <span className="text-xs text-slate-400 hidden sm:inline">— CSS selector untuk scraping</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!settingsOpen && (
-                      <span className="text-xs text-slate-400 font-mono hidden sm:inline truncate max-w-[200px]">
-                        {settings.article_link_selector}
-                      </span>
-                    )}
-                    {settingsOpen
-                      ? <ChevronUp className="w-4 h-4 text-slate-400" />
-                      : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                  </div>
-                </div>
-              </CardHeader>
-            </button>
-            {settingsOpen && (
-              <CardContent className="pt-0 px-5 pb-5 space-y-4 border-t border-slate-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                  {SELECTOR_FIELDS.map(({ key, label, hint }) => (
-                    <div key={key} className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-600">{label}</Label>
-                      <Textarea data-testid={`input-${key}`} rows={2} value={settings[key]}
-                        onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
-                        className="font-mono text-xs resize-none bg-slate-50 border-slate-200"
-                        placeholder={DEFAULT_SETTINGS[key]} />
-                      <p className="text-xs text-slate-400">{hint}</p>
+          {/* Row 2: Date range filter (subtle) */}
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide shrink-0">Rentang</span>
+            <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
+              <SelectTrigger data-testid="select-scrape-range" className="w-40 h-8 bg-slate-50 border-slate-200 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SCRAPE_RANGES.map(r => (
+                  <SelectItem key={r.value} value={r.value}>
+                    <div>
+                      <p className="font-medium">{r.label}</p>
+                      <p className="text-xs text-slate-400">{r.desc}</p>
                     </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <Button data-testid="button-save-settings" onClick={saveSettings}
-                    disabled={settingsSaving} size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5">
-                    {settingsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Simpan
-                  </Button>
-                  <Button data-testid="button-reset-settings" onClick={resetSettings}
-                    variant="outline" size="sm" className="gap-1.5 text-slate-500 border-slate-200">
-                    <RotateCcw className="w-3.5 h-3.5" />Reset Default
-                  </Button>
-                  {settingsError && (
-                    <p className="text-xs text-red-500 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />{settingsError}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {scrapeRange === "custom" && (
+              <>
+                <Input data-testid="input-custom-start" type="date" value={customStart}
+                  onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
+                  className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
+                <span className="text-slate-300 text-xs">→</span>
+                <Input data-testid="input-custom-end" type="date" value={customEnd}
+                  onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
+                  className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
+              </>
             )}
-          </Card>
+            {scrapeRange !== "all" && (
+              <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
+                {SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}
+              </span>
+            )}
+            <span className="ml-auto text-xs text-slate-400 hidden sm:block">
+              {MODES.find(m => m.value === mode)?.label} — {MODES.find(m => m.value === mode)?.desc}
+            </span>
+          </div>
+        </div>
 
-          {/* URL + Mode + Start */}
-          <Card className="shadow-none border-slate-200">
-            <CardContent className="px-5 py-4 space-y-3">
-              {/* Row 1: URL + Mode + Button */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-600">URL Halaman Berita</Label>
-                  <Input data-testid="input-url" type="url"
-                    placeholder="https://www.kemlu.go.id/cairo/berita"
-                    value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
-                    onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
-                    disabled={isRunning}
-                    className={`bg-slate-50 border-slate-200 ${urlError ? "border-red-400 focus-visible:ring-red-400" : ""}`} />
-                  {urlError && (
-                    <p className="text-red-500 text-xs flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />{urlError}
-                    </p>
+        {/* ── Stats Row ── */}
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          {[
+            { label: "Total",    value: statTotal, color: "text-slate-800",   bg: "bg-slate-100",   icon: <BarChart3 className="w-4 h-4 text-slate-500" />,   testid: "stat-total" },
+            { label: "Berhasil", value: statSucc,  color: "text-emerald-700", bg: "bg-emerald-100", icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />, testid: "stat-success" },
+            { label: "Partial",  value: statPart,  color: "text-amber-700",   bg: "bg-amber-100",   icon: <AlertCircle className="w-4 h-4 text-amber-500" />,   testid: "stat-partial" },
+            { label: "Gagal",    value: statFail,  color: "text-red-600",     bg: "bg-red-100",     icon: <AlertCircle className="w-4 h-4 text-red-500" />,     testid: "stat-failed" },
+            { label: "Duplikat", value: statDupe,  color: "text-slate-500",   bg: "bg-slate-100",   icon: <RefreshCw className="w-4 h-4 text-slate-400" />,     testid: "stat-duplicate" },
+          ].map(({ label, value, color, bg, icon, testid }) => (
+            <div key={label} className="bg-white rounded-xl border border-slate-200 px-4 py-4 flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
+              <div className="min-w-0">
+                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide leading-none">{label}</p>
+                <p data-testid={testid} className={`text-2xl font-bold mt-1 leading-none tabular-nums ${color}`}>{value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── 2-Column Main Layout ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+
+          {/* ═══════════════ LEFT COLUMN (Results + KB Pipeline) ═══════════════ */}
+          <div className="lg:col-span-2 space-y-5">
+
+            {/* ── Results Table ── */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              {/* Table Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-slate-400" />
+                  <h2 className="text-sm font-semibold text-slate-700">Hasil Scraping</h2>
+                  {articles.length > 0 && (
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                      {hasActiveFilter ? `${filteredArticles.length} / ${articles.length}` : articles.length}
+                    </span>
                   )}
                 </div>
-                <div className="flex gap-2 sm:items-end">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-600 hidden sm:block">Mode</Label>
-                    <Select value={mode} onValueChange={setMode} disabled={isRunning}>
-                      <SelectTrigger data-testid="select-mode" className="w-36 bg-slate-50 border-slate-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MODES.map(m => (
-                          <SelectItem key={m.value} value={m.value}>
-                            <div>
-                              <p className="font-medium text-sm">{m.label}</p>
-                              <p className="text-xs text-slate-400">{m.desc}</p>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="sm:pt-[22px]">
-                    <Button data-testid="button-start-scrape" onClick={startScrape}
-                      disabled={isRunning}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 px-5 whitespace-nowrap">
-                      {isRunning
-                        ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
-                        : <><Zap className="w-4 h-4" />Mulai Scraping</>}
-                    </Button>
-                  </div>
-                </div>
+                {articles.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={fetchArticles}
+                    className="gap-1.5 text-slate-400 hover:text-slate-600 h-7 text-xs px-2">
+                    <RefreshCw className="w-3.5 h-3.5" />Refresh
+                  </Button>
+                )}
               </div>
 
-              {/* Row 2: Scrape Range */}
-              <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-slate-100">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full border-2 border-slate-300 inline-block" />
-                    Rentang Tanggal Scraping
-                  </Label>
-                  <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
-                    <SelectTrigger data-testid="select-scrape-range"
-                      className="w-44 bg-slate-50 border-slate-200 text-xs h-8">
-                      <SelectValue />
+              {/* Filter Bar */}
+              {articles.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                  <div className="relative flex-1 min-w-[160px]">
+                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <Input data-testid="filter-title" value={titleFilter}
+                      onChange={e => setTitleFilter(e.target.value)}
+                      placeholder="Cari judul..." className="pl-8 h-8 text-xs border-slate-200 w-full bg-white" />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs border-slate-200 bg-white">
+                      <SelectValue placeholder="Semua" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SCRAPE_RANGES.map(r => (
-                        <SelectItem key={r.value} value={r.value}>
-                          <div>
-                            <p className="font-medium text-sm">{r.label}</p>
-                            <p className="text-xs text-slate-400">{r.desc}</p>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">Semua Status</SelectItem>
+                      <SelectItem value="success">Berhasil</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                      <SelectItem value="failed">Gagal</SelectItem>
+                      <SelectItem value="duplicate">Duplikat</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                {scrapeRange === "custom" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-500">Dari</Label>
-                      <Input data-testid="input-custom-start"
-                        type="date" value={customStart}
-                        onChange={e => setCustomStart(e.target.value)}
-                        disabled={isRunning}
-                        className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-500">Sampai</Label>
-                      <Input data-testid="input-custom-end"
-                        type="date" value={customEnd}
-                        onChange={e => setCustomEnd(e.target.value)}
-                        disabled={isRunning}
-                        className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
-                    </div>
-                  </>
-                )}
-                {scrapeRange !== "all" && (
-                  <span className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md font-medium self-end">
-                    Filter aktif: {SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400">
-                Mode aktif: <span className="font-medium text-slate-500">{MODES.find(m => m.value === mode)?.label}</span>
-                {" — "}{MODES.find(m => m.value === mode)?.desc}
-                {scrapeRange !== "all" && (
-                  <> · Filter tanggal: <span className="font-medium text-indigo-500">{SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}</span></>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── Section: Statistics ── */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Statistik</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {[
-              { label: "Total",   value: statTotal, color: "text-slate-800",   bar: "bg-slate-300",   testid: "stat-total" },
-              { label: "Berhasil", value: statSucc, color: "text-emerald-600", bar: "bg-emerald-400", testid: "stat-success" },
-              { label: "Partial",  value: statPart, color: "text-amber-600",   bar: "bg-amber-400",   testid: "stat-partial" },
-              { label: "Gagal",    value: statFail, color: "text-red-500",     bar: "bg-red-400",     testid: "stat-failed" },
-              { label: "Duplikat", value: statDupe, color: "text-slate-400",   bar: "bg-slate-200",   testid: "stat-duplicate" },
-            ].map(({ label, value, color, testid }) => (
-              <Card key={label} className="shadow-none border-slate-200">
-                <CardContent className="py-3 px-4">
-                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">{label}</p>
-                  <p data-testid={testid} className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Section: Real-time Logs ── */}
-        {showLog && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-indigo-500" />
-                <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Log Proses</h2>
-                {isRunning && (
-                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                    </span>
-                    Live
-                  </span>
-                )}
-                {progress.phase === "done" && (
-                  <span className="text-xs text-slate-400">— selesai</span>
-                )}
-              </div>
-              {progress.phase === "scraping" && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-indigo-600">{pct}%</span>
-                  <div className="w-24">
-                    <Progress value={pct} className="h-1.5" />
-                  </div>
-                  <span className="text-xs text-slate-400">{progress.current}/{progress.total}</span>
-                </div>
-              )}
-            </div>
-
-            <Card className="shadow-none border-slate-200 overflow-hidden">
-              {/* Status bar */}
-              <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Circle className="w-2.5 h-2.5 text-red-400 fill-red-400" />
-                  <Circle className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-                  <Circle className="w-2.5 h-2.5 text-emerald-400 fill-emerald-400" />
-                  <span className="text-slate-400 text-xs ml-2 font-mono">
-                    {phaseLabel[progress.phase] || progress.phase}
-                  </span>
-                </div>
-                {isRunning && (
-                  <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
-                )}
-              </div>
-              {/* Log lines */}
-              <div ref={logRef} data-testid="log-panel"
-                className="bg-slate-900 px-4 py-3 h-44 overflow-y-auto font-mono">
-                {progress.logs.length === 0 ? (
-                  <p className="text-slate-500 text-xs">Menunggu log...</p>
-                ) : (
-                  progress.logs.map((line, i) => (
-                    <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
-                      <span className="text-slate-600 select-none mr-2">{String(i + 1).padStart(3, "0")}</span>
-                      {line}
-                    </div>
-                  ))
-                )}
-                {isRunning && (
-                  <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span className="animate-pulse">memproses...</span>
-                  </div>
-                )}
-              </div>
-              {/* Summary footer when done */}
-              {progress.phase === "done" && (
-                <div className="px-4 py-2.5 bg-slate-800 border-t border-slate-700 flex items-center gap-4 text-xs">
-                  <span className="text-emerald-400 font-medium">✅ {progress.success} berhasil</span>
-                  <span className="text-amber-400">⚠️ {progress.partial} partial</span>
-                  <span className="text-red-400">❌ {progress.failed} gagal</span>
-                  <span className="text-slate-400">🔄 {progress.duplicate} duplikat</span>
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
-
-        {/* ── Section: Scheduler ── */}
-        <div className="space-y-2">
-          {/* Header (collapsible trigger) */}
-          <button
-            onClick={() => setSchedulerOpen(o => !o)}
-            className="w-full flex items-center justify-between group"
-            data-testid="scheduler-toggle"
-          >
-            <div className="flex items-center gap-2">
-              <Timer className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Scheduler & Incremental</h2>
-              {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-                <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-xs px-2 py-0.5">
-                  Aktif · {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
-                </Badge>
-              )}
-            </div>
-            <span className="text-slate-400 group-hover:text-slate-600">
-              {schedulerOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </span>
-          </button>
-
-          {schedulerOpen && (
-            <div className="space-y-3">
-              {/* ── Status cards ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Last Run */}
-                <Card className="shadow-none border-slate-200">
-                  <CardContent className="px-4 py-3 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
-                      <Clock className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Last Run</p>
-                      {schedulerSettings.last_run_at ? (
-                        <>
-                          <p className="text-sm font-semibold text-slate-700 tabular-nums">
-                            {new Date(schedulerSettings.last_run_at).toLocaleString("id-ID", {
-                              day: "2-digit", month: "short", year: "numeric",
-                              hour: "2-digit", minute: "2-digit",
-                            })}
-                          </p>
-                          <p className="text-xs text-slate-400 truncate">
-                            {schedulerSettings.last_run_url || "–"}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-sm text-slate-400 italic">Belum pernah dijalankan</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Next Run */}
-                <Card className="shadow-none border-slate-200">
-                  <CardContent className="px-4 py-3 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5">
-                      <CalendarDays className="w-4 h-4 text-indigo-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Next Run</p>
-                      {schedulerSettings.next_run_at ? (
-                        <p className="text-sm font-semibold text-indigo-700 tabular-nums">
-                          {new Date(schedulerSettings.next_run_at).toLocaleString("id-ID", {
-                            day: "2-digit", month: "short", year: "numeric",
-                            hour: "2-digit", minute: "2-digit",
-                          })}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-slate-400 italic">
-                          {schedulerSettings.interval === "manual" ? "Mode manual" : "Tidak terjadwal"}
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Articles last run */}
-                <Card className="shadow-none border-slate-200">
-                  <CardContent className="px-4 py-3 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-                      <Newspaper className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Artikel Baru (Last Run)</p>
-                      <p className="text-2xl font-bold text-emerald-600 tabular-nums leading-none mt-0.5">
-                        {schedulerSettings.last_run_articles_added}
-                      </p>
-                      {schedulerSettings.last_run_mode && schedulerSettings.last_run_at && (
-                        <p className="text-xs text-slate-400 mt-0.5">Mode: {schedulerSettings.last_run_mode}</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* ── Settings card ── */}
-              <Card className="shadow-none border-slate-200">
-                <CardContent className="px-5 py-4 space-y-4">
-                  {/* Row 1: Interval + time */}
-                  <div className="flex flex-wrap items-end gap-4">
-                    {/* Interval */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-600">Mode Jadwal</Label>
-                      <Select
-                        value={schedulerSettings.interval}
-                        onValueChange={v => setSchedulerSettings(s => ({
-                          ...s,
-                          interval: v as "manual" | "daily" | "weekly",
-                          enabled: v !== "manual",
-                        }))}
-                      >
-                        <SelectTrigger data-testid="scheduler-interval" className="w-44 bg-slate-50 border-slate-200">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="manual">Manual Only</SelectItem>
-                          <SelectItem value="daily">Daily (Harian)</SelectItem>
-                          <SelectItem value="weekly">Weekly (Mingguan)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Time of day (shown when not manual) */}
-                    {schedulerSettings.interval !== "manual" && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">Jam Eksekusi (WIB)</Label>
-                        <Input
-                          data-testid="scheduler-time"
-                          type="time"
-                          value={schedulerSettings.time_of_day}
-                          onChange={e => setSchedulerSettings(s => ({ ...s, time_of_day: e.target.value }))}
-                          className="w-32 bg-slate-50 border-slate-200"
-                        />
-                      </div>
-                    )}
-
-                    {/* Day of week (only for weekly) */}
-                    {schedulerSettings.interval === "weekly" && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">Hari</Label>
-                        <Select
-                          value={schedulerSettings.day_of_week}
-                          onValueChange={v => setSchedulerSettings(s => ({ ...s, day_of_week: v }))}
-                        >
-                          <SelectTrigger data-testid="scheduler-dow" className="w-36 bg-slate-50 border-slate-200">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[
-                              { v: "mon", l: "Senin" }, { v: "tue", l: "Selasa" },
-                              { v: "wed", l: "Rabu" }, { v: "thu", l: "Kamis" },
-                              { v: "fri", l: "Jumat" }, { v: "sat", l: "Sabtu" },
-                              { v: "sun", l: "Minggu" },
-                            ].map(d => (
-                              <SelectItem key={d.v} value={d.v}>{d.l}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Row 2: URL + Mode */}
-                  <div className="flex flex-wrap items-end gap-4">
-                    <div className="flex-1 space-y-1.5 min-w-[220px]">
-                      <Label className="text-xs font-semibold text-slate-600">URL Default Scheduler</Label>
-                      <Input
-                        data-testid="scheduler-url"
-                        type="url"
-                        placeholder="https://www.kemlu.go.id/cairo/berita"
-                        value={schedulerSettings.url}
-                        onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
-                        className="bg-slate-50 border-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-600">Scrape Mode</Label>
-                      <Select
-                        value={schedulerSettings.scrape_mode}
-                        onValueChange={v => setSchedulerSettings(s => ({ ...s, scrape_mode: v }))}
-                      >
-                        <SelectTrigger data-testid="scheduler-mode" className="w-44 bg-slate-50 border-slate-200">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MODES.map(m => (
-                            <SelectItem key={m.value} value={m.value}>
-                              <div>
-                                <p className="font-medium text-sm">{m.label}</p>
-                                <p className="text-xs text-slate-400">{m.desc}</p>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Row 3: Incremental toggle */}
-                  <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-700">Incremental Scraping</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {schedulerSettings.incremental
-                          ? "Hanya ambil artikel baru — URL yang sudah ada di-skip otomatis."
-                          : "Full refresh — bersihkan data lama sebelum scraping baru."}
-                      </p>
-                    </div>
-                    <button
-                      data-testid="scheduler-incremental-toggle"
-                      onClick={() => setSchedulerSettings(s => ({ ...s, incremental: !s.incremental }))}
-                      className="shrink-0 ml-4"
-                    >
-                      {schedulerSettings.incremental
-                        ? <ToggleRight className="w-8 h-8 text-indigo-600" />
-                        : <ToggleLeft className="w-8 h-8 text-slate-400" />}
-                    </button>
-                  </div>
-
-                  {/* Row 4: Actions */}
-                  <div className="flex items-center gap-3 pt-1">
-                    <Button
-                      data-testid="scheduler-save"
-                      onClick={saveSchedulerSettings}
-                      disabled={schedulerSaving}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-                    >
-                      {schedulerSaving
-                        ? <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
-                        : <><Save className="w-4 h-4" />Simpan Pengaturan</>}
+                  <Input data-testid="filter-date-from" type="date" value={dateFrom}
+                    onChange={e => setDateFrom(e.target.value)}
+                    className="w-32 h-8 text-xs border-slate-200 bg-white" />
+                  <span className="text-slate-300 text-xs">→</span>
+                  <Input data-testid="filter-date-to" type="date" value={dateTo}
+                    onChange={e => setDateTo(e.target.value)}
+                    className="w-32 h-8 text-xs border-slate-200 bg-white" />
+                  {hasActiveFilter && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}
+                      className="h-8 text-xs text-red-500 hover:bg-red-50 px-2 gap-1">
+                      ✕ Hapus
                     </Button>
-                    <Button
-                      data-testid="scheduler-run-now"
-                      variant="outline"
-                      onClick={triggerRunNow}
-                      disabled={schedulerRunNow || !schedulerSettings.url.trim()}
-                      className="gap-2 border-slate-300"
-                      title={!schedulerSettings.url.trim() ? "Isi URL Scheduler terlebih dahulu" : ""}
-                    >
-                      {schedulerRunNow
-                        ? <><Loader2 className="w-4 h-4 animate-spin" />Memulai...</>
-                        : <><Play className="w-4 h-4" />Jalankan Sekarang</>}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={fetchSchedulerSettings}
-                      className="gap-1.5 text-slate-400 hover:text-slate-600 text-xs ml-auto"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />Refresh Status
-                    </Button>
-                  </div>
-
-                  {schedulerSettings.interval !== "manual" && schedulerSettings.enabled && (
-                    <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg">
-                      ✅ Scheduler aktif — scraping otomatis berjalan{" "}
-                      {schedulerSettings.interval === "daily"
-                        ? `setiap hari pukul ${schedulerSettings.time_of_day}`
-                        : `setiap ${
-                            ({ mon:"Senin",tue:"Selasa",wed:"Rabu",thu:"Kamis",fri:"Jumat",sat:"Sabtu",sun:"Minggu" })[schedulerSettings.day_of_week] || schedulerSettings.day_of_week
-                          } pukul ${schedulerSettings.time_of_day}`}{" "}
-                      WIB.
-                    </p>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {/* ── Section: Results Table ── */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Hasil Scraping</h2>
-              {articles.length > 0 && (
-                <span className="text-xs text-slate-400">
-                  {hasActiveFilter
-                    ? `${filteredArticles.length} dari ${articles.length} artikel`
-                    : `${articles.length} artikel`}
-                </span>
+                </div>
               )}
-            </div>
-            {articles.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={fetchArticles}
-                className="gap-1.5 text-slate-400 hover:text-slate-600 text-xs">
-                <RefreshCw className="w-3.5 h-3.5" />Refresh
-              </Button>
-            )}
-          </div>
 
-          {/* ── Results Filter Bar ── */}
-          {articles.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-none">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[180px]">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <Input data-testid="filter-title"
-                  value={titleFilter}
-                  onChange={e => setTitleFilter(e.target.value)}
-                  placeholder="Cari judul artikel..."
-                  className="pl-8 h-8 text-xs bg-slate-50 border-slate-200 w-full" />
-              </div>
-
-              {/* Status filter */}
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs bg-slate-50 border-slate-200">
-                  <SelectValue placeholder="Semua Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="success">Berhasil</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                  <SelectItem value="failed">Gagal</SelectItem>
-                  <SelectItem value="duplicate">Duplikat</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Date from */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 whitespace-nowrap">Dari</span>
-                <Input data-testid="filter-date-from"
-                  type="date" value={dateFrom}
-                  onChange={e => setDateFrom(e.target.value)}
-                  className="w-32 h-8 text-xs bg-slate-50 border-slate-200" />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 whitespace-nowrap">s/d</span>
-                <Input data-testid="filter-date-to"
-                  type="date" value={dateTo}
-                  onChange={e => setDateTo(e.target.value)}
-                  className="w-32 h-8 text-xs bg-slate-50 border-slate-200" />
-              </div>
-
-              {/* Clear */}
-              {hasActiveFilter && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}
-                  className="h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 px-2 gap-1">
-                  <span className="text-sm leading-none">✕</span> Hapus Filter
-                </Button>
-              )}
-            </div>
-          )}
-
-          <Card className="shadow-none border-slate-200">
-            <CardContent className="p-0">
+              {/* Table Body */}
               {loadingArticles ? (
                 <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span className="text-sm">Memuat data...</span>
                 </div>
               ) : articles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <Newspaper className="w-7 h-7 opacity-40" />
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+                    <Newspaper className="w-7 h-7 text-slate-300" />
                   </div>
                   <div className="text-center space-y-1">
-                    <p className="text-sm font-medium text-slate-600">Belum ada artikel</p>
+                    <p className="text-sm font-semibold text-slate-600">Belum ada artikel</p>
                     <p className="text-xs text-slate-400">Masukkan URL berita di atas lalu klik <strong>Mulai Scraping</strong></p>
                   </div>
                 </div>
               ) : filteredArticles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-                  <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 opacity-40" />
+                <div className="flex flex-col items-center justify-center py-14 gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <AlertCircle className="w-5 h-5 text-slate-300" />
                   </div>
                   <div className="text-center space-y-1">
-                    <p className="text-sm font-medium text-slate-600">Tidak ada hasil untuk filter ini</p>
-                    <p className="text-xs text-slate-400">{articles.length} artikel total tersimpan, tapi tidak ada yang cocok.</p>
+                    <p className="text-sm font-semibold text-slate-600">Tidak ada hasil</p>
+                    <p className="text-xs text-slate-400">{articles.length} artikel tersimpan, tidak ada yang cocok filter.</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={clearFilters}
-                    className="text-xs gap-1.5">
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs gap-1.5 h-8">
                     Hapus Semua Filter
                   </Button>
                 </div>
@@ -1260,65 +819,54 @@ const Index = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50 text-xs">
-                        <th className="text-left px-5 py-3 font-semibold text-slate-500 w-10">#</th>
+                      <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px]">
+                        <th className="text-left px-5 py-3 font-semibold text-slate-400 w-9">#</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500">Artikel</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-52">Preview Konten</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-28">Tanggal</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-20">Mode</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-24">Status</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-36">Error Reason</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-28">Aksi</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-44">Preview</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-26">Tanggal</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-20">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 w-24">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredArticles.map((article, i) => (
                         <tr key={article.id} data-testid={`row-article-${article.id}`}
-                          className="border-b border-slate-50 hover:bg-slate-50/80 transition-colors align-top">
-                          <td className="px-5 py-3.5 text-slate-400 text-xs">{i + 1}</td>
-                          <td className="px-4 py-3.5 min-w-0 max-w-[220px]">
+                          className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/30" : ""}`}>
+                          <td className="px-5 py-3.5 text-slate-300 text-xs tabular-nums">{i + 1}</td>
+                          <td className="px-4 py-3.5 max-w-[200px]">
                             <button data-testid={`link-article-${article.id}`}
                               onClick={() => navigate(`/article/${article.id}`)}
-                              className="text-slate-900 hover:text-indigo-600 text-left font-medium text-sm line-clamp-2 transition-colors leading-snug">
+                              className="text-slate-800 hover:text-indigo-600 text-left font-medium text-xs line-clamp-2 transition-colors leading-snug">
                               {article.title || "(Tanpa Judul)"}
                             </button>
-                          </td>
-                          <td className="px-4 py-3.5 w-52">
-                            <p data-testid={`preview-${article.id}`}
-                              className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
-                              {article.content
-                                ? article.content.slice(0, 200) + (article.content.length > 200 ? "…" : "")
-                                : <span className="text-slate-300 italic">Tidak ada konten</span>}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3.5 text-slate-500 text-xs whitespace-nowrap">{article.date || "—"}</td>
-                          <td className="px-4 py-3.5">
-                            {article.mode
-                              ? <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{article.mode}</span>
-                              : <span className="text-slate-300 text-xs">—</span>}
-                          </td>
-                          <td className="px-4 py-3.5"><StatusBadge status={article.status} /></td>
-                          <td className="px-4 py-3.5">
-                            {article.error_reason ? (
-                              <span data-testid={`reason-${article.id}`}
-                                className="text-xs bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded font-mono whitespace-nowrap">
+                            {article.error_reason && (
+                              <span className="mt-1 inline-block text-[10px] text-orange-500 bg-orange-50 border border-orange-100 px-1.5 py-px rounded font-mono">
                                 {ERROR_REASON_LABELS[article.error_reason] ?? article.error_reason}
                               </span>
-                            ) : <span className="text-slate-200 text-xs">—</span>}
+                            )}
                           </td>
+                          <td className="px-4 py-3.5 w-44">
+                            <p data-testid={`preview-${article.id}`}
+                              className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                              {article.content
+                                ? article.content.slice(0, 160) + (article.content.length > 160 ? "…" : "")
+                                : <span className="italic">—</span>}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-400 text-xs whitespace-nowrap">{article.date || "—"}</td>
+                          <td className="px-4 py-3.5"><StatusBadge status={article.status} /></td>
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-1.5">
-                              <Button
-                                data-testid={`button-detail-${article.id}`}
+                              <Button data-testid={`button-detail-${article.id}`}
                                 size="sm" variant="outline"
                                 onClick={() => navigate(`/article/${article.id}`)}
-                                className="h-7 text-xs px-2.5 border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 gap-1">
+                                className="h-7 text-xs px-2.5 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 gap-1">
                                 <Eye className="w-3 h-3" />Detail
                               </Button>
                               <a href={article.url} target="_blank" rel="noopener noreferrer"
                                 data-testid={`link-source-${article.id}`}
                                 className="flex items-center justify-center w-7 h-7 rounded border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 transition-colors">
-                                <ExternalLink className="w-3.5 h-3.5" />
+                                <ExternalLink className="w-3 h-3" />
                               </a>
                             </div>
                           </td>
@@ -1328,209 +876,192 @@ const Index = () => {
                   </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
 
-        {/* ── Section: KB Pipeline ── */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Knowledge Base Pipeline</h2>
-            <span className="text-xs text-slate-400">— {eligibleArticles.length} artikel eligible (success/partial)</span>
-          </div>
+            {/* ── KB Pipeline ── */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-slate-400" />
+                  <h2 className="text-sm font-semibold text-slate-700">KB Pipeline</h2>
+                  {eligibleArticles.length > 0 && (
+                    <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      {eligibleArticles.length} eligible
+                    </span>
+                  )}
+                </div>
+                {kbDraft.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <a href="/export/kb" download>
+                      <Button data-testid="button-download-kb" variant="outline" size="sm"
+                        className="h-7 text-xs gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                        <Download className="w-3 h-3" />Export JSON
+                      </Button>
+                    </a>
+                    <Link to="/review">
+                      <Button variant="outline" size="sm"
+                        className="h-7 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                        <CheckSquare className="w-3 h-3" />Review
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
 
-          {articles.length === 0 ? (
-            <Card className="shadow-none border-slate-200">
-              <CardContent className="flex flex-col items-center justify-center py-14 gap-3 text-slate-400">
-                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 opacity-40" />
+              {articles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-slate-300" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-slate-500">Pipeline belum tersedia</p>
+                    <p className="text-xs text-slate-400 mt-1">Lakukan scraping terlebih dahulu</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-4 py-1.5 mt-1">
+                    <ArrowRight className="w-3 h-3" />Scraping → Summary → Tag → KB Draft → Review
+                  </div>
                 </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-slate-600">Pipeline belum tersedia</p>
-                  <p className="text-xs text-slate-400">Lakukan scraping terlebih dahulu untuk mengaktifkan KB Pipeline</p>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 mt-1">
-                  <ArrowRight className="w-3.5 h-3.5" />Scraping → Generate Summary → Auto Tag → Convert KB Draft → Review
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="shadow-none border-slate-200">
-              <CardContent className="pt-5">
-                <Tabs defaultValue="kb-draft">
-                  <TabsList className="mb-5 bg-slate-100 border border-slate-200">
-                    <TabsTrigger value="kb-draft" className="gap-1.5 text-xs">
-                      <ClipboardList className="w-3.5 h-3.5" />KB Draft
-                    </TabsTrigger>
-                    <TabsTrigger value="ai" className="gap-1.5 text-xs">
-                      <Sparkles className="w-3.5 h-3.5" />AI Summary
-                    </TabsTrigger>
-                    <TabsTrigger value="supabase" className="gap-1.5 text-xs">
-                      <Database className="w-3.5 h-3.5" />Supabase
-                    </TabsTrigger>
-                  </TabsList>
+              ) : (
+                <div className="p-5">
+                  <Tabs defaultValue="kb-draft">
+                    <TabsList className="mb-5 bg-slate-100 border border-slate-200 h-9">
+                      <TabsTrigger value="kb-draft" className="gap-1.5 text-xs h-7">
+                        <ClipboardList className="w-3.5 h-3.5" />KB Draft
+                      </TabsTrigger>
+                      <TabsTrigger value="ai" className="gap-1.5 text-xs h-7">
+                        <Sparkles className="w-3.5 h-3.5" />AI Summary
+                      </TabsTrigger>
+                      <TabsTrigger value="supabase" className="gap-1.5 text-xs h-7">
+                        <Database className="w-3.5 h-3.5" />Supabase
+                      </TabsTrigger>
+                    </TabsList>
 
-                  {/* ── KB Draft Tab ── */}
-                  <TabsContent value="kb-draft" className="space-y-4 mt-0">
-                    {/* Steps */}
-                    <div className="space-y-3">
+                    {/* KB Draft Tab */}
+                    <TabsContent value="kb-draft" className="space-y-3 mt-0">
                       {/* Step 1 */}
-                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${summaryDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white"}`}>
-                        <div className="flex items-center gap-2.5">
+                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${summaryDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200"}`}>
+                        <div className="flex items-start gap-3">
                           <StepBadge n={1} done={summaryDone} />
-                          <div>
-                            <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-1.5">
-                              <AlignLeft className="w-3.5 h-3.5 text-slate-400" />Generate Summary
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                              Buat ringkasan 2–4 kalimat secara otomatis. Hanya mengisi artikel yang belum punya summary.
-                            </p>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-slate-800">Generate Summary</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">Buat ringkasan 2–4 kalimat secara otomatis untuk artikel yang belum memiliki summary.</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 pl-8">
+                        <div className="flex items-center gap-3 pl-9">
                           <Button data-testid="button-generate-summary" onClick={doGenerateSummary}
                             disabled={summaryLoading || isRunning} size="sm"
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5">
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8">
                             {summaryLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : summaryDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlignLeft className="w-3.5 h-3.5" />}
                             {summaryLoading ? "Generating..." : summaryDone ? "Done" : "Generate Summary"}
                           </Button>
                           {summaryDone && summaryResult && (
-                            <span className="text-xs text-emerald-600 font-medium">
-                              {summaryResult.updated} dari {summaryResult.total} artikel diberi summary
-                            </span>
+                            <span className="text-xs text-emerald-600">{summaryResult.updated} dari {summaryResult.total} artikel</span>
                           )}
-                          {summaryError && <p className="text-xs text-red-500">{summaryError}</p>}
+                          {summaryError && <span className="text-xs text-red-500">{summaryError}</span>}
                         </div>
                       </div>
 
                       {/* Step 2 */}
-                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${tagDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white"}`}>
-                        <div className="flex items-center gap-2.5">
+                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${tagDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200"}`}>
+                        <div className="flex items-start gap-3">
                           <StepBadge n={2} done={tagDone} />
-                          <div>
-                            <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-1.5">
-                              <Tag className="w-3.5 h-3.5 text-slate-400" />Auto Tagging
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                              Generate tags otomatis dari keyword di judul dan konten.
-                              Tag terdeteksi: paspor, visa, iqomah, kbri, palestina, beasiswa, dll.
-                            </p>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-slate-800">Auto Tagging</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">Generate tags otomatis: paspor, visa, iqomah, kbri, palestina, beasiswa, dll.</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 pl-8">
+                        <div className="flex items-center gap-3 pl-9">
                           <Button data-testid="button-auto-tag" onClick={doAutoTag}
                             disabled={tagLoading || isRunning} size="sm"
-                            className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5">
+                            className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-8">
                             {tagLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : tagDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Tag className="w-3.5 h-3.5" />}
                             {tagLoading ? "Tagging..." : tagDone ? "Tagged" : "Auto Tag"}
                           </Button>
-                          {tagDone && <span className="text-xs text-emerald-600 font-medium">Semua artikel berhasil di-tag.</span>}
-                          {tagError && <p className="text-xs text-red-500">{tagError}</p>}
+                          {tagDone && <span className="text-xs text-emerald-600">Semua artikel berhasil di-tag.</span>}
+                          {tagError && <span className="text-xs text-red-500">{tagError}</span>}
                         </div>
                       </div>
 
                       {/* Step 3 */}
-                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${kbDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white"}`}>
-                        <div className="flex items-center gap-2.5">
+                      <div className={`border rounded-xl p-4 space-y-3 transition-colors ${kbDone ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200"}`}>
+                        <div className="flex items-start gap-3">
                           <StepBadge n={3} done={kbDone} />
-                          <div>
-                            <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-1.5">
-                              <ClipboardList className="w-3.5 h-3.5 text-slate-400" />Convert to KB Draft
-                            </h3>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-slate-800">Convert to KB Draft</h3>
                             <p className="text-xs text-slate-500 mt-0.5">
-                              Konversi artikel success/partial ke format KB draft AINA.
-                              Status awal: <span className="font-mono bg-yellow-50 text-yellow-600 px-1 rounded text-xs">pending</span>.
+                              Konversi artikel success/partial ke format KB draft AINA. Status awal:{" "}
+                              <span className="font-mono bg-yellow-50 text-yellow-700 px-1 rounded">pending</span>.
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center flex-wrap gap-2 pl-8">
+                        <div className="flex flex-wrap items-center gap-2 pl-9">
                           <Button data-testid="button-convert-kb" onClick={doConvertKb}
                             disabled={kbLoading || isRunning || eligibleArticles.length === 0}
-                            size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+                            size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8">
                             {kbLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : kbDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}
                             {kbLoading ? "Mengkonversi..." : kbDone ? `${kbDraft.length} artikel di-draft` : "Convert to KB Draft"}
                           </Button>
-                          {kbDone && (
-                            <>
-                              <a href="/export/kb" download>
-                                <Button data-testid="button-download-kb" variant="outline" size="sm"
-                                  className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-                                  <Download className="w-3.5 h-3.5" />kb_articles.json
-                                </Button>
-                              </a>
-                              <Link to="/review">
-                                <Button variant="outline" size="sm"
-                                  className="gap-1.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50">
-                                  <CheckSquare className="w-3.5 h-3.5" />Review Draft
-                                </Button>
-                              </Link>
-                            </>
-                          )}
                           <Button variant="ghost" size="sm" onClick={fetchKbDraft} disabled={kbDraftLoading}
-                            className="gap-1 text-slate-400 hover:text-slate-600">
-                            <RefreshCw className={`w-3 h-3 ${kbDraftLoading ? "animate-spin" : ""}`} />
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
+                            <RefreshCw className={`w-3.5 h-3.5 ${kbDraftLoading ? "animate-spin" : ""}`} />
                           </Button>
                         </div>
-                        {kbError && <p data-testid="text-kb-error" className="text-red-500 text-xs pl-8">{kbError}</p>}
+                        {kbError && <p data-testid="text-kb-error" className="text-red-500 text-xs pl-9">{kbError}</p>}
                         {eligibleArticles.length === 0 && (
-                          <p className="text-xs text-slate-400 pl-8">Tidak ada artikel success/partial untuk dikonversi.</p>
+                          <p className="text-xs text-slate-400 pl-9">Tidak ada artikel success/partial untuk dikonversi.</p>
                         )}
                       </div>
-                    </div>
 
-                    {/* KB Draft Preview */}
-                    {kbDraft.length > 0 && (
-                      <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                      {/* KB Draft Preview */}
+                      {kbDraft.length > 0 && (
+                        <div className="rounded-xl border border-slate-200 overflow-hidden mt-4">
+                          <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
                             <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
-                            Preview KB Draft ({kbDraft.length} artikel)
-                          </h3>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 overflow-hidden">
-                          <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                            <span className="text-xs font-semibold text-slate-500">Preview KB Draft</span>
+                            <span className="text-xs text-slate-400">({kbDraft.length} artikel)</span>
+                          </div>
+                          <div className="overflow-x-auto max-h-72 overflow-y-auto">
                             <table className="w-full text-xs">
                               <thead className="sticky top-0 z-10">
-                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500">
-                                  <th className="text-left px-4 py-2.5 font-semibold w-8">#</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold">Title</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-40">Slug</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-52">Summary</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-36">Tags</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-24">Status</th>
+                                <tr className="bg-white border-b border-slate-100 text-slate-400">
+                                  <th className="text-left px-4 py-2.5 font-semibold w-7">#</th>
+                                  <th className="text-left px-4 py-2.5 font-semibold">Judul</th>
+                                  <th className="text-left px-4 py-2.5 font-semibold w-36">Slug</th>
+                                  <th className="text-left px-4 py-2.5 font-semibold w-44">Summary</th>
+                                  <th className="text-left px-4 py-2.5 font-semibold w-32">Tags</th>
+                                  <th className="text-left px-4 py-2.5 font-semibold w-20">Status</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {kbDraft.map((kb, i) => (
                                   <tr key={kb.id || i} data-testid={`row-kb-${kb.id || i}`}
-                                    className="border-b border-slate-50 hover:bg-slate-50/80 transition-colors align-top">
-                                    <td className="px-4 py-3 text-slate-400">{i + 1}</td>
-                                    <td className="px-4 py-3">
-                                      <p className="font-medium text-slate-900 line-clamp-2 leading-snug">{kb.title || "(Tanpa Judul)"}</p>
-                                      {kb.published_date && <p className="text-slate-400 mt-0.5 text-xs">{kb.published_date}</p>}
+                                    className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/40" : ""}`}>
+                                    <td className="px-4 py-2.5 text-slate-300 tabular-nums">{i + 1}</td>
+                                    <td className="px-4 py-2.5">
+                                      <p className="font-medium text-slate-800 line-clamp-2 leading-snug">{kb.title || "(Tanpa Judul)"}</p>
+                                      {kb.published_date && <p className="text-slate-400 mt-0.5">{kb.published_date}</p>}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-2.5">
                                       <span data-testid={`slug-${i}`}
-                                        className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded break-all text-xs">
+                                        className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded break-all">
                                         {kb.slug}
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3">
-                                      <p data-testid={`summary-${i}`} className="text-slate-600 line-clamp-3 leading-relaxed">
-                                        {kb.summary || <span className="text-slate-300 italic">Tidak ada summary</span>}
+                                    <td className="px-4 py-2.5">
+                                      <p data-testid={`summary-${i}`} className="text-slate-500 line-clamp-3 leading-relaxed">
+                                        {kb.summary || <span className="italic text-slate-300">—</span>}
                                       </p>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-2.5">
                                       <div data-testid={`tags-${i}`} className="flex flex-wrap gap-1">
                                         {(kb.tags || []).map(t => (
-                                          <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded font-medium text-xs">{t}</span>
+                                          <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded font-medium">{t}</span>
                                         ))}
                                       </div>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-2.5">
                                       <span data-testid={`approval-${i}`}
-                                        className={`inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize ${APPROVAL_COLORS[kb.approval_status] || "bg-slate-100 text-slate-500"}`}>
+                                        className={`inline-block px-2 py-0.5 rounded font-semibold capitalize ${APPROVAL_COLORS[kb.approval_status] || "bg-slate-100 text-slate-500"}`}>
                                         {kb.approval_status}
                                       </span>
                                     </td>
@@ -1540,137 +1071,417 @@ const Index = () => {
                             </table>
                           </div>
                         </div>
+                      )}
+                    </TabsContent>
+
+                    {/* AI Summary Tab */}
+                    <TabsContent value="ai" className="mt-0">
+                      <div className="border border-slate-200 rounded-xl p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4 text-violet-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-sm text-slate-800">AI Summary — GPT-4o-mini</h3>
+                            <p className="text-xs text-slate-500">Upgrade ringkasan dengan AI untuk semua artikel di KB Draft</p>
+                          </div>
+                        </div>
+                        {kbDraft.length === 0 ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            Jalankan "Convert to KB Draft" terlebih dahulu.
+                          </div>
+                        ) : (
+                          <Button data-testid="button-ai-summary-all" onClick={generateAiSummaries}
+                            disabled={aiLoading}
+                            className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
+                            {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : aiDone ? <CheckCircle2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                            {aiLoading ? "Generating..." : aiDone ? "Selesai!" : "Generate AI Summary"}
+                          </Button>
+                        )}
+                        {aiError && (
+                          <p data-testid="text-ai-error" className="text-red-500 text-sm flex items-center gap-1.5">
+                            <AlertCircle className="w-3.5 h-3.5" />{aiError}
+                          </p>
+                        )}
+                        {aiDone && (
+                          <p data-testid="text-ai-success" className="text-emerald-600 text-sm flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5" />AI summary berhasil disimpan.
+                          </p>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    {/* Supabase Tab */}
+                    <TabsContent value="supabase" className="mt-0">
+                      <div className="border border-slate-200 rounded-xl p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                            <Database className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase</h3>
+                            <p className="text-xs text-slate-500">
+                              Push semua KB articles ke tabel <span className="font-mono bg-slate-100 px-1 rounded">kb_articles</span>.
+                            </p>
+                          </div>
+                        </div>
+                        {kbDraft.length === 0 ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            Jalankan "Convert to KB Draft" terlebih dahulu.
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            <Button data-testid="button-push-supabase" onClick={pushToSupabase}
+                              disabled={pushLoading}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                              {pushLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : pushDone ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                              {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
+                            </Button>
+                            <Button data-testid="button-fetch-db" onClick={fetchDbArticles}
+                              disabled={dbLoading} variant="outline" className="gap-2 border-slate-200">
+                              {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                              {dbLoading ? "Mengambil..." : "Lihat Data"}
+                            </Button>
+                          </div>
+                        )}
+                        {pushError && <p data-testid="text-push-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{pushError}</p>}
+                        {dbError && <p data-testid="text-db-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{dbError}</p>}
+                        {dbArticles.length > 0 && (
+                          <div className="rounded-xl border border-slate-200 overflow-hidden">
+                            <div className="bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500 border-b">
+                              {dbArticles.length} artikel di Supabase
+                            </div>
+                            <div className="overflow-x-auto max-h-56 overflow-y-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b bg-white text-slate-400">
+                                    <th className="text-left px-4 py-2 font-semibold">Judul</th>
+                                    <th className="text-left px-4 py-2 font-semibold w-24">Tanggal</th>
+                                    <th className="text-left px-4 py-2 font-semibold w-36">Tags</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {dbArticles.map((a, i) => (
+                                    <tr key={i} className="border-b hover:bg-slate-50 transition-colors">
+                                      <td className="px-4 py-2 text-slate-800 font-medium">{a.title || "(Tanpa Judul)"}</td>
+                                      <td className="px-4 py-2 text-slate-400">{a.published_date || "—"}</td>
+                                      <td className="px-4 py-2">
+                                        <div className="flex flex-wrap gap-1">
+                                          {(a.tags || []).map((t: string) => (
+                                            <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded">{t}</span>
+                                          ))}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ═══════════════ RIGHT COLUMN (Sidebar) ═══════════════ */}
+          <div className="space-y-4">
+
+            {/* ── Live Log Panel ── */}
+            {showLog && (
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-700">Log Proses</span>
+                    {isRunning && (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                        </span>
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  {progress.phase === "scraping" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
+                      <div className="w-16">
+                        <Progress value={pct} className="h-1" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Status strip */}
+                <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 border-b border-slate-600">
+                  <Circle className="w-2 h-2 text-red-400 fill-red-400" />
+                  <Circle className="w-2 h-2 text-amber-400 fill-amber-400" />
+                  <Circle className="w-2 h-2 text-emerald-400 fill-emerald-400" />
+                  <span className="text-slate-400 text-[10px] ml-2 font-mono">{phaseLabel[progress.phase] || progress.phase}</span>
+                  {isRunning && <Loader2 className="w-3 h-3 text-slate-500 animate-spin ml-auto" />}
+                </div>
+
+                {/* Log lines */}
+                <div ref={logRef} data-testid="log-panel"
+                  className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
+                  {progress.logs.length === 0 ? (
+                    <p className="text-slate-600 text-xs">Menunggu log...</p>
+                  ) : (
+                    progress.logs.map((line, i) => (
+                      <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
+                        <span className="text-slate-700 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
+                        {line}
+                      </div>
+                    ))
+                  )}
+                  {isRunning && (
+                    <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                      <span className="animate-pulse">memproses...</span>
+                    </div>
+                  )}
+                </div>
+
+                {progress.phase === "done" && (
+                  <div className="px-4 py-2.5 bg-slate-700 border-t border-slate-600 flex flex-wrap items-center gap-3 text-[11px]">
+                    <span className="text-emerald-400 font-medium">✓ {progress.success} berhasil</span>
+                    <span className="text-amber-400">⚠ {progress.partial} partial</span>
+                    <span className="text-red-400">✗ {progress.failed} gagal</span>
+                    <span className="text-slate-400">↺ {progress.duplicate} duplikat</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Scheduler Card ── */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setSchedulerOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
+                data-testid="scheduler-toggle"
+              >
+                <div className="flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-semibold text-slate-700">Scheduler</span>
+                  {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
+                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
+                      {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
+                    </span>
+                  )}
+                </div>
+                {schedulerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+              </button>
+
+              {schedulerOpen && (
+                <div className="p-4 space-y-4">
+                  {/* Status mini-cards */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-lg border border-slate-200 p-2.5 text-center">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Last Run</p>
+                      <p className="text-xs font-semibold text-slate-700 mt-0.5 tabular-nums leading-tight">
+                        {schedulerSettings.last_run_at
+                          ? new Date(schedulerSettings.last_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-2.5 text-center">
+                      <p className="text-[10px] text-indigo-400 uppercase tracking-wide">Next</p>
+                      <p className="text-xs font-semibold text-indigo-700 mt-0.5 tabular-nums leading-tight">
+                        {schedulerSettings.next_run_at
+                          ? new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 text-center">
+                      <p className="text-[10px] text-emerald-500 uppercase tracking-wide">Artikel</p>
+                      <p className="text-xl font-bold text-emerald-700 mt-0.5 tabular-nums leading-none">
+                        {schedulerSettings.last_run_articles_added}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Settings form */}
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <div className="space-y-1 flex-1 min-w-[130px]">
+                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Mode Jadwal</Label>
+                        <Select value={schedulerSettings.interval}
+                          onValueChange={v => setSchedulerSettings(s => ({
+                            ...s, interval: v as "manual" | "daily" | "weekly", enabled: v !== "manual",
+                          }))}>
+                          <SelectTrigger data-testid="scheduler-interval" className="h-8 text-xs bg-slate-50 border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">Manual Only</SelectItem>
+                            <SelectItem value="daily">Harian</SelectItem>
+                            <SelectItem value="weekly">Mingguan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {schedulerSettings.interval !== "manual" && (
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Jam (WIB)</Label>
+                          <Input data-testid="scheduler-time" type="time"
+                            value={schedulerSettings.time_of_day}
+                            onChange={e => setSchedulerSettings(s => ({ ...s, time_of_day: e.target.value }))}
+                            className="w-24 h-8 text-xs bg-slate-50 border-slate-200" />
+                        </div>
+                      )}
+                    </div>
+                    {schedulerSettings.interval === "weekly" && (
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Hari</Label>
+                        <Select value={schedulerSettings.day_of_week}
+                          onValueChange={v => setSchedulerSettings(s => ({ ...s, day_of_week: v }))}>
+                          <SelectTrigger data-testid="scheduler-dow" className="h-8 text-xs bg-slate-50 border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[{ v:"mon",l:"Senin" },{ v:"tue",l:"Selasa" },{ v:"wed",l:"Rabu" },{ v:"thu",l:"Kamis" },{ v:"fri",l:"Jumat" },{ v:"sat",l:"Sabtu" },{ v:"sun",l:"Minggu" }].map(d => (
+                              <SelectItem key={d.v} value={d.v}>{d.l}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
-                  </TabsContent>
-
-                  {/* ── AI Summary Tab ── */}
-                  <TabsContent value="ai" className="mt-0">
-                    <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-white">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                          <Sparkles className="w-4 h-4 text-violet-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-sm text-slate-800">AI Summary — GPT-4o-mini</h3>
-                          <p className="text-xs text-slate-500">Upgrade ringkasan dengan AI untuk semua artikel di KB Draft</p>
-                        </div>
-                      </div>
-                      {kbDraft.length === 0 ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                          Jalankan "Convert to KB Draft" di tab KB Draft terlebih dahulu.
-                        </div>
-                      ) : (
-                        <Button data-testid="button-ai-summary-all" onClick={generateAiSummaries}
-                          disabled={aiLoading}
-                          className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                          {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : aiDone ? <CheckCircle2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                          {aiLoading ? "Generating AI Summary..." : aiDone ? "AI Summary Selesai!" : "Generate AI Summary"}
-                        </Button>
-                      )}
-                      {aiError && (
-                        <p data-testid="text-ai-error" className="text-red-500 text-sm flex items-center gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5" />{aiError}
-                        </p>
-                      )}
-                      {aiDone && (
-                        <p data-testid="text-ai-success" className="text-emerald-600 text-sm flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          AI summary berhasil di-generate dan disimpan.
-                        </p>
-                      )}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Default</Label>
+                      <Input data-testid="scheduler-url" type="url"
+                        placeholder="https://www.kemlu.go.id/cairo/berita"
+                        value={schedulerSettings.url}
+                        onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
+                        className="h-8 text-xs bg-slate-50 border-slate-200" />
                     </div>
-                  </TabsContent>
-
-                  {/* ── Supabase Tab ── */}
-                  <TabsContent value="supabase" className="mt-0">
-                    <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-white">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                          <Database className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase</h3>
-                          <p className="text-xs text-slate-500">
-                            Push semua KB articles ke tabel{" "}
-                            <span className="font-mono bg-slate-100 px-1 py-0.5 rounded">kb_articles</span>.
-                            Pastikan sudah menjalankan{" "}
-                            <span className="font-mono bg-slate-100 px-1 py-0.5 rounded">supabase_setup.sql</span>.
-                          </p>
-                        </div>
-                      </div>
-                      {kbDraft.length === 0 ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                          Jalankan "Convert to KB Draft" terlebih dahulu.
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-3">
-                          <Button data-testid="button-push-supabase" onClick={pushToSupabase}
-                            disabled={pushLoading}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                            {pushLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : pushDone ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
-                            {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
-                          </Button>
-                          <Button data-testid="button-fetch-db" onClick={fetchDbArticles}
-                            disabled={dbLoading} variant="outline" className="gap-2 border-slate-200">
-                            {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                            {dbLoading ? "Mengambil..." : "Lihat Data di DB"}
-                          </Button>
-                        </div>
-                      )}
-                      {pushError && (
-                        <p data-testid="text-push-error" className="text-red-500 text-sm flex items-center gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5" />{pushError}
-                        </p>
-                      )}
-                      {dbError && (
-                        <p data-testid="text-db-error" className="text-red-500 text-sm flex items-center gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5" />{dbError}
-                        </p>
-                      )}
-                      {dbArticles.length > 0 && (
-                        <div className="rounded-lg border border-slate-200 overflow-hidden">
-                          <div className="bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500 border-b">
-                            {dbArticles.length} artikel di Supabase
-                          </div>
-                          <div className="overflow-x-auto max-h-64 overflow-y-auto">
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="border-b bg-white text-slate-500">
-                                  <th className="text-left px-4 py-2 font-semibold">Judul</th>
-                                  <th className="text-left px-4 py-2 font-semibold w-28">Tanggal</th>
-                                  <th className="text-left px-4 py-2 font-semibold w-40">Tags</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {dbArticles.map((a, i) => (
-                                  <tr key={i} className="border-b hover:bg-slate-50 transition-colors">
-                                    <td className="px-4 py-2 text-slate-900 font-medium">{a.title || "(Tanpa Judul)"}</td>
-                                    <td className="px-4 py-2 text-slate-500">{a.published_date || "—"}</td>
-                                    <td className="px-4 py-2">
-                                      <div className="flex flex-wrap gap-1">
-                                        {(a.tags || []).map((t: string) => (
-                                          <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded text-xs">{t}</span>
-                                        ))}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Scrape Mode</Label>
+                      <Select value={schedulerSettings.scrape_mode}
+                        onValueChange={v => setSchedulerSettings(s => ({ ...s, scrape_mode: v }))}>
+                        <SelectTrigger data-testid="scheduler-mode" className="h-8 text-xs bg-slate-50 border-slate-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MODES.map(m => (
+                            <SelectItem key={m.value} value={m.value}>
+                              <p className="font-medium">{m.label}</p>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          )}
+
+                    {/* Incremental toggle */}
+                    <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700">Incremental</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {schedulerSettings.incremental ? "Hanya artikel baru" : "Full refresh"}
+                        </p>
+                      </div>
+                      <button data-testid="scheduler-incremental-toggle"
+                        onClick={() => setSchedulerSettings(s => ({ ...s, incremental: !s.incremental }))}
+                        className="shrink-0 ml-3">
+                        {schedulerSettings.incremental
+                          ? <ToggleRight className="w-7 h-7 text-indigo-600" />
+                          : <ToggleLeft className="w-7 h-7 text-slate-400" />}
+                      </button>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button data-testid="scheduler-save" onClick={saveSchedulerSettings}
+                        disabled={schedulerSaving} size="sm"
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8">
+                        {schedulerSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                        Simpan
+                      </Button>
+                      <Button data-testid="scheduler-run-now" variant="outline" onClick={triggerRunNow}
+                        disabled={schedulerRunNow || !schedulerSettings.url.trim()}
+                        size="sm" className="flex-1 gap-1.5 border-slate-200 h-8">
+                        {schedulerRunNow ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                        Jalankan
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={fetchSchedulerSettings}
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {schedulerSettings.interval !== "manual" && schedulerSettings.enabled && (
+                      <p className="text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg leading-relaxed">
+                        ✓ Aktif — {schedulerSettings.interval === "daily"
+                          ? `setiap hari pukul ${schedulerSettings.time_of_day}`
+                          : `setiap ${({ mon:"Senin",tue:"Selasa",wed:"Rabu",thu:"Kamis",fri:"Jumat",sat:"Sabtu",sun:"Minggu" })[schedulerSettings.day_of_week] || schedulerSettings.day_of_week} pukul ${schedulerSettings.time_of_day}`} WIB
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Selector Settings Card ── */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <button
+                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
+                onClick={() => setSettingsOpen(v => !v)}
+              >
+                <div className="flex items-center gap-2">
+                  <Settings2 className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-semibold text-slate-700">CSS Selector</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!settingsOpen && (
+                    <span className="text-[10px] text-slate-400 font-mono hidden sm:inline truncate max-w-[120px]">
+                      {settings.article_link_selector}
+                    </span>
+                  )}
+                  {settingsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </div>
+              </button>
+              {settingsOpen && (
+                <div className="p-4 space-y-4">
+                  <div className="space-y-3">
+                    {SELECTOR_FIELDS.map(({ key, label, hint }) => (
+                      <div key={key} className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{label}</Label>
+                        <Textarea data-testid={`input-${key}`} rows={2} value={settings[key]}
+                          onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
+                          className="font-mono text-xs resize-none bg-slate-50 border-slate-200"
+                          placeholder={DEFAULT_SETTINGS[key]} />
+                        <p className="text-[10px] text-slate-400">{hint}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button data-testid="button-save-settings" onClick={saveSettings}
+                      disabled={settingsSaving} size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8">
+                      {settingsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      Simpan
+                    </Button>
+                    <Button data-testid="button-reset-settings" onClick={resetSettings}
+                      variant="outline" size="sm" className="gap-1.5 text-slate-500 border-slate-200 h-8">
+                      <RotateCcw className="w-3.5 h-3.5" />Reset
+                    </Button>
+                    {settingsError && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" />{settingsError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
-
       </main>
     </div>
   );
