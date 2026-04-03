@@ -200,79 +200,82 @@ export default function ReviewDashboard() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link to="/">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 -ml-2">
-                <ChevronLeft className="w-4 h-4" />Scraper
+              <Button variant="ghost" size="sm" className="gap-1 sm:gap-1.5 text-slate-500 hover:text-slate-700 -ml-2 px-2 sm:px-3">
+                <ChevronLeft className="w-4 h-4" /><span className="hidden sm:inline">Scraper</span>
               </Button>
             </Link>
-            <div className="w-px h-5 bg-slate-200" />
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <CheckSquare className="w-5 h-5 text-white" />
+            <div className="w-px h-5 bg-slate-200 shrink-0" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+              <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900">KB Review Dashboard</h1>
-              <p className="text-xs text-slate-500">AINA Knowledge Base — Approval Workflow</p>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 truncate">KB Review Dashboard</h1>
+              <p className="hidden sm:block text-xs text-slate-500">AINA Knowledge Base — Approval Workflow</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <a href="/export/kb-approved" download>
-              <Button variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-                <Download className="w-3.5 h-3.5" />Approved
+              <Button variant="outline" size="sm"
+                className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-8 px-2 sm:px-3 text-xs">
+                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Approved</span>
               </Button>
             </a>
             <a href="/export/kb-exported" download>
-              <Button variant="outline" size="sm" className="gap-1.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50">
-                <Download className="w-3.5 h-3.5" />Exported
+              <Button variant="outline" size="sm"
+                className="gap-1.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50 h-8 px-2 sm:px-3 text-xs">
+                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Exported</span>
               </Button>
             </a>
             <Button variant="ghost" size="sm" onClick={() => { fetchArticles(); fetchStats(); }}
-              className="gap-1.5 text-slate-400 hover:text-slate-600">
+              className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-6 space-y-5">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
           {[
-            { label: "Total", value: stats.total, color: "text-slate-800" },
-            { label: "Pending",  value: stats.pending,  color: "text-yellow-600" },
-            { label: "Reviewed", value: stats.reviewed, color: "text-blue-600" },
-            { label: "Approved", value: stats.approved, color: "text-emerald-600" },
-            { label: "Rejected", value: stats.rejected, color: "text-red-600" },
-            { label: "Exported", value: stats.exported, color: "text-indigo-600" },
-          ].map(({ label, value, color }) => (
-            <Card key={label} className="shadow-none">
-              <CardContent className="py-3 px-4">
-                <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-                <p className={`text-xl font-bold mt-0.5 ${color}`}>{value}</p>
-              </CardContent>
-            </Card>
+            { label: "Total",    value: stats.total,    color: "text-slate-800",   accent: "bg-slate-400" },
+            { label: "Pending",  value: stats.pending,  color: "text-amber-600",   accent: "bg-amber-400" },
+            { label: "Reviewed", value: stats.reviewed, color: "text-blue-600",    accent: "bg-blue-400" },
+            { label: "Approved", value: stats.approved, color: "text-emerald-600", accent: "bg-emerald-500" },
+            { label: "Rejected", value: stats.rejected, color: "text-red-600",     accent: "bg-red-500" },
+            { label: "Exported", value: stats.exported, color: "text-indigo-600",  accent: "bg-indigo-500" },
+          ].map(({ label, value, color, accent }) => (
+            <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex">
+              <div className={`w-1 shrink-0 ${accent}`} />
+              <div className="px-2.5 py-2.5 sm:px-4 sm:py-3 min-w-0">
+                <p className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wide leading-none truncate">{label}</p>
+                <p className={`text-lg sm:text-xl font-bold mt-1 leading-none tabular-nums ${color}`}>{value}</p>
+              </div>
+            </div>
           ))}
         </div>
 
         {/* Filter + Bulk Action Row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Filter tabs */}
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Filter tabs — scrollable on mobile */}
+          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm overflow-x-auto max-w-full">
             <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5 shrink-0" />
             {STATUS_FILTERS.map(f => (
               <button key={f.value}
                 data-testid={`filter-${f.value}`}
                 onClick={() => setStatusFilter(f.value)}
-                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all ${
+                className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all whitespace-nowrap ${
                   statusFilter === f.value
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                 }`}>
                 {f.label}
                 {f.value !== "all" && (
-                  <span className={`ml-1.5 text-xs font-normal ${statusFilter === f.value ? "text-indigo-200" : "text-slate-400"}`}>
+                  <span className={`ml-1 sm:ml-1.5 text-xs font-normal ${statusFilter === f.value ? "text-indigo-200" : "text-slate-400"}`}>
                     {stats[f.value as keyof KbStats] ?? 0}
                   </span>
                 )}
@@ -333,8 +336,8 @@ export default function ReviewDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50">
-                      <th className="px-4 py-3 w-10">
+                    <tr className="border-b border-slate-100 bg-slate-50 text-[11px]">
+                      <th className="px-3 sm:px-4 py-3 w-10">
                         <Checkbox
                           checked={allSelected}
                           data-testid="checkbox-select-all"
@@ -342,13 +345,13 @@ export default function ReviewDashboard() {
                           className={someSelected ? "data-[state=checked]:bg-slate-400" : ""}
                         />
                       </th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs w-8">#</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs">Artikel</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs w-52">Summary</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs w-36">Tags</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs w-36">Status</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs w-32">Last Updated</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 text-xs w-44">Notes</th>
+                      <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-8">#</th>
+                      <th className="text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide">Artikel</th>
+                      <th className="hidden md:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-52">Summary</th>
+                      <th className="hidden md:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-36">Tags</th>
+                      <th className="text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-28 sm:w-36">Status</th>
+                      <th className="hidden lg:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-32">Updated</th>
+                      <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-36">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -362,7 +365,7 @@ export default function ReviewDashboard() {
                             isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50/80"
                           }`}>
                           {/* Checkbox */}
-                          <td className="px-4 py-3.5 w-10">
+                          <td className="px-3 sm:px-4 py-3.5 w-10">
                             <Checkbox
                               data-testid={`checkbox-${article.id}`}
                               checked={isSelected}
@@ -371,36 +374,42 @@ export default function ReviewDashboard() {
                           </td>
 
                           {/* Row number */}
-                          <td className="px-3 py-3.5 text-slate-400 text-xs">{i + 1}</td>
+                          <td className="hidden sm:table-cell px-3 py-3.5 text-slate-400 text-xs">{i + 1}</td>
 
                           {/* Title + slug + date + source */}
                           <td className="px-3 py-3.5 min-w-0">
-                            <p className="font-semibold text-slate-900 line-clamp-2 text-sm leading-snug">
+                            <p className="font-semibold text-slate-900 line-clamp-2 text-xs sm:text-sm leading-snug">
                               {article.title || "(Tanpa Judul)"}
                             </p>
-                            <p className="font-mono text-xs text-indigo-500 mt-0.5 truncate max-w-xs">
+                            <p className="font-mono text-[10px] sm:text-xs text-indigo-500 mt-0.5 truncate max-w-[140px] sm:max-w-xs">
                               {article.slug}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                               {article.published_date && (
-                                <span className="text-xs text-slate-400">{article.published_date}</span>
+                                <span className="text-[10px] sm:text-xs text-slate-400">{article.published_date}</span>
                               )}
                               {article.source_url && (
                                 <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-                                  className="text-xs text-indigo-400 hover:text-indigo-600 underline truncate max-w-[140px]">
+                                  className="text-[10px] sm:text-xs text-indigo-400 hover:text-indigo-600 underline truncate max-w-[100px] sm:max-w-[140px]">
                                   source ↗
                                 </a>
                               )}
                               {article.scrape_status && (
-                                <span className={`text-xs font-mono px-1.5 py-px rounded ${
+                                <span className={`text-[10px] sm:text-xs font-mono px-1.5 py-px rounded ${
                                   article.scrape_status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-600"
                                 }`}>{article.scrape_status}</span>
                               )}
                             </div>
+                            {/* Summary inline on mobile */}
+                            {article.summary && (
+                              <p className="md:hidden text-[10px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+                                {article.summary}
+                              </p>
+                            )}
                           </td>
 
                           {/* Summary */}
-                          <td className="px-3 py-3.5 w-52">
+                          <td className="hidden md:table-cell px-3 py-3.5 w-52">
                             <p data-testid={`summary-${article.id}`}
                               className="text-xs text-slate-600 line-clamp-4 leading-relaxed">
                               {article.summary || <span className="text-slate-300 italic">Tidak ada summary</span>}
@@ -408,7 +417,7 @@ export default function ReviewDashboard() {
                           </td>
 
                           {/* Tags */}
-                          <td className="px-3 py-3.5 w-36">
+                          <td className="hidden md:table-cell px-3 py-3.5 w-36">
                             <div data-testid={`tags-${article.id}`} className="flex flex-wrap gap-1">
                               {(article.tags || []).map(t => (
                                 <span key={t}
@@ -420,7 +429,7 @@ export default function ReviewDashboard() {
                           </td>
 
                           {/* Status select */}
-                          <td className="px-3 py-3.5 w-36">
+                          <td className="px-3 py-3.5 w-28 sm:w-36">
                             <div className="flex flex-col gap-1.5">
                               <Select
                                 value={article.approval_status}
@@ -450,7 +459,7 @@ export default function ReviewDashboard() {
                           </td>
 
                           {/* Last updated */}
-                          <td className="px-3 py-3.5 w-32">
+                          <td className="hidden lg:table-cell px-3 py-3.5 w-32">
                             <span data-testid={`updated-${article.id}`}
                               className="text-xs text-slate-400 whitespace-nowrap">
                               {formatDate(article.last_updated)}
@@ -458,7 +467,7 @@ export default function ReviewDashboard() {
                           </td>
 
                           {/* Notes */}
-                          <td className="px-3 py-3.5 w-44">
+                          <td className="hidden sm:table-cell px-3 py-3.5 w-36">
                             <Input
                               data-testid={`notes-${article.id}`}
                               value={notesMap[article.id] ?? ""}

@@ -573,15 +573,15 @@ const Index = () => {
 
       {/* ── Navbar ── */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-        <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <Newspaper className="w-4 h-4 text-white" />
             </div>
             <div className="leading-none">
               <p className="font-semibold text-slate-900 text-sm tracking-tight">AINA Scraper</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Internal Knowledge Scraping Tool</p>
+              <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">Internal Knowledge Scraping Tool</p>
             </div>
           </div>
 
@@ -602,80 +602,75 @@ const Index = () => {
           )}
 
           {/* Right actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <a href="/export/json" download data-testid="button-export-json">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 h-8 text-xs px-3">
-                <FileJson className="w-3.5 h-3.5" />JSON
+              <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
+                <FileJson className="w-3.5 h-3.5" /><span className="hidden sm:inline">JSON</span>
               </Button>
             </a>
             <a href="/export/csv" download data-testid="button-export-csv">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 h-8 text-xs px-3">
-                <FileText className="w-3.5 h-3.5" />CSV
+              <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
+                <FileText className="w-3.5 h-3.5" /><span className="hidden sm:inline">CSV</span>
               </Button>
             </a>
-            <div className="w-px h-5 bg-slate-200 mx-0.5" />
+            <div className="w-px h-5 bg-slate-200 mx-1" />
             <Link to="/review">
               <Button data-testid="link-review-dashboard" size="sm"
-                className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs px-3.5">
-                <CheckSquare className="w-3.5 h-3.5" />Review KB Draft
+                className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs px-2.5 sm:px-3.5">
+                <CheckSquare className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Review KB Draft</span>
+                <span className="sm:hidden">Review</span>
               </Button>
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-8 space-y-5">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-5">
 
         {/* ── Hero: URL + Mode + Start ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
-          {/* Row 1: URL + Mode + Start */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Halaman Berita</Label>
-              <Input data-testid="input-url" type="url"
-                placeholder="https://www.kemlu.go.id/cairo/berita"
-                value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
-                onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
-                disabled={isRunning}
-                className={`h-10 border-slate-200 bg-slate-50/50 text-sm ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-200"}`} />
-              {urlError && (
-                <p className="text-red-500 text-xs flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
-                </p>
-              )}
-            </div>
-            <div className="flex gap-2.5 sm:items-end">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide hidden sm:block">Mode</Label>
-                <Select value={mode} onValueChange={setMode} disabled={isRunning}>
-                  <SelectTrigger data-testid="select-mode" className="w-40 h-10 bg-slate-50/50 border-slate-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODES.map(m => (
-                      <SelectItem key={m.value} value={m.value}>
-                        <div>
-                          <p className="font-medium">{m.label}</p>
-                          <p className="text-xs text-slate-400">{m.desc}</p>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="sm:pt-[22px]">
-                <Button data-testid="button-start-scrape" onClick={startScrape}
-                  disabled={isRunning}
-                  className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 whitespace-nowrap font-medium shadow-sm">
-                  {isRunning
-                    ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
-                    : <><Zap className="w-4 h-4" />Mulai Scraping</>}
-                </Button>
-              </div>
-            </div>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+          {/* Row 1: URL */}
+          <div className="space-y-1">
+            <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Halaman Berita</Label>
+            <Input data-testid="input-url" type="url"
+              placeholder="https://www.kemlu.go.id/cairo/berita"
+              value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
+              onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
+              disabled={isRunning}
+              className={`h-10 border-slate-200 bg-slate-50/50 text-sm ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-200"}`} />
+            {urlError && (
+              <p className="text-red-500 text-xs flex items-center gap-1.5 mt-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
+              </p>
+            )}
           </div>
-
-          {/* Row 2: Date range filter (subtle) */}
+          {/* Row 2: Mode + Start button */}
+          <div className="flex gap-2.5">
+            <Select value={mode} onValueChange={setMode} disabled={isRunning}>
+              <SelectTrigger data-testid="select-mode" className="flex-1 sm:flex-none sm:w-44 h-10 bg-slate-50/50 border-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODES.map(m => (
+                  <SelectItem key={m.value} value={m.value}>
+                    <div>
+                      <p className="font-medium">{m.label}</p>
+                      <p className="text-xs text-slate-400">{m.desc}</p>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button data-testid="button-start-scrape" onClick={startScrape}
+              disabled={isRunning}
+              className="flex-1 sm:flex-none h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 whitespace-nowrap font-medium shadow-sm">
+              {isRunning
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
+                : <><Zap className="w-4 h-4" />Mulai Scraping</>}
+            </Button>
+          </div>
+          {/* Row 3: Date range filter (subtle) */}
           <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide shrink-0">Rentang</span>
             <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
@@ -726,9 +721,9 @@ const Index = () => {
           ].map(({ label, value, numColor, accent, testid }) => (
             <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex">
               <div className={`w-1 shrink-0 ${accent}`} />
-              <div className="px-4 py-4 min-w-0">
-                <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-widest leading-none">{label}</p>
-                <p data-testid={testid} className={`text-[26px] font-bold mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
+              <div className="px-3 py-3 sm:px-4 sm:py-4 min-w-0">
+                <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold uppercase tracking-wide sm:tracking-widest leading-none">{label}</p>
+                <p data-testid={testid} className={`text-xl sm:text-[26px] font-bold mt-1 sm:mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
               </div>
             </div>
           ))}
@@ -763,8 +758,8 @@ const Index = () => {
 
               {/* Filter Bar */}
               {articles.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
-                  <div className="relative flex-1 min-w-[160px]">
+                <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                  <div className="relative flex-1 min-w-[120px]">
                     <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -775,7 +770,7 @@ const Index = () => {
                       placeholder="Cari judul..." className="pl-8 h-8 text-xs border-slate-200 w-full bg-white" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs border-slate-200 bg-white">
+                    <SelectTrigger data-testid="filter-status" className="w-28 sm:w-32 h-8 text-xs border-slate-200 bg-white">
                       <SelectValue placeholder="Semua" />
                     </SelectTrigger>
                     <SelectContent>
@@ -788,11 +783,11 @@ const Index = () => {
                   </Select>
                   <Input data-testid="filter-date-from" type="date" value={dateFrom}
                     onChange={e => setDateFrom(e.target.value)}
-                    className="w-32 h-8 text-xs border-slate-200 bg-white" />
-                  <span className="text-slate-300 text-xs">→</span>
+                    className="hidden sm:block w-32 h-8 text-xs border-slate-200 bg-white" />
+                  <span className="hidden sm:block text-slate-300 text-xs">→</span>
                   <Input data-testid="filter-date-to" type="date" value={dateTo}
                     onChange={e => setDateTo(e.target.value)}
-                    className="w-32 h-8 text-xs border-slate-200 bg-white" />
+                    className="hidden sm:block w-32 h-8 text-xs border-slate-200 bg-white" />
                   {hasActiveFilter && (
                     <Button variant="ghost" size="sm" onClick={clearFilters}
                       className="h-8 text-xs text-red-500 hover:bg-red-50 px-2 gap-1">
@@ -843,20 +838,20 @@ const Index = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px]">
-                        <th className="text-left px-5 py-3 font-semibold text-slate-400 w-9">#</th>
+                        <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-slate-400 w-9">#</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Artikel</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-44">Preview</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Tanggal</th>
+                        <th className="hidden md:table-cell text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-44">Preview</th>
+                        <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Tanggal</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-20">Status</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-24">Aksi</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-20">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {filteredArticles.map((article, i) => (
                         <tr key={article.id} data-testid={`row-article-${article.id}`}
                           className="hover:bg-slate-50/70 transition-colors align-top group">
-                          <td className="px-5 py-4 text-slate-300 text-xs tabular-nums">{i + 1}</td>
-                          <td className="px-4 py-4 max-w-[220px]">
+                          <td className="hidden sm:table-cell px-4 py-4 text-slate-300 text-xs tabular-nums">{i + 1}</td>
+                          <td className="px-4 py-4 max-w-[200px]">
                             <button data-testid={`link-article-${article.id}`}
                               onClick={() => navigate(`/article/${article.id}`)}
                               className="text-slate-800 hover:text-indigo-600 text-left font-medium text-xs line-clamp-2 transition-colors leading-snug group-hover:text-indigo-600">
@@ -867,8 +862,10 @@ const Index = () => {
                                 {ERROR_REASON_LABELS[article.error_reason] ?? article.error_reason}
                               </span>
                             )}
+                            {/* Date shown inline on mobile */}
+                            <p className="sm:hidden text-[10px] text-slate-400 mt-1 tabular-nums">{article.date || ""}</p>
                           </td>
-                          <td className="px-4 py-4 w-44">
+                          <td className="hidden md:table-cell px-4 py-4 w-44">
                             <p data-testid={`preview-${article.id}`}
                               className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
                               {article.content
@@ -876,15 +873,15 @@ const Index = () => {
                                 : <span className="italic text-slate-300">—</span>}
                             </p>
                           </td>
-                          <td className="px-4 py-4 text-slate-400 text-xs whitespace-nowrap tabular-nums">{article.date || "—"}</td>
+                          <td className="hidden sm:table-cell px-4 py-4 text-slate-400 text-xs whitespace-nowrap tabular-nums">{article.date || "—"}</td>
                           <td className="px-4 py-4"><StatusBadge status={article.status} /></td>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-1.5">
                               <Button data-testid={`button-detail-${article.id}`}
                                 size="sm" variant="outline"
                                 onClick={() => navigate(`/article/${article.id}`)}
-                                className="h-7 text-xs px-2.5 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
-                                <Eye className="w-3 h-3" />Detail
+                                className="h-7 text-xs px-2 sm:px-2.5 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
+                                <Eye className="w-3 h-3" /><span className="hidden sm:inline">Detail</span>
                               </Button>
                               <a href={article.url} target="_blank" rel="noopener noreferrer"
                                 data-testid={`link-source-${article.id}`}

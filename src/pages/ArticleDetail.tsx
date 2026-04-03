@@ -55,7 +55,7 @@ const ArticleDetail = () => {
     <div className="min-h-screen bg-[#f4f5f7]">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-6 h-13 py-3 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               data-testid="button-back"
@@ -92,7 +92,7 @@ const ArticleDetail = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
 
         {/* Loading */}
         {isLoading && (
