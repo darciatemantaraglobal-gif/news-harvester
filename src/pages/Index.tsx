@@ -8,7 +8,7 @@ import {
   ClipboardList, Download, RefreshCw, CheckSquare, Terminal,
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
-  LayoutList, FileCode2, XCircle, Copy,
+  LayoutList, FileCode2, XCircle, Copy, Globe, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -640,80 +640,131 @@ const Index = () => {
         <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 xl:pb-4 space-y-3 sm:space-y-4 min-w-0">
 
           {/* ── URL Input Card ── */}
-          <div className="bg-white rounded-2xl shadow-sm p-3.5 sm:p-5 space-y-3 sm:space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</Label>
-              <Input data-testid="input-url" type="url"
-                placeholder="https://www.kemlu.go.id/cairo/berita"
-                value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
-                onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
-                disabled={isRunning}
-                className={`h-10 rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-2 ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-300"}`} />
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            {/* Animated gradient top bar */}
+            <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+
+            <div className="p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+
+              {/* Section label */}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Globe className="w-3.5 h-3.5 text-indigo-500" />
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-bold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</span>
+              </div>
+
+              {/* URL Input with icon + clear button */}
+              <div className="relative group">
+                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-200 pointer-events-none" />
+                <input
+                  data-testid="input-url"
+                  type="url"
+                  placeholder="https://www.kemlu.go.id/cairo/berita"
+                  value={url}
+                  onChange={e => { setUrl(e.target.value); setUrlError(""); }}
+                  onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
+                  disabled={isRunning}
+                  className={`w-full h-11 sm:h-12 pl-10 pr-9 rounded-xl text-sm border outline-none transition-all duration-200
+                    placeholder:text-slate-300 disabled:opacity-60 disabled:cursor-not-allowed font-mono tracking-tight
+                    ${urlError
+                      ? "border-red-300 bg-red-50/40 ring-2 ring-red-200/60 text-red-800"
+                      : "border-slate-200 bg-slate-50/80 text-slate-800 focus:ring-2 focus:ring-indigo-300/60 focus:border-indigo-400 focus:bg-white"
+                    }`}
+                />
+                {url && !isRunning && (
+                  <button
+                    onClick={() => { setUrl(""); setUrlError(""); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors duration-150 rounded-full p-0.5 hover:bg-slate-100">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
               {urlError && (
-                <p className="text-red-500 text-xs flex items-center gap-1.5">
+                <p className="text-red-500 text-xs flex items-center gap-1.5 -mt-1">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
                 </p>
               )}
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              <Select value={mode} onValueChange={setMode} disabled={isRunning}>
-                <SelectTrigger data-testid="select-mode" className="w-44 h-10 rounded-xl border-slate-200 bg-slate-50 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
+
+              {/* Mode pills + Scrape button */}
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                {/* Mode segmented pills */}
+                <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5 flex-1">
                   {MODES.map(m => (
-                    <SelectItem key={m.value} value={m.value}>
-                      <div>
-                        <p className="font-medium">{m.label}</p>
-                        <p className="text-xs text-slate-400">{m.desc}</p>
-                      </div>
-                    </SelectItem>
+                    <button
+                      key={m.value}
+                      data-testid={`mode-${m.value}`}
+                      onClick={() => !isRunning && setMode(m.value)}
+                      disabled={isRunning}
+                      title={m.desc}
+                      className={`flex-1 text-xs font-semibold px-2 py-2 rounded-lg transition-all duration-150 truncate
+                        ${mode === m.value
+                          ? "bg-white text-indigo-700 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/60"
+                        }`}>
+                      {m.label}
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
-              <Button data-testid="button-start-scrape" onClick={startScrape}
-                disabled={isRunning}
-                className="h-10 px-6 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-2 font-semibold shadow-md shadow-indigo-300/40 transition-all duration-200 hover:scale-[1.02]">
-                {isRunning
-                  ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
-                  : <><Zap className="w-4 h-4" />Mulai Scraping</>}
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
-              <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
-                <SelectTrigger data-testid="select-scrape-range" className="w-40 h-8 rounded-full bg-slate-100 border-slate-200 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+                </div>
+
+                {/* Scrape button */}
+                <button
+                  data-testid="button-start-scrape"
+                  onClick={startScrape}
+                  disabled={isRunning}
+                  className={`relative h-10 sm:h-auto px-5 sm:px-6 rounded-xl font-bold text-sm text-white gap-2 flex items-center justify-center shrink-0
+                    transition-all duration-200 overflow-hidden
+                    ${isRunning
+                      ? "bg-gradient-to-r from-indigo-500 to-violet-500 opacity-80 cursor-not-allowed"
+                      : "bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 hover:scale-[1.02] shadow-md shadow-indigo-300/50 hover:shadow-lg hover:shadow-indigo-300/60 active:scale-95"
+                    }`}>
+                  {/* Animated shimmer when running */}
+                  {isRunning && (
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
+                  )}
+                  {isRunning
+                    ? <><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10">Scraping...</span></>
+                    : <><Zap className="w-4 h-4" />Mulai Scraping</>}
+                </button>
+              </div>
+
+              {/* Mode description */}
+              <p className="text-[10px] sm:text-xs text-slate-400 -mt-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />
+                {MODES.find(m => m.value === mode)?.desc}
+              </p>
+
+              {/* Rentang as pill chips */}
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
+                <div className="flex flex-wrap gap-1.5">
                   {SCRAPE_RANGES.map(r => (
-                    <SelectItem key={r.value} value={r.value}>
-                      <div>
-                        <p className="font-medium">{r.label}</p>
-                        <p className="text-xs text-slate-400">{r.desc}</p>
-                      </div>
-                    </SelectItem>
+                    <button
+                      key={r.value}
+                      data-testid={`range-${r.value}`}
+                      onClick={() => !isRunning && setScrapeRange(r.value)}
+                      disabled={isRunning}
+                      className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold transition-all duration-150
+                        ${scrapeRange === r.value
+                          ? "bg-slate-900 text-white shadow-sm"
+                          : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                        }`}>
+                      {r.label}
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
-              {scrapeRange === "custom" && (
-                <>
-                  <Input data-testid="input-custom-start" type="date" value={customStart}
-                    onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
-                    className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
-                  <Input data-testid="input-custom-end" type="date" value={customEnd}
-                    onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
-                    className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
-                </>
-              )}
-              {scrapeRange !== "all" && (
-                <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
-                  {SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}
-                </span>
-              )}
-              <span className="ml-auto text-xs text-slate-400 hidden lg:block">
-                {MODES.find(m => m.value === mode)?.label} — {MODES.find(m => m.value === mode)?.desc}
-              </span>
+                </div>
+                {scrapeRange === "custom" && (
+                  <div className="flex items-center gap-1.5 mt-1 w-full sm:w-auto sm:mt-0">
+                    <Input data-testid="input-custom-start" type="date" value={customStart}
+                      onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
+                      className="w-36 h-7 text-xs bg-slate-50 border-slate-200 rounded-lg" />
+                    <span className="text-slate-400 text-xs shrink-0">–</span>
+                    <Input data-testid="input-custom-end" type="date" value={customEnd}
+                      onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
+                      className="w-36 h-7 text-xs bg-slate-50 border-slate-200 rounded-lg" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
