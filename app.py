@@ -1,5 +1,5 @@
 # app.py — Flask server untuk News Scraper
-import os, json, csv, io, threading
+import os, json, csv, io, threading, re, unicodedata
 from flask import Flask, render_template, request, jsonify, Response
 
 from scraper import scrape_all
@@ -138,6 +138,73 @@ def export_json():
         json.dumps(articles, ensure_ascii=False, indent=2),
         mimetype="application/json",
         headers={"Content-Disposition": "attachment; filename=scraped_articles.json"},
+    )
+
+
+KB_FILE = os.path.join(DATA_DIR, "kb_articles.json")
+
+
+def _make_slug(title: str) -> str:
+    """Buat slug sederhana dari title."""
+    title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
+    title = title.lower()
+    title = re.sub(r"[^a-z0-9\s-]", "", title)
+    title = re.sub(r"[\s]+", "-", title.strip())
+    title = re.sub(r"-+", "-", title)
+    return title[:80]
+
+
+def _clean_whitespace(text: str) -> str:
+    """Bersihkan whitespace berlebihan."""
+    lines = [line.strip() for line in text.splitlines()]
+    lines = [l for l in lines if l]
+    return "\n".join(lines)
+
+
+def _make_summary(content: str, n: int = 3) -> str:
+    """Ambil n kalimat pertama sebagai summary."""
+    sentences = re.split(r"(?<=[.!?])\s+", content.strip())
+    sentences = [s.strip() for s in sentences if s.strip()]
+    return " ".join(sentences[:n])
+
+
+@app.route("/api/convert-kb", methods=["POST"])
+def api_convert_kb():
+    articles = _load_articles()
+    if not articles:
+        return jsonify({"error": "Belum ada artikel untuk dikonversi."}), 400
+
+    kb_articles = []
+    for a in articles:
+        raw_content = a.get("content") or ""
+        clean_content = _clean_whitespace(raw_content)
+        title = (a.get("title") or "").strip()
+        kb_articles.append({
+            "title": title,
+            "slug": _make_slug(title) if title else a.get("id", ""),
+            "source_url": a.get("url", ""),
+            "published_date": a.get("date", ""),
+            "content": clean_content,
+            "summary": _make_summary(clean_content),
+            "tags": ["berita", "kemlu", "kairo"],
+        })
+
+    with open(KB_FILE, "w", encoding="utf-8") as f:
+        json.dump(kb_articles, f, ensure_ascii=False, indent=2)
+
+    return jsonify({"status": "ok", "count": len(kb_articles)})
+
+
+@app.route("/export/kb")
+def export_kb():
+    if not os.path.exists(KB_FILE):
+        return jsonify({"error": "KB belum dikonversi."}), 404
+    with open(KB_FILE, "r", encoding="utf-8") as f:
+        data = f.read()
+    return Response(
+        data,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=kb_articles.json"},
     )
 
 

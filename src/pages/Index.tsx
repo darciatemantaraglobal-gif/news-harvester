@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Newspaper, Zap, Download, FileJson, FileText, CheckCircle, AlertTriangle, XCircle, Loader2, ExternalLink } from "lucide-react";
+import { Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink, BookOpen, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,9 @@ const Index = () => {
   });
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
+  const [kbConverting, setKbConverting] = useState(false);
+  const [kbDone, setKbDone] = useState(false);
+  const [kbError, setKbError] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +121,25 @@ const Index = () => {
       pollRef.current = setInterval(pollProgress, 1000);
     } catch {
       setUrlError("Tidak bisa menghubungi server. Pastikan backend berjalan.");
+    }
+  };
+
+  const convertToKb = async () => {
+    setKbConverting(true);
+    setKbError("");
+    setKbDone(false);
+    try {
+      const res = await fetch("/api/convert-kb", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setKbError(data.error || "Gagal mengkonversi.");
+      } else {
+        setKbDone(true);
+      }
+    } catch {
+      setKbError("Tidak bisa menghubungi server.");
+    } finally {
+      setKbConverting(false);
     }
   };
 
@@ -342,6 +364,68 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Knowledge Base Conversion */}
+        {articles.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-600" />
+                <CardTitle className="text-base">Knowledge Base Format</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-slate-500">
+                Konversi {articles.length} artikel hasil scraping ke format KB dengan field:{" "}
+                <span className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">
+                  title, slug, source_url, published_date, content, summary, tags
+                </span>
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  data-testid="button-convert-kb"
+                  onClick={convertToKb}
+                  disabled={kbConverting || isRunning}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                >
+                  {kbConverting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : kbDone ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <BookOpen className="w-4 h-4" />
+                  )}
+                  {kbConverting ? "Mengkonversi..." : kbDone ? "Dikonversi!" : "Convert to KB Format"}
+                </Button>
+
+                {kbDone && (
+                  <a href="/export/kb" download>
+                    <Button
+                      data-testid="button-download-kb"
+                      variant="outline"
+                      className="gap-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+                    >
+                      <FileJson className="w-4 h-4" />
+                      Download kb_articles.json
+                    </Button>
+                  </a>
+                )}
+              </div>
+
+              {kbError && (
+                <p data-testid="text-kb-error" className="text-red-500 text-sm">
+                  {kbError}
+                </p>
+              )}
+
+              {kbDone && (
+                <p data-testid="text-kb-success" className="text-emerald-600 text-sm">
+                  Berhasil dikonversi! File disimpan ke <span className="font-mono text-xs">data/kb_articles.json</span>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
