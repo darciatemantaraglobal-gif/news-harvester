@@ -12,7 +12,7 @@ from db_services import push_kb_articles, fetch_kb_articles_from_db
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://ainanews.vercel.app", "http://localhost:5000", "http://localhost:5001"])
 
 DATA_DIR = "data"
 CONFIG_DIR = "config"

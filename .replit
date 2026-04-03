@@ -7,8 +7,8 @@ channel = "stable-25_05"
 packages = ["xcodebuild", "zlib"]
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["node", "./dist/index.cjs"]
+deploymentTarget = "vm"
+run = ["gunicorn", "--bind=0.0.0.0:8000", "--workers=2", "--timeout=120", "app:app"]
 build = ["npm", "run", "build"]
 
 [workflows]
