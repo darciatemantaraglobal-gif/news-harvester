@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Newspaper, CheckCircle2, XCircle, Clock, Eye, Send, Download,
   Loader2, ChevronLeft, RefreshCw, FileJson, CheckSquare,
-  AlertCircle, Filter,
+  AlertCircle, Filter, BarChart3, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -197,124 +197,175 @@ export default function ReviewDashboard() {
   const someSelected = selected.size > 0 && selected.size < articles.length;
 
   return (
-    <div className="min-h-screen bg-[#f0f1f8] pb-20 sm:pb-6">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] sticky top-0 z-20 shadow-lg shadow-purple-900/40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between gap-2">
+    <div className="flex h-screen overflow-hidden bg-[#f0f1f8] text-slate-900">
+
+      {/* ─── Left Icon Sidebar (desktop only) ─── */}
+      <aside className="hidden xl:flex w-[68px] shrink-0 bg-white border-r border-slate-100 flex-col items-center py-5 z-20 shadow-sm">
+        {/* Logo */}
+        <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-5 shadow-md shadow-purple-900/20">
+          <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain"
+            style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.5))" }} />
+        </div>
+
+        {/* Nav icons */}
+        <div className="flex flex-col gap-1.5 w-full px-3">
+          <Link to="/" className="w-full">
+            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors cursor-pointer" title="Scraper">
+              <Newspaper className="w-[18px] h-[18px]" />
+            </div>
+          </Link>
+          {/* Review — ACTIVE */}
+          <div className="w-full flex items-center justify-center h-10 bg-slate-900 text-white rounded-xl shadow-sm cursor-default" title="Review KB">
+            <CheckSquare className="w-[18px] h-[18px]" />
+          </div>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Bottom: Export icons */}
+        <div className="flex flex-col gap-1.5 w-full px-3">
+          <a href="/export/kb-approved" download className="w-full">
+            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export Approved JSON">
+              <FileJson className="w-[18px] h-[18px]" />
+            </div>
+          </a>
+          <a href="/export/kb-exported" download className="w-full">
+            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export Exported JSON">
+              <FileText className="w-[18px] h-[18px]" />
+            </div>
+          </a>
+        </div>
+      </aside>
+
+      {/* ─── Main Content Area ─── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* ─── Dark Header Card ─── */}
+        <div className="mx-2 sm:mx-4 mt-2 sm:mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link to="/">
-              <Button variant="ghost" size="sm" className="gap-1 sm:gap-1.5 text-white/80 hover:text-white hover:bg-white/15 -ml-2 px-2 sm:px-3">
-                <ChevronLeft className="w-4 h-4" /><span className="hidden sm:inline">Scraper</span>
+              <Button variant="ghost" size="sm" className="gap-1 text-white/70 hover:text-white hover:bg-white/15 -ml-1 h-8 px-2 text-xs">
+                <ChevronLeft className="w-3.5 h-3.5" /><span className="hidden sm:inline">Scraper</span>
               </Button>
             </Link>
-            <div className="w-px h-5 bg-white/30 shrink-0" />
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-              <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            </div>
+            <div className="w-px h-4 bg-white/30 shrink-0 hidden sm:block" />
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold text-white truncate">KB Review Dashboard</h1>
-              <p className="hidden sm:block text-xs text-indigo-200">AINA Knowledge Base — Approval Workflow</p>
+              <p className="font-bold text-white text-sm tracking-tight">KB Review Dashboard</p>
+              <p className="hidden sm:block text-purple-300 text-[11px] mt-0.5">AINA Knowledge Base — Approval Workflow</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <a href="/export/kb-approved" download>
               <Button variant="ghost" size="sm"
-                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs">
-                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Approved</span>
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs rounded-full">
+                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline text-xs">Approved</span>
               </Button>
             </a>
             <a href="/export/kb-exported" download>
               <Button variant="ghost" size="sm"
-                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs">
-                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Exported</span>
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 px-2 sm:px-3 text-xs rounded-full">
+                <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline text-xs">Exported</span>
               </Button>
             </a>
             <Button variant="ghost" size="sm" onClick={() => { fetchArticles(); fetchStats(); }}
-              className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/15">
+              className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/15 rounded-full">
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-5">
+        {/* ─── Scrollable Content ─── */}
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 xl:pb-4 space-y-3 sm:space-y-4 min-w-0">
 
-        {/* Stats Bar */}
-        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 sm:overflow-visible sm:grid sm:grid-cols-6 snap-x snap-mandatory sm:snap-none -mx-3 px-3 sm:mx-0 sm:px-0">
-          {[
-            { label: "Total",    value: stats.total,    color: "text-slate-800",   accent: "bg-slate-400" },
-            { label: "Pending",  value: stats.pending,  color: "text-amber-600",   accent: "bg-amber-400" },
-            { label: "Reviewed", value: stats.reviewed, color: "text-blue-600",    accent: "bg-blue-400" },
-            { label: "Approved", value: stats.approved, color: "text-emerald-600", accent: "bg-emerald-500" },
-            { label: "Rejected", value: stats.rejected, color: "text-red-600",     accent: "bg-red-500" },
-            { label: "Exported", value: stats.exported, color: "text-indigo-600",  accent: "bg-indigo-500" },
-          ].map(({ label, value, color, accent }, i) => (
-            <div key={label}
-              className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-hidden flex flex-none min-w-[100px] sm:flex-auto sm:min-w-0 snap-start transition-all duration-300 stat-glow animate-count-up"
-              style={{ animationDelay: `${i * 60}ms` }}>
-              <div className={`w-1 shrink-0 ${accent}`} />
-              <div className="px-2.5 py-2.5 sm:px-4 sm:py-3 min-w-0 flex-1">
-                <p className="text-[10px] sm:text-xs text-indigo-400/80 font-semibold uppercase tracking-wide leading-none truncate">{label}</p>
-                <p className={`text-lg sm:text-xl font-bold mt-1 leading-none tabular-nums ${color}`}>{value}</p>
+          {/* ── Stats Row ── */}
+          <div className="flex xl:grid xl:grid-cols-6 gap-2 sm:gap-2.5 overflow-x-auto xl:overflow-visible pb-0.5 xl:pb-0 -mx-2.5 px-2.5 xl:mx-0 xl:px-0 snap-x snap-mandatory xl:snap-none">
+            {[
+              { label: "Total",    value: stats.total,    icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",   iconColor: "text-slate-500",   top: "bg-slate-300" },
+              { label: "Pending",  value: stats.pending,  icon: Clock,        numColor: "text-amber-600",   iconBg: "bg-amber-100",   iconColor: "text-amber-500",   top: "bg-amber-400" },
+              { label: "Reviewed", value: stats.reviewed, icon: Eye,          numColor: "text-blue-600",    iconBg: "bg-blue-100",    iconColor: "text-blue-500",    top: "bg-blue-400" },
+              { label: "Approved", value: stats.approved, icon: CheckCircle2, numColor: "text-emerald-600", iconBg: "bg-emerald-100", iconColor: "text-emerald-600", top: "bg-emerald-400" },
+              { label: "Rejected", value: stats.rejected, icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",     iconColor: "text-red-500",     top: "bg-red-400" },
+              { label: "Exported", value: stats.exported, icon: Send,         numColor: "text-indigo-600",  iconBg: "bg-indigo-100",  iconColor: "text-indigo-500",  top: "bg-indigo-400" },
+            ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top }) => (
+              <div key={label} className="snap-start shrink-0 w-[108px] xl:w-auto bg-white rounded-xl xl:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+                <div className={`h-[3px] w-full ${top}`} />
+                {/* Mobile layout */}
+                <div className="xl:hidden flex items-center gap-2 px-2.5 py-2.5">
+                  <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-lg font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide mt-0.5 truncate">{label}</p>
+                  </div>
+                </div>
+                {/* Desktop layout */}
+                <div className="hidden xl:block px-3.5 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
+                    <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center`}>
+                      <Icon className={`w-3 h-3 ${iconColor}`} />
+                    </div>
+                  </div>
+                  <p className={`text-2xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Filter + Bulk Action Row */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Filter tabs — scrollable on mobile */}
-          <div className="flex items-center gap-1 bg-white rounded-xl p-1 shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-x-auto max-w-full">
-            <Filter className="w-3.5 h-3.5 text-indigo-400 ml-1.5 mr-0.5 shrink-0" />
-            {STATUS_FILTERS.map(f => (
-              <button key={f.value}
-                data-testid={`filter-${f.value}`}
-                onClick={() => setStatusFilter(f.value)}
-                className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
-                  statusFilter === f.value
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-sm"
-                    : "text-slate-500 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}>
-                {f.label}
-                {f.value !== "all" && (
-                  <span className={`ml-1 sm:ml-1.5 text-xs font-normal ${statusFilter === f.value ? "text-indigo-200" : "text-slate-400"}`}>
-                    {stats[f.value as keyof KbStats] ?? 0}
-                  </span>
-                )}
-              </button>
             ))}
           </div>
 
-          {/* Bulk action bar */}
-          {selected.size > 0 && (
-            <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-1.5 shadow-[0_4px_20px_rgba(79,70,229,0.07)]">
-              <span className="text-xs font-semibold text-indigo-700 mr-1">
-                {selected.size} dipilih
-              </span>
-              {BULK_ACTIONS.map(ba => (
-                <Button key={ba.action} data-testid={`bulk-${ba.action}`}
-                  size="sm" disabled={bulkLoading}
-                  onClick={() => doBulkAction(ba.action)}
-                  className={`text-white text-xs py-1 h-7 px-3 rounded-full ${ba.color}`}>
-                  {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : ba.label}
-                </Button>
+          {/* ── Filter + Bulk Action Row ── */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter tabs */}
+            <div className="flex items-center gap-0.5 bg-white rounded-xl p-1 shadow-sm border border-slate-100/80 overflow-x-auto max-w-full">
+              <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5 shrink-0" />
+              {STATUS_FILTERS.map(f => (
+                <button key={f.value}
+                  data-testid={`filter-${f.value}`}
+                  onClick={() => setStatusFilter(f.value)}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
+                    statusFilter === f.value
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  }`}>
+                  {f.label}
+                  {f.value !== "all" && (
+                    <span className={`ml-1 text-[10px] font-normal ${statusFilter === f.value ? "text-white/70" : "text-slate-400"}`}>
+                      {stats[f.value as keyof KbStats] ?? 0}
+                    </span>
+                  )}
+                </button>
               ))}
-              <button onClick={() => setSelected(new Set())}
-                className="text-xs text-slate-400 hover:text-slate-600 ml-1 underline">
-                Batal
-              </button>
             </div>
-          )}
-          {bulkMsg && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl">
-              <CheckCircle2 className="w-3.5 h-3.5" />{bulkMsg}
-            </div>
-          )}
-        </div>
 
-        {/* Table */}
-        <Card className="shadow-[0_4px_24px_rgba(79,70,229,0.08)] rounded-2xl border-0 card-hover animate-slide-up-fade animation-delay-200">
-          <CardContent className="p-0">
+            {/* Bulk action bar */}
+            {selected.size > 0 && (
+              <div className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 shadow-sm border border-slate-100/80">
+                <span className="text-xs font-semibold text-indigo-700 mr-0.5">
+                  {selected.size} dipilih
+                </span>
+                {BULK_ACTIONS.map(ba => (
+                  <Button key={ba.action} data-testid={`bulk-${ba.action}`}
+                    size="sm" disabled={bulkLoading}
+                    onClick={() => doBulkAction(ba.action)}
+                    className={`text-white text-xs py-1 h-7 px-2.5 rounded-full ${ba.color}`}>
+                    {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : ba.label}
+                  </Button>
+                ))}
+                <button onClick={() => setSelected(new Set())}
+                  className="text-xs text-slate-400 hover:text-slate-600 ml-0.5 underline">
+                  Batal
+                </button>
+              </div>
+            )}
+            {bulkMsg && (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl">
+                <CheckCircle2 className="w-3.5 h-3.5" />{bulkMsg}
+              </div>
+            )}
+          </div>
+
+          {/* ── Table Card ── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center py-20 text-slate-400 gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />Memuat artikel...
@@ -323,13 +374,13 @@ export default function ReviewDashboard() {
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-2">
                 <AlertCircle className="w-10 h-10 opacity-30" />
                 <p className="text-sm font-medium">Tidak ada artikel</p>
-                <p className="text-xs">
+                <p className="text-xs text-center max-w-xs">
                   {statusFilter === "all"
                     ? "Jalankan Convert to KB Draft di halaman Scraper terlebih dahulu."
                     : `Tidak ada artikel dengan status "${statusFilter}".`}
                 </p>
                 <Link to="/">
-                  <Button variant="outline" size="sm" className="mt-2 gap-1.5">
+                  <Button variant="outline" size="sm" className="mt-2 gap-1.5 rounded-xl">
                     <ChevronLeft className="w-3.5 h-3.5" />Ke Scraper
                   </Button>
                 </Link>
@@ -338,7 +389,7 @@ export default function ReviewDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50 text-[11px]">
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px]">
                       <th className="px-3 sm:px-4 py-3 w-10">
                         <Checkbox
                           checked={allSelected}
@@ -347,13 +398,13 @@ export default function ReviewDashboard() {
                           className={someSelected ? "data-[state=checked]:bg-slate-400" : ""}
                         />
                       </th>
-                      <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-8">#</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide">Artikel</th>
-                      <th className="hidden md:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-52">Summary</th>
-                      <th className="hidden md:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-36">Tags</th>
-                      <th className="text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-28 sm:w-36">Status</th>
-                      <th className="hidden lg:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-32">Updated</th>
-                      <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-500 uppercase tracking-wide w-36">Notes</th>
+                      <th className="hidden sm:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-8">#</th>
+                      <th className="text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest">Artikel</th>
+                      <th className="hidden md:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-52">Summary</th>
+                      <th className="hidden md:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-36">Tags</th>
+                      <th className="text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-28 sm:w-36">Status</th>
+                      <th className="hidden lg:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-32">Updated</th>
+                      <th className="hidden sm:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-36">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -364,9 +415,8 @@ export default function ReviewDashboard() {
                         <tr key={article.id}
                           data-testid={`row-kb-${article.id}`}
                           className={`border-b border-slate-50 align-top transition-colors ${
-                            isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50/80"
+                            isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50/60"
                           }`}>
-                          {/* Checkbox */}
                           <td className="px-3 sm:px-4 py-3.5 w-10">
                             <Checkbox
                               data-testid={`checkbox-${article.id}`}
@@ -374,16 +424,12 @@ export default function ReviewDashboard() {
                               onCheckedChange={() => toggleSelect(article.id)}
                             />
                           </td>
-
-                          {/* Row number */}
                           <td className="hidden sm:table-cell px-3 py-3.5 text-slate-400 text-xs">{i + 1}</td>
-
-                          {/* Title + slug + date + source */}
                           <td className="px-3 py-3.5 min-w-0">
                             <p className="font-semibold text-slate-900 line-clamp-2 text-xs sm:text-sm leading-snug">
                               {article.title || "(Tanpa Judul)"}
                             </p>
-                            <p className="font-mono text-[10px] sm:text-xs text-indigo-500 mt-0.5 truncate max-w-[140px] sm:max-w-xs">
+                            <p className="font-mono text-[10px] sm:text-xs text-indigo-400 mt-0.5 truncate max-w-[140px] sm:max-w-xs">
                               {article.slug}
                             </p>
                             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
@@ -402,35 +448,27 @@ export default function ReviewDashboard() {
                                 }`}>{article.scrape_status}</span>
                               )}
                             </div>
-                            {/* Summary inline on mobile */}
                             {article.summary && (
                               <p className="md:hidden text-[10px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
                                 {article.summary}
                               </p>
                             )}
                           </td>
-
-                          {/* Summary */}
                           <td className="hidden md:table-cell px-3 py-3.5 w-52">
                             <p data-testid={`summary-${article.id}`}
                               className="text-xs text-slate-600 line-clamp-4 leading-relaxed">
                               {article.summary || <span className="text-slate-300 italic">Tidak ada summary</span>}
                             </p>
                           </td>
-
-                          {/* Tags */}
                           <td className="hidden md:table-cell px-3 py-3.5 w-36">
                             <div data-testid={`tags-${article.id}`} className="flex flex-wrap gap-1">
                               {(article.tags || []).map(t => (
-                                <span key={t}
-                                  className="text-xs bg-slate-100 text-slate-600 px-1.5 py-px rounded font-medium">
+                                <span key={t} className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-px rounded-md font-medium">
                                   {t}
                                 </span>
                               ))}
                             </div>
                           </td>
-
-                          {/* Status select */}
                           <td className="px-3 py-3.5 w-28 sm:w-36">
                             <div className="flex flex-col gap-1.5">
                               <Select
@@ -459,16 +497,12 @@ export default function ReviewDashboard() {
                               )}
                             </div>
                           </td>
-
-                          {/* Last updated */}
                           <td className="hidden lg:table-cell px-3 py-3.5 w-32">
                             <span data-testid={`updated-${article.id}`}
                               className="text-xs text-slate-400 whitespace-nowrap">
                               {formatDate(article.last_updated)}
                             </span>
                           </td>
-
-                          {/* Notes */}
                           <td className="hidden sm:table-cell px-3 py-3.5 w-36">
                             <Input
                               data-testid={`notes-${article.id}`}
@@ -477,7 +511,7 @@ export default function ReviewDashboard() {
                               onBlur={() => saveNotes(article.id)}
                               onKeyDown={e => e.key === "Enter" && saveNotes(article.id)}
                               placeholder="Tambah catatan..."
-                              className="h-7 text-xs border-slate-200 focus-visible:ring-indigo-400 placeholder:text-slate-300"
+                              className="h-7 text-xs border-slate-200 rounded-lg focus-visible:ring-indigo-400 placeholder:text-slate-300"
                             />
                           </td>
                         </tr>
@@ -487,50 +521,50 @@ export default function ReviewDashboard() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Download section */}
-        {(stats.approved > 0 || stats.exported > 0) && (
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <FileJson className="w-4 h-4 text-indigo-500" />
-                Download Hasil Review
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              {stats.approved > 0 && (
-                <a href="/export/kb-approved" download>
-                  <Button data-testid="button-download-approved" variant="outline"
-                    className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-                    <Download className="w-4 h-4" />
-                    kb_approved.json
-                    <span className="bg-emerald-100 text-emerald-700 text-xs px-1.5 py-px rounded font-bold">
-                      {stats.approved}
-                    </span>
-                  </Button>
-                </a>
-              )}
-              {stats.exported > 0 && (
-                <a href="/export/kb-exported" download>
-                  <Button data-testid="button-download-exported" variant="outline"
-                    className="gap-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50">
-                    <Download className="w-4 h-4" />
-                    kb_exported.json
-                    <span className="bg-indigo-100 text-indigo-700 text-xs px-1.5 py-px rounded font-bold">
-                      {stats.exported}
-                    </span>
-                  </Button>
-                </a>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </main>
+          {/* ── Download section ── */}
+          {(stats.approved > 0 || stats.exported > 0) && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <FileJson className="w-3.5 h-3.5 text-indigo-600" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800">Download Hasil Review</h3>
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                {stats.approved > 0 && (
+                  <a href="/export/kb-approved" download>
+                    <Button data-testid="button-download-approved" variant="outline"
+                      className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl h-9 text-xs">
+                      <Download className="w-3.5 h-3.5" />
+                      kb_approved.json
+                      <span className="bg-emerald-100 text-emerald-700 text-xs px-1.5 py-px rounded-md font-bold">
+                        {stats.approved}
+                      </span>
+                    </Button>
+                  </a>
+                )}
+                {stats.exported > 0 && (
+                  <a href="/export/kb-exported" download>
+                    <Button data-testid="button-download-exported" variant="outline"
+                      className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl h-9 text-xs">
+                      <Download className="w-3.5 h-3.5" />
+                      kb_exported.json
+                      <span className="bg-indigo-100 text-indigo-700 text-xs px-1.5 py-px rounded-md font-bold">
+                        {stats.exported}
+                      </span>
+                    </Button>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── Mobile Bottom Nav ── */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 sm:hidden bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <nav className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-around h-14 px-2">
           <Link to="/" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
             <Newspaper style={{ width: 18, height: 18 }} />
