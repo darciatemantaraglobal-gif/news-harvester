@@ -564,45 +564,6 @@ const Index = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0f1f8] text-slate-900">
 
-      {/* ─── Left Icon Sidebar (desktop only) ─── */}
-      <aside className="hidden xl:flex w-[68px] shrink-0 bg-white border-r border-slate-100 flex-col items-center py-5 z-20 shadow-sm">
-        {/* Logo */}
-        <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-5 shadow-md shadow-purple-900/20">
-          <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain"
-            style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.5))" }} />
-        </div>
-
-        {/* Nav icons */}
-        <div className="flex flex-col gap-1.5 w-full px-3">
-          <div className="w-full flex items-center justify-center h-10 bg-slate-900 text-white rounded-xl shadow-sm cursor-default" title="Scraper">
-            <Newspaper className="w-[18px] h-[18px]" />
-          </div>
-          <Link to="/review" className="w-full">
-            <div data-testid="link-review-sidebar"
-              className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors cursor-pointer"
-              title="Review KB">
-              <CheckSquare className="w-[18px] h-[18px]" />
-            </div>
-          </Link>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Bottom: Export icons */}
-        <div className="flex flex-col gap-1.5 w-full px-3">
-          <a href="/export/json" download data-testid="button-export-json" className="w-full">
-            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export JSON">
-              <FileJson className="w-[18px] h-[18px]" />
-            </div>
-          </a>
-          <a href="/export/csv" download data-testid="button-export-csv" className="w-full">
-            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export CSV">
-              <FileText className="w-[18px] h-[18px]" />
-            </div>
-          </a>
-        </div>
-      </aside>
-
       {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
@@ -645,7 +606,7 @@ const Index = () => {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 xl:pb-4 space-y-3 sm:space-y-4 min-w-0">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 space-y-3 sm:space-y-4 min-w-0">
 
           {/* ── URL Input Card ── */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -1610,8 +1571,8 @@ const Index = () => {
         </div>
       </div>
 
-      {/* ─── Mobile Bottom Nav (hidden on xl) ─── */}
-      <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      {/* ─── Bottom Nav (all screens) ─── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-around h-14 px-2">
           <button className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-slate-900 text-white min-w-[60px]">
             <Newspaper className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />

@@ -199,44 +199,6 @@ export default function ReviewDashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0f1f8] text-slate-900">
 
-      {/* ─── Left Icon Sidebar (desktop only) ─── */}
-      <aside className="hidden xl:flex w-[68px] shrink-0 bg-white border-r border-slate-100 flex-col items-center py-5 z-20 shadow-sm">
-        {/* Logo */}
-        <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-5 shadow-md shadow-purple-900/20">
-          <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain"
-            style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.5))" }} />
-        </div>
-
-        {/* Nav icons */}
-        <div className="flex flex-col gap-1.5 w-full px-3">
-          <Link to="/" className="w-full">
-            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors cursor-pointer" title="Scraper">
-              <Newspaper className="w-[18px] h-[18px]" />
-            </div>
-          </Link>
-          {/* Review — ACTIVE */}
-          <div className="w-full flex items-center justify-center h-10 bg-slate-900 text-white rounded-xl shadow-sm cursor-default" title="Review KB">
-            <CheckSquare className="w-[18px] h-[18px]" />
-          </div>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Bottom: Export icons */}
-        <div className="flex flex-col gap-1.5 w-full px-3">
-          <a href="/export/kb-approved" download className="w-full">
-            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export Approved JSON">
-              <FileJson className="w-[18px] h-[18px]" />
-            </div>
-          </a>
-          <a href="/export/kb-exported" download className="w-full">
-            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export Exported JSON">
-              <FileText className="w-[18px] h-[18px]" />
-            </div>
-          </a>
-        </div>
-      </aside>
-
       {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
@@ -275,10 +237,10 @@ export default function ReviewDashboard() {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 xl:pb-4 space-y-3 sm:space-y-4 min-w-0">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 pb-20 space-y-3 sm:space-y-4 min-w-0">
 
           {/* ── Stats Row ── */}
-          <div className="flex xl:grid xl:grid-cols-6 gap-2 sm:gap-2.5 overflow-x-auto xl:overflow-visible pb-0.5 xl:pb-0 -mx-2.5 px-2.5 xl:mx-0 xl:px-0 snap-x snap-mandatory xl:snap-none">
+          <div className="flex sm:grid sm:grid-cols-6 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
             {[
               { label: "Total",    value: stats.total,    icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",   iconColor: "text-slate-500",   top: "bg-slate-300" },
               { label: "Pending",  value: stats.pending,  icon: Clock,        numColor: "text-amber-600",   iconBg: "bg-amber-100",   iconColor: "text-amber-500",   top: "bg-amber-400" },
@@ -287,10 +249,10 @@ export default function ReviewDashboard() {
               { label: "Rejected", value: stats.rejected, icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",     iconColor: "text-red-500",     top: "bg-red-400" },
               { label: "Exported", value: stats.exported, icon: Send,         numColor: "text-indigo-600",  iconBg: "bg-indigo-100",  iconColor: "text-indigo-500",  top: "bg-indigo-400" },
             ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top }) => (
-              <div key={label} className="snap-start shrink-0 w-[108px] xl:w-auto bg-white rounded-xl xl:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+              <div key={label} className="snap-start shrink-0 w-[108px] sm:w-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
                 <div className={`h-[3px] w-full ${top}`} />
                 {/* Mobile layout */}
-                <div className="xl:hidden flex items-center gap-2 px-2.5 py-2.5">
+                <div className="sm:hidden flex items-center gap-2 px-2.5 py-2.5">
                   <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
                     <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
                   </div>
@@ -300,7 +262,7 @@ export default function ReviewDashboard() {
                   </div>
                 </div>
                 {/* Desktop layout */}
-                <div className="hidden xl:block px-3.5 py-3">
+                <div className="hidden sm:block px-3.5 py-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
                     <div className={`w-6 h-6 rounded-md ${iconBg} flex items-center justify-center`}>
@@ -563,8 +525,8 @@ export default function ReviewDashboard() {
         </div>
       </div>
 
-      {/* ── Mobile Bottom Nav ── */}
-      <nav className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      {/* ── Bottom Nav (all screens) ── */}
+      <nav className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-around h-14 px-2">
           <Link to="/" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px]">
             <Newspaper style={{ width: 18, height: 18 }} />
