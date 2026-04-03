@@ -2,6 +2,7 @@
 import os, json, csv, io, threading, re, unicodedata, logging
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, Response
+from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -11,6 +12,7 @@ from db_services import push_kb_articles, fetch_kb_articles_from_db
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
 app = Flask(__name__)
+CORS(app)
 
 DATA_DIR = "data"
 CONFIG_DIR = "config"

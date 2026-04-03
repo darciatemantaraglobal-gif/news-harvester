@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { apiUrl } from "@/lib/api";
 import { Link } from "react-router-dom";
 import {
   Newspaper, CheckCircle2, XCircle, Clock, Eye, Send, Download,
@@ -93,7 +94,7 @@ export default function ReviewDashboard() {
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
-      const url = statusFilter === "all" ? "/kb-drafts" : `/kb-drafts?status=${statusFilter}`;
+      const url = statusFilter === "all" ? apiUrl("/kb-drafts") : apiUrl(`/kb-drafts?status=${statusFilter}`);
       const res = await fetch(url);
       if (res.ok) {
         const data: KbDraft[] = await res.json();
@@ -109,7 +110,7 @@ export default function ReviewDashboard() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/kb/stats");
+      const res = await fetch(apiUrl("/kb/stats");
       if (res.ok) setStats(await res.json());
     } catch {}
   }, []);
@@ -125,7 +126,7 @@ export default function ReviewDashboard() {
     try {
       const body: Record<string, string> = { id, status };
       if (notes !== undefined) body.notes = notes;
-      const res = await fetch("/kb/update-status", {
+      const res = await fetch(apiUrl("/kb/update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -145,7 +146,7 @@ export default function ReviewDashboard() {
     if (!article || notes === (article.notes || "")) return;
     setSavingId(id);
     try {
-      await fetch("/kb/update-status", {
+      await fetch(apiUrl("/kb/update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: article.approval_status, notes }),
@@ -160,7 +161,7 @@ export default function ReviewDashboard() {
     setBulkLoading(true);
     setBulkMsg("");
     try {
-      const res = await fetch("/kb/bulk-action", {
+      const res = await fetch(apiUrl("/kb/bulk-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selected), action }),
@@ -217,13 +218,13 @@ export default function ReviewDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
-            <a href="/export/kb-approved" download>
+            <a href={apiUrl("/export/kb-approved")} download>
               <Button variant="ghost" size="sm"
                 className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full">
                 <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline text-xs lg:text-sm">Approved</span>
               </Button>
             </a>
-            <a href="/export/kb-exported" download>
+            <a href={apiUrl("/export/kb-exported")} download>
               <Button variant="ghost" size="sm"
                 className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full">
                 <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline text-xs lg:text-sm">Exported</span>
@@ -496,7 +497,7 @@ export default function ReviewDashboard() {
               </div>
               <div className="flex flex-wrap gap-2.5">
                 {stats.approved > 0 && (
-                  <a href="/export/kb-approved" download>
+                  <a href={apiUrl("/export/kb-approved")} download>
                     <Button data-testid="button-download-approved" variant="outline"
                       className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl h-9 text-xs">
                       <Download className="w-3.5 h-3.5" />
@@ -508,7 +509,7 @@ export default function ReviewDashboard() {
                   </a>
                 )}
                 {stats.exported > 0 && (
-                  <a href="/export/kb-exported" download>
+                  <a href={apiUrl("/export/kb-exported")} download>
                     <Button data-testid="button-download-exported" variant="outline"
                       className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl h-9 text-xs">
                       <Download className="w-3.5 h-3.5" />
@@ -536,7 +537,7 @@ export default function ReviewDashboard() {
             <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">Review</span>
           </div>
-          <a href="/export/kb-approved" download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
+          <a href={apiUrl("/export/kb-approved")} download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
             <Download style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">Export</span>
           </a>

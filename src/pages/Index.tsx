@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { apiUrl } from "@/lib/api";
 import { useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -263,7 +264,7 @@ const Index = () => {
 
   const fetchArticles = useCallback(async () => {
     try {
-      const res = await fetch("/api/articles");
+      const res = await fetch(apiUrl("/api/articles");
       if (res.ok) setArticles(await res.json());
     } catch {}
     setLoadingArticles(false);
@@ -271,7 +272,7 @@ const Index = () => {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch("/settings");
+      const res = await fetch(apiUrl("/settings");
       if (res.ok) setSettings(await res.json());
     } catch {}
   };
@@ -279,7 +280,7 @@ const Index = () => {
   const fetchKbDraft = async () => {
     setKbDraftLoading(true);
     try {
-      const res = await fetch("/api/kb-draft");
+      const res = await fetch(apiUrl("/api/kb-draft");
       if (res.ok) {
         const data = await res.json();
         setKbDraft(data);
@@ -291,7 +292,7 @@ const Index = () => {
 
   const fetchSchedulerSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/scheduler/settings");
+      const res = await fetch(apiUrl("/api/scheduler/settings");
       if (res.ok) {
         const data = await res.json();
         setSchedulerSettings(prev => ({ ...prev, ...data }));
@@ -302,7 +303,7 @@ const Index = () => {
   const saveSchedulerSettings = async () => {
     setSchedulerSaving(true);
     try {
-      const res = await fetch("/api/scheduler/settings", {
+      const res = await fetch(apiUrl("/api/scheduler/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(schedulerSettings),
@@ -328,7 +329,7 @@ const Index = () => {
   const triggerRunNow = async () => {
     setSchedulerRunNow(true);
     try {
-      const res = await fetch("/api/scheduler/run-now", { method: "POST" });
+      const res = await fetch(apiUrl("/api/scheduler/run-now", { method: "POST" });
       const data = await res.json();
       if (res.ok) {
         toast({ title: "Scraping dimulai", description: "Menggunakan URL dan mode dari pengaturan scheduler." });
@@ -348,7 +349,7 @@ const Index = () => {
 
   const pollProgress = useCallback(async () => {
     try {
-      const res = await fetch("/api/progress");
+      const res = await fetch(apiUrl("/api/progress");
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
       setProgress(data);
@@ -390,7 +391,7 @@ const Index = () => {
         if (customStart) body.start_date = customStart;
         if (customEnd) body.end_date = customEnd;
       }
-      const res = await fetch("/api/scrape", {
+      const res = await fetch(apiUrl("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -409,7 +410,7 @@ const Index = () => {
   const saveSettings = async () => {
     setSettingsSaving(true); setSettingsError("");
     try {
-      const res = await fetch("/settings", {
+      const res = await fetch(apiUrl("/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
@@ -428,7 +429,7 @@ const Index = () => {
   const resetSettings = async () => {
     setSettings(DEFAULT_SETTINGS);
     try {
-      await fetch("/settings", {
+      await fetch(apiUrl("/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(DEFAULT_SETTINGS),
@@ -440,7 +441,7 @@ const Index = () => {
   const doGenerateSummary = async () => {
     setSummaryLoading(true); setSummaryError(""); setSummaryDone(false); setSummaryResult(null);
     try {
-      const res = await fetch("/api/generate-summary", { method: "POST" });
+      const res = await fetch(apiUrl("/api/generate-summary", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setSummaryError(data.error || "Gagal generate summary.");
       else {
@@ -454,7 +455,7 @@ const Index = () => {
   const doAutoTag = async () => {
     setTagLoading(true); setTagError(""); setTagDone(false);
     try {
-      const res = await fetch("/api/auto-tag", { method: "POST" });
+      const res = await fetch(apiUrl("/api/auto-tag", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setTagError(data.error || "Gagal auto tag.");
       else {
@@ -468,7 +469,7 @@ const Index = () => {
   const doConvertKb = async () => {
     setKbLoading(true); setKbError(""); setKbDone(false);
     try {
-      const res = await fetch("/api/convert-kb", { method: "POST" });
+      const res = await fetch(apiUrl("/api/convert-kb", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setKbError(data.error || "Gagal mengkonversi.");
       else {
@@ -483,7 +484,7 @@ const Index = () => {
   const generateAiSummaries = async () => {
     setAiLoading(true); setAiError(""); setAiDone(false);
     try {
-      const res = await fetch("/api/ai-summary-all", { method: "POST" });
+      const res = await fetch(apiUrl("/api/ai-summary-all", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setAiError(data.error || "Gagal generate AI summary.");
       else {
@@ -497,7 +498,7 @@ const Index = () => {
   const pushToSupabase = async () => {
     setPushLoading(true); setPushError(""); setPushDone(false);
     try {
-      const res = await fetch("/api/push-supabase", { method: "POST" });
+      const res = await fetch(apiUrl("/api/push-supabase", { method: "POST" });
       const data = await res.json();
       if (!res.ok) setPushError(data.error || "Gagal push ke Supabase.");
       else {
@@ -511,7 +512,7 @@ const Index = () => {
   const fetchDbArticles = async () => {
     setDbLoading(true); setDbError("");
     try {
-      const res = await fetch("/api/db-articles");
+      const res = await fetch(apiUrl("/api/db-articles");
       const data = await res.json();
       if (!res.ok) setDbError(data.error || "Gagal mengambil data.");
       else setDbArticles(data);
@@ -996,7 +997,7 @@ const Index = () => {
                   </div>
                   {kbDraft.length > 0 && (
                     <div className="flex items-center gap-2">
-                      <a href="/export/kb" download>
+                      <a href={apiUrl("/export/kb")} download>
                         <Button data-testid="button-download-kb" variant="ghost" size="sm"
                           className="h-7 text-xs gap-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
                           <Download className="w-3 h-3" />Export JSON
@@ -1584,11 +1585,11 @@ const Index = () => {
             <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">Review</span>
           </Link>
-          <a href="/export/json" download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
+          <a href={apiUrl("/export/json")} download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
             <FileJson style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">JSON</span>
           </a>
-          <a href="/export/csv" download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
+          <a href={apiUrl("/export/csv")} download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
             <FileText style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">CSV</span>
           </a>

@@ -9,3 +9,4 @@ lxml
 openai
 requests
 supabase
+flask-cors
