@@ -88,7 +88,15 @@ const ERROR_REASON_LABELS: Record<string, string> = {
   duplicate: "Duplikat",
   request_failed: "Request Gagal",
   parse_failed: "Parse Gagal",
+  date_unknown: "Tanggal Tidak Dikenal",
 };
+
+const SCRAPE_RANGES = [
+  { value: "all",     label: "Semua Artikel",    desc: "Tanpa filter tanggal" },
+  { value: "last_7",  label: "7 Hari Terakhir",  desc: "Artikel 7 hari ke belakang" },
+  { value: "last_30", label: "30 Hari Terakhir", desc: "Artikel 30 hari ke belakang" },
+  { value: "custom",  label: "Rentang Kustom",   desc: "Pilih tanggal mulai dan selesai" },
+];
 
 const APPROVAL_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -154,6 +162,9 @@ const Index = () => {
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
   const [mode, setMode] = useState("full");
+  const [scrapeRange, setScrapeRange] = useState("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [progress, setProgress] = useState<ScrapeProgress>({
     running: false, phase: "idle", current: 0, total: 0,
     success: 0, partial: 0, failed: 0, duplicate: 0, logs: [],
@@ -161,6 +172,12 @@ const Index = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
   const [justFinished, setJustFinished] = useState(false);
+
+  // Results filter states
+  const [titleFilter, setTitleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const [settings, setSettings] = useState<ScraperSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -264,12 +281,21 @@ const Index = () => {
     setUrlError("");
     if (!url.trim()) { setUrlError("URL tidak boleh kosong."); return; }
     if (!url.startsWith("http")) { setUrlError("URL tidak valid, harus dimulai dengan http:// atau https://"); return; }
+    if (scrapeRange === "custom" && !customStart && !customEnd) {
+      setUrlError("Pilih setidaknya satu tanggal untuk Rentang Kustom.");
+      return;
+    }
     setJustFinished(false);
     try {
+      const body: Record<string, string> = { url, mode, date_filter: scrapeRange };
+      if (scrapeRange === "custom") {
+        if (customStart) body.start_date = customStart;
+        if (customEnd) body.end_date = customEnd;
+      }
       const res = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, mode }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) { setUrlError(data.error || "Terjadi kesalahan."); return; }
@@ -397,6 +423,29 @@ const Index = () => {
   const isRunning = progress.running;
   const showLog = progress.phase !== "idle";
 
+  // ── Client-side filter for results table ──
+  const filteredArticles = articles.filter(a => {
+    if (titleFilter && !a.title.toLowerCase().includes(titleFilter.toLowerCase())) return false;
+    if (statusFilter !== "all" && a.status !== statusFilter) return false;
+    if (dateFrom || dateTo) {
+      const raw = a.date || "";
+      // Simple ISO-prefix check — works for yyyy-mm-dd and dd/mm/yyyy formats
+      const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+      const dmyMatch = raw.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+      let articleIso = "";
+      if (isoMatch) articleIso = isoMatch[0];
+      else if (dmyMatch) articleIso = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+      if (articleIso) {
+        if (dateFrom && articleIso < dateFrom) return false;
+        if (dateTo && articleIso > dateTo) return false;
+      }
+    }
+    return true;
+  });
+
+  const hasActiveFilter = titleFilter || statusFilter !== "all" || dateFrom || dateTo;
+  const clearFilters = () => { setTitleFilter(""); setStatusFilter("all"); setDateFrom(""); setDateTo(""); };
+
   const statSucc = progress.phase !== "idle" ? progress.success : articles.filter(a => a.status === "success").length;
   const statPart = progress.phase !== "idle" ? progress.partial : articles.filter(a => a.status === "partial").length;
   const statFail = progress.phase !== "idle" ? progress.failed : articles.filter(a => a.status === "failed").length;
@@ -522,7 +571,8 @@ const Index = () => {
 
           {/* URL + Mode + Start */}
           <Card className="shadow-none border-slate-200">
-            <CardContent className="px-5 py-4">
+            <CardContent className="px-5 py-4 space-y-3">
+              {/* Row 1: URL + Mode + Button */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-600">URL Halaman Berita</Label>
@@ -568,9 +618,63 @@ const Index = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-2">
+
+              {/* Row 2: Scrape Range */}
+              <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-slate-100">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full border-2 border-slate-300 inline-block" />
+                    Rentang Tanggal Scraping
+                  </Label>
+                  <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
+                    <SelectTrigger data-testid="select-scrape-range"
+                      className="w-44 bg-slate-50 border-slate-200 text-xs h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SCRAPE_RANGES.map(r => (
+                        <SelectItem key={r.value} value={r.value}>
+                          <div>
+                            <p className="font-medium text-sm">{r.label}</p>
+                            <p className="text-xs text-slate-400">{r.desc}</p>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {scrapeRange === "custom" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-500">Dari</Label>
+                      <Input data-testid="input-custom-start"
+                        type="date" value={customStart}
+                        onChange={e => setCustomStart(e.target.value)}
+                        disabled={isRunning}
+                        className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-500">Sampai</Label>
+                      <Input data-testid="input-custom-end"
+                        type="date" value={customEnd}
+                        onChange={e => setCustomEnd(e.target.value)}
+                        disabled={isRunning}
+                        className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
+                    </div>
+                  </>
+                )}
+                {scrapeRange !== "all" && (
+                  <span className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md font-medium self-end">
+                    Filter aktif: {SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400">
                 Mode aktif: <span className="font-medium text-slate-500">{MODES.find(m => m.value === mode)?.label}</span>
                 {" — "}{MODES.find(m => m.value === mode)?.desc}
+                {scrapeRange !== "all" && (
+                  <> · Filter tanggal: <span className="font-medium text-indigo-500">{SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}</span></>
+                )}
               </p>
             </CardContent>
           </Card>
@@ -686,7 +790,11 @@ const Index = () => {
               <ClipboardList className="w-4 h-4 text-indigo-500" />
               <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Hasil Scraping</h2>
               {articles.length > 0 && (
-                <span className="text-xs text-slate-400">({articles.length} artikel)</span>
+                <span className="text-xs text-slate-400">
+                  {hasActiveFilter
+                    ? `${filteredArticles.length} dari ${articles.length} artikel`
+                    : `${articles.length} artikel`}
+                </span>
               )}
             </div>
             {articles.length > 0 && (
@@ -696,6 +804,64 @@ const Index = () => {
               </Button>
             )}
           </div>
+
+          {/* ── Results Filter Bar ── */}
+          {articles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-none">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[180px]">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <Input data-testid="filter-title"
+                  value={titleFilter}
+                  onChange={e => setTitleFilter(e.target.value)}
+                  placeholder="Cari judul artikel..."
+                  className="pl-8 h-8 text-xs bg-slate-50 border-slate-200 w-full" />
+              </div>
+
+              {/* Status filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs bg-slate-50 border-slate-200">
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="success">Berhasil</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="failed">Gagal</SelectItem>
+                  <SelectItem value="duplicate">Duplikat</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Date from */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 whitespace-nowrap">Dari</span>
+                <Input data-testid="filter-date-from"
+                  type="date" value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  className="w-32 h-8 text-xs bg-slate-50 border-slate-200" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 whitespace-nowrap">s/d</span>
+                <Input data-testid="filter-date-to"
+                  type="date" value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  className="w-32 h-8 text-xs bg-slate-50 border-slate-200" />
+              </div>
+
+              {/* Clear */}
+              {hasActiveFilter && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}
+                  className="h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 px-2 gap-1">
+                  <span className="text-sm leading-none">✕</span> Hapus Filter
+                </Button>
+              )}
+            </div>
+          )}
 
           <Card className="shadow-none border-slate-200">
             <CardContent className="p-0">
@@ -714,6 +880,20 @@ const Index = () => {
                     <p className="text-xs text-slate-400">Masukkan URL berita di atas lalu klik <strong>Mulai Scraping</strong></p>
                   </div>
                 </div>
+              ) : filteredArticles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 opacity-40" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium text-slate-600">Tidak ada hasil untuk filter ini</p>
+                    <p className="text-xs text-slate-400">{articles.length} artikel total tersimpan, tapi tidak ada yang cocok.</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={clearFilters}
+                    className="text-xs gap-1.5">
+                    Hapus Semua Filter
+                  </Button>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -730,7 +910,7 @@ const Index = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {articles.map((article, i) => (
+                      {filteredArticles.map((article, i) => (
                         <tr key={article.id} data-testid={`row-article-${article.id}`}
                           className="border-b border-slate-50 hover:bg-slate-50/80 transition-colors align-top">
                           <td className="px-5 py-3.5 text-slate-400 text-xs">{i + 1}</td>

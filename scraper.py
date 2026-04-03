@@ -2,10 +2,118 @@
 import re
 import uuid
 import requests
+from datetime import date, datetime, timedelta
 from urllib.parse import urljoin
 
 from utils import get_soup, delay, BLOCKED_CODES
 from content_cleaner import clean_text
+
+# ─── Date Parsing Helpers ────────────────────────────────────────────────────
+
+INDONESIAN_MONTHS: dict[str, int] = {
+    # Indonesian
+    "januari": 1, "februari": 2, "maret": 3, "april": 4,
+    "mei": 5, "juni": 6, "juli": 7, "agustus": 8,
+    "september": 9, "oktober": 10, "november": 11, "desember": 12,
+    # Short Indonesian
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4,
+    "jun": 6, "jul": 7, "agt": 8, "agu": 8, "sep": 9,
+    "okt": 10, "nov": 11, "des": 12,
+    # English
+    "january": 1, "february": 2, "march": 3, "may": 5,
+    "june": 6, "july": 7, "august": 8,
+    "october": 10, "december": 12,
+    # Short English
+    "oct": 10, "dec": 12, "aug": 8,
+}
+
+
+def parse_article_date(date_str: str) -> date | None:
+    """
+    Parse tanggal artikel dari berbagai format umum.
+    Return datetime.date atau None jika gagal.
+    Mendukung format Indonesia, ISO, dan situs pemerintah.
+    """
+    if not date_str:
+        return None
+
+    # Bersihkan: hapus hari dalam seminggu, whitespace berlebihan, tanda baca
+    s = re.sub(r"(senin|selasa|rabu|kamis|jumat|sabtu|minggu|"
+               r"monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
+               "", date_str.lower().strip())
+    s = re.sub(r"\s+", " ", s).strip().strip(",").strip()
+
+    # 1. ISO 8601: 2024-01-15 atau 2024-01-15T10:00:00
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", s)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            pass
+
+    # 2. dd/mm/yyyy atau dd-mm-yyyy atau dd.mm.yyyy
+    m = re.search(r"(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})", s)
+    if m:
+        try:
+            return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            pass
+
+    # 3. yyyy/mm/dd
+    m = re.search(r"(\d{4})[/\-.](\d{2})[/\-.](\d{2})", s)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            pass
+
+    # 4. dd Bulan yyyy  /  dd-Bulan-yyyy  (Indonesian / English month name)
+    m = re.search(r"(\d{1,2})[\s\-]+([a-z]+)[\s\-,]+(\d{4})", s)
+    if m:
+        month_name = m.group(2).lower()
+        mon = INDONESIAN_MONTHS.get(month_name)
+        if mon:
+            try:
+                return date(int(m.group(3)), mon, int(m.group(1)))
+            except ValueError:
+                pass
+
+    # 5. Bulan dd, yyyy  /  Month dd yyyy  (English order)
+    m = re.search(r"([a-z]+)\s+(\d{1,2})[,\s]+(\d{4})", s)
+    if m:
+        month_name = m.group(1).lower()
+        mon = INDONESIAN_MONTHS.get(month_name)
+        if mon:
+            try:
+                return date(int(m.group(3)), mon, int(m.group(2)))
+            except ValueError:
+                pass
+
+    return None
+
+
+def date_in_range(
+    article_date_str: str,
+    start: date | None,
+    end: date | None,
+) -> str:
+    """
+    Periksa apakah tanggal artikel berada dalam rentang filter.
+    Return: 'in' | 'out' | 'unknown'
+    'unknown' → gagal parse tanggal (artikel tetap disimpan, ditandai partial)
+    """
+    if start is None and end is None:
+        return "in"  # no filter
+
+    parsed = parse_article_date(article_date_str)
+    if parsed is None:
+        return "unknown"
+
+    if start and parsed < start:
+        return "out"
+    if end and parsed > end:
+        return "out"
+    return "in"
 
 DEFAULT_SETTINGS = {
     "article_link_selector": 'a[href*="/berita/"]',
@@ -163,6 +271,8 @@ def scrape_all(
     mode: str = "full",
     existing_articles: list = None,
     progress_callback=None,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ):
     """
     Scrape semua artikel dari halaman list + pagination.
@@ -250,6 +360,29 @@ def scrape_all(
             )
             delay()
             continue
+
+        # ── Date range filter ──
+        if start_date is not None or end_date is not None:
+            dr = date_in_range(article.get("date", ""), start_date, end_date)
+            if dr == "out":
+                log(
+                    f"  ⊘ OUT OF RANGE (tanggal): {article.get('title', link)[:60]}",
+                    phase="scraping", current=i + 1, total=total,
+                    duplicate=duplicate_count,
+                )
+                delay()
+                continue
+            elif dr == "unknown":
+                # Tanggal tidak bisa dibaca → simpan, tandai partial
+                if article.get("status") == "success":
+                    article["status"] = "partial"
+                if not article.get("error_reason"):
+                    article["error_reason"] = "date_unknown"
+                log(
+                    f"  ⚠ DATE UNKNOWN (tetap disimpan): {article.get('title', link)[:60]}",
+                    phase="scraping", current=i + 1, total=total,
+                    duplicate=duplicate_count,
+                )
 
         # Tambahkan ke sets
         seen_urls.add(link)

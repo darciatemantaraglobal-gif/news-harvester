@@ -1,6 +1,6 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, Response
 
 from scraper import scrape_all
@@ -76,7 +76,8 @@ def _progress_callback(msg, **kwargs):
                 scrape_state[k] = v
 
 
-def _run_scrape(url: str, settings: dict, mode: str):
+def _run_scrape(url: str, settings: dict, mode: str,
+                start_date: date | None = None, end_date: date | None = None):
     with state_lock:
         scrape_state["running"] = True
         scrape_state["phase"] = "listing"
@@ -99,6 +100,8 @@ def _run_scrape(url: str, settings: dict, mode: str):
             mode=mode,
             existing_articles=existing,
             progress_callback=_progress_callback,
+            start_date=start_date,
+            end_date=end_date,
         )
 
         # Gabungkan dengan artikel lama (skip URL yang sudah ada)
@@ -152,6 +155,16 @@ def post_settings():
     return jsonify({"status": "ok", "settings": current})
 
 
+def _parse_date_param(s: str | None) -> date | None:
+    """Parse 'yyyy-mm-dd' string ke datetime.date, return None jika gagal."""
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
 @app.route("/api/scrape", methods=["POST"])
 def api_scrape():
     with state_lock:
@@ -166,9 +179,32 @@ def api_scrape():
         return jsonify({"error": "URL tidak boleh kosong"}), 400
     if not url.startswith("http"):
         return jsonify({"error": "URL tidak valid, harus dimulai dengan http:// atau https://"}), 400
+
+    # ── Date range filter ──
+    date_filter = (data.get("date_filter") or "all").strip()
+    today = date.today()
+    start_date: date | None = None
+    end_date: date | None = today  # cap upper bound at today
+
+    if date_filter == "last_7":
+        start_date = today - timedelta(days=7)
+    elif date_filter == "last_30":
+        start_date = today - timedelta(days=30)
+    elif date_filter == "custom":
+        start_date = _parse_date_param(data.get("start_date"))
+        end_date = _parse_date_param(data.get("end_date")) or today
+    else:
+        end_date = None  # "all" → no cap
+
     settings = _load_settings()
-    threading.Thread(target=_run_scrape, args=(url, settings, mode), daemon=True).start()
-    return jsonify({"status": "started"})
+    threading.Thread(
+        target=_run_scrape,
+        args=(url, settings, mode, start_date, end_date),
+        daemon=True,
+    ).start()
+    return jsonify({"status": "started", "date_filter": date_filter,
+                    "start_date": start_date.isoformat() if start_date else None,
+                    "end_date": end_date.isoformat() if end_date else None})
 
 
 @app.route("/api/progress")
