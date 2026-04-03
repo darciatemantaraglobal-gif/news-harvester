@@ -183,7 +183,6 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
   );
 }
 
-/** Classify a log line and return a tailwind text color */
 function logColor(line: string): string {
   const l = line.toLowerCase();
   if (l.includes("✅") || l.includes("berhasil") || l.includes("sukses") || l.includes("success")) return "text-emerald-400";
@@ -193,15 +192,6 @@ function logColor(line: string): string {
   if (l.includes("📦") || l.includes("export") || l.includes("selesai") || l.includes("done")) return "text-indigo-400";
   if (l.includes("🔍") || l.includes("menemukan") || l.includes("found")) return "text-sky-400";
   return "text-slate-300";
-}
-
-/** Prefix icon for a log line */
-function logPrefix(line: string): string {
-  const l = line.toLowerCase();
-  if (l.includes("✅") || l.includes("berhasil") || l.includes("sukses") || l.includes("success")) return "";
-  if (l.includes("❌") || l.includes("gagal") || l.includes("error") || l.includes("failed")) return "";
-  if (l.includes("⚠️") || l.includes("partial")) return "";
-  return "";
 }
 
 const Index = () => {
@@ -222,7 +212,6 @@ const Index = () => {
   const [loadingArticles, setLoadingArticles] = useState(true);
   const [justFinished, setJustFinished] = useState(false);
 
-  // Results filter states
   const [viewMode, setViewMode] = useState<"table" | "markdown">("table");
   const [titleFilter, setTitleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -263,7 +252,6 @@ const Index = () => {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState("");
 
-  // Scheduler state
   const [schedulerSettings, setSchedulerSettings] = useState<SchedulerSettings>(DEFAULT_SCHEDULER_SETTINGS);
   const [schedulerOpen, setSchedulerOpen] = useState(false);
   const [schedulerSaving, setSchedulerSaving] = useState(false);
@@ -531,15 +519,12 @@ const Index = () => {
 
   const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
   const isRunning = progress.running;
-  const showLog = progress.phase !== "idle";
 
-  // ── Client-side filter for results table ──
   const filteredArticles = articles.filter(a => {
     if (titleFilter && !a.title.toLowerCase().includes(titleFilter.toLowerCase())) return false;
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
     if (dateFrom || dateTo) {
       const raw = a.date || "";
-      // Simple ISO-prefix check — works for yyyy-mm-dd and dd/mm/yyyy formats
       const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
       const dmyMatch = raw.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
       let articleIso = "";
@@ -571,24 +556,64 @@ const Index = () => {
     done: "Scraping selesai!",
   };
 
+  const DOW_LABELS: Record<string, string> = {
+    mon: "Senin", tue: "Selasa", wed: "Rabu", thu: "Kamis",
+    fri: "Jumat", sat: "Sabtu", sun: "Minggu",
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0f0f2] text-slate-900">
 
       {/* ─── Left Icon Sidebar ─── */}
-      <aside className="w-[68px] shrink-0 bg-white border-r border-gray-100 flex flex-col items-center py-5 gap-3 z-20 shadow-sm">
+      <aside className="w-[68px] shrink-0 bg-white border-r border-gray-100 flex flex-col items-center py-5 z-20 shadow-sm">
         {/* Logo */}
-        <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-3 shadow-md shadow-purple-900/20">
-          <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain" style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.5))" }} />
-            </div>
-            <div className="leading-none">
-              <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
-              <p className="hidden sm:block text-[10px] text-purple-300 mt-0.5">Internal Knowledge Scraping Tool</p>
-            </div>
-          </div>
+        <div className="w-11 h-11 bg-gradient-to-br from-[#1a0533] to-[#3d1480] rounded-2xl flex items-center justify-center mb-5 shadow-md shadow-purple-900/20">
+          <img src="/AIGYPT.png" alt="AINA" className="w-7 h-7 object-contain"
+            style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.5))" }} />
+        </div>
 
-          {/* Center: scheduler status pill */}
+        {/* Nav icons */}
+        <div className="flex flex-col gap-1.5 w-full px-3">
+          <div className="w-full flex items-center justify-center h-10 bg-slate-900 text-white rounded-xl shadow-sm cursor-default" title="Scraper">
+            <Newspaper className="w-[18px] h-[18px]" />
+          </div>
+          <Link to="/review" className="w-full">
+            <div data-testid="link-review-sidebar"
+              className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors cursor-pointer"
+              title="Review KB">
+              <CheckSquare className="w-[18px] h-[18px]" />
+            </div>
+          </Link>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Bottom: Export icons */}
+        <div className="flex flex-col gap-1.5 w-full px-3">
+          <a href="/export/json" download data-testid="button-export-json" className="w-full">
+            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export JSON">
+              <FileJson className="w-[18px] h-[18px]" />
+            </div>
+          </a>
+          <a href="/export/csv" download data-testid="button-export-csv" className="w-full">
+            <div className="w-full flex items-center justify-center h-10 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-colors" title="Export CSV">
+              <FileText className="w-[18px] h-[18px]" />
+            </div>
+          </a>
+        </div>
+      </aside>
+
+      {/* ─── Main Content Area ─── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* ─── Dark Header Card ─── */}
+        <div className="mx-4 mt-4 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-2xl px-5 py-3.5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
+          <div className="leading-none">
+            <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
+            <p className="text-purple-300 text-[11px] mt-0.5">Internal Knowledge Scraping Tool</p>
+          </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-            <div className="hidden md:flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1 text-xs text-white backdrop-blur-sm">
+            <div className="hidden lg:flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1.5 text-xs text-white backdrop-blur-sm">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
@@ -601,364 +626,252 @@ const Index = () => {
               )}
             </div>
           )}
-
-          {/* Right actions */}
-          <div className="flex items-center gap-1">
-            <a href="/export/json" download data-testid="button-export-json">
-              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/15 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
-                <FileJson className="w-3.5 h-3.5" /><span className="hidden sm:inline">JSON</span>
-              </Button>
-            </a>
-            <a href="/export/csv" download data-testid="button-export-csv">
-              <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/15 h-8 text-xs px-2 sm:px-3 sm:gap-1.5">
-                <FileText className="w-3.5 h-3.5" /><span className="hidden sm:inline">CSV</span>
-              </Button>
-            </a>
-            <div className="w-px h-5 bg-white/25 mx-1" />
-            <Link to="/review">
-              <Button data-testid="link-review-dashboard" size="sm"
-                className="gap-1.5 bg-white text-indigo-700 hover:bg-indigo-50 h-8 text-xs px-2.5 sm:px-3.5 font-semibold shadow-sm">
-                <CheckSquare className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Review KB Draft</span>
-                <span className="sm:hidden">Review</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-5">
-
-        {/* ── Hero: URL + Mode + Start ── */}
-        <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.10)] p-4 sm:p-5 space-y-4 animate-slide-up-fade card-hover">
-          {/* Row 1: URL */}
-          <div className="space-y-1">
-            <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</Label>
-            <Input data-testid="input-url" type="url"
-              placeholder="https://www.kemlu.go.id/cairo/berita"
-              value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
-              onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
-              disabled={isRunning}
-              className={`h-10 rounded-xl border-indigo-100 bg-indigo-50/40 text-sm focus-visible:ring-2 ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-300"}`} />
-            {urlError && (
-              <p className="text-red-500 text-xs flex items-center gap-1.5 mt-1">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
-              </p>
-            )}
-          </div>
-          {/* Row 2: Mode + Start button */}
-          <div className="flex gap-2.5">
-            <Select value={mode} onValueChange={setMode} disabled={isRunning}>
-              <SelectTrigger data-testid="select-mode" className="flex-1 sm:flex-none sm:w-44 h-10 rounded-xl border-indigo-100 bg-indigo-50/40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {MODES.map(m => (
-                  <SelectItem key={m.value} value={m.value}>
-                    <div>
-                      <p className="font-medium">{m.label}</p>
-                      <p className="text-xs text-slate-400">{m.desc}</p>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button data-testid="button-start-scrape" onClick={startScrape}
-              disabled={isRunning}
-              className="flex-1 sm:flex-none h-10 px-5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-2 whitespace-nowrap font-semibold shadow-lg shadow-indigo-300/40 transition-all duration-300 btn-press hover:scale-[1.03] hover:shadow-indigo-400/50">
-              {isRunning
-                ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
-                : <><Zap className="w-4 h-4" />Mulai Scraping</>}
+          <Link to="/review">
+            <Button data-testid="link-review-dashboard" size="sm"
+              className="gap-1.5 bg-white text-[#2e0d5e] hover:bg-white/90 h-8 text-xs px-4 font-semibold shadow-sm rounded-full">
+              <CheckSquare className="w-3.5 h-3.5" />Review KB Draft
             </Button>
-          </div>
-          {/* Row 3: Date range filter (subtle) */}
-          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-indigo-50">
-            <span className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest shrink-0">Rentang</span>
-            <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
-              <SelectTrigger data-testid="select-scrape-range" className="w-40 h-8 rounded-full bg-indigo-50/60 border-indigo-100 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SCRAPE_RANGES.map(r => (
-                  <SelectItem key={r.value} value={r.value}>
-                    <div>
-                      <p className="font-medium">{r.label}</p>
-                      <p className="text-xs text-slate-400">{r.desc}</p>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {scrapeRange === "custom" && (
-              <>
-                <Input data-testid="input-custom-start" type="date" value={customStart}
-                  onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
-                  className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
-                <span className="text-slate-300 text-xs">→</span>
-                <Input data-testid="input-custom-end" type="date" value={customEnd}
-                  onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
-                  className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
-              </>
-            )}
-            {scrapeRange !== "all" && (
-              <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
-                {SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}
-              </span>
-            )}
-            <span className="ml-auto text-xs text-slate-400 hidden sm:block">
-              {MODES.find(m => m.value === mode)?.label} — {MODES.find(m => m.value === mode)?.desc}
-            </span>
-          </div>
+          </Link>
         </div>
 
-        {/* ── Stats Row ── */}
-        <div className="flex gap-3 overflow-x-auto pb-1 sm:overflow-visible sm:grid sm:grid-cols-5 snap-x snap-mandatory sm:snap-none -mx-4 px-4 sm:mx-0 sm:px-0 animate-slide-up-fade animation-delay-100">
-          {[
-            { label: "Total",    value: statTotal, numColor: "text-slate-800",   accent: "bg-slate-400",    testid: "stat-total" },
-            { label: "Berhasil", value: statSucc,  numColor: "text-emerald-700", accent: "bg-emerald-500",  testid: "stat-success" },
-            { label: "Partial",  value: statPart,  numColor: "text-amber-700",   accent: "bg-amber-500",    testid: "stat-partial" },
-            { label: "Gagal",    value: statFail,  numColor: "text-red-600",     accent: "bg-red-500",      testid: "stat-failed" },
-            { label: "Duplikat", value: statDupe,  numColor: "text-slate-400",   accent: "bg-slate-300",    testid: "stat-duplicate" },
-          ].map(({ label, value, numColor, accent, testid }, i) => (
-            <div key={label}
-              className={`bg-white rounded-2xl shadow-[0_4px_20px_rgba(79,70,229,0.07)] overflow-hidden flex flex-none min-w-[120px] sm:flex-auto sm:min-w-0 snap-start transition-all duration-300 cursor-default stat-glow animate-count-up`}
-              style={{ animationDelay: `${i * 70}ms` }}>
-              <div className={`w-1 shrink-0 ${accent}`} />
-              <div className="px-3 py-3 sm:px-4 sm:py-4 min-w-0 flex-1">
-                <p className="text-[10px] sm:text-[11px] text-indigo-400/80 font-semibold uppercase tracking-wide sm:tracking-widest leading-none">{label}</p>
-                <p data-testid={testid} className={`text-xl sm:text-[26px] font-bold mt-1 sm:mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* ─── Scrollable Content ─── */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-w-0">
 
-        {/* ── 2-Column Main Layout ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-
-          {/* ═══════════════ LEFT COLUMN (Results + KB Pipeline) ═══════════════ */}
-          <div className="lg:col-span-2 space-y-5">
-
-            {/* ── Results Table ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-slide-up-fade animation-delay-200">
-              {/* Table Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-50">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
-                  </div>
-                  <h2 className="text-sm font-bold text-slate-800">Hasil Scraping</h2>
-                  {articles.length > 0 && (
-                    <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
-                      {hasActiveFilter ? `${filteredArticles.length} / ${articles.length}` : articles.length}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {articles.length > 0 && (
-                    <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
-                      <button
-                        onClick={() => setViewMode("table")}
-                        title="Tampilan Tabel"
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "table" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
-                        <LayoutList className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Tabel</span>
-                      </button>
-                      <button
-                        onClick={() => setViewMode("markdown")}
-                        title="Tampilan Markdown"
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
-                        <FileCode2 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Markdown</span>
-                      </button>
-                    </div>
-                  )}
-                  {articles.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={fetchArticles}
-                      className="gap-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 text-xs px-2 rounded-lg">
-                      <RefreshCw className="w-3.5 h-3.5" />Refresh
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Filter Bar */}
-              {articles.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3 border-b border-indigo-50 bg-indigo-50/30">
-                  <div className="relative flex-1 min-w-[120px]">
-                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <Input data-testid="filter-title" value={titleFilter}
-                      onChange={e => setTitleFilter(e.target.value)}
-                      placeholder="Cari judul..." className="pl-8 h-8 text-xs border-indigo-100 w-full bg-white rounded-full focus-visible:ring-indigo-300" />
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger data-testid="filter-status" className="w-28 sm:w-32 h-8 text-xs border-indigo-100 bg-white rounded-full">
-                      <SelectValue placeholder="Semua" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Status</SelectItem>
-                      <SelectItem value="success">Berhasil</SelectItem>
-                      <SelectItem value="partial">Partial</SelectItem>
-                      <SelectItem value="failed">Gagal</SelectItem>
-                      <SelectItem value="duplicate">Duplikat</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input data-testid="filter-date-from" type="date" value={dateFrom}
-                    onChange={e => setDateFrom(e.target.value)}
-                    className="hidden sm:block w-32 h-8 text-xs border-slate-200 bg-white" />
-                  <span className="hidden sm:block text-slate-300 text-xs">→</span>
-                  <Input data-testid="filter-date-to" type="date" value={dateTo}
-                    onChange={e => setDateTo(e.target.value)}
-                    className="hidden sm:block w-32 h-8 text-xs border-slate-200 bg-white" />
-                  {hasActiveFilter && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}
-                      className="h-8 text-xs text-red-500 hover:bg-red-50 px-2 gap-1">
-                      ✕ Hapus
-                    </Button>
-                  )}
-                </div>
+          {/* ── URL Input Card ── */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</Label>
+              <Input data-testid="input-url" type="url"
+                placeholder="https://www.kemlu.go.id/cairo/berita"
+                value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }}
+                onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
+                disabled={isRunning}
+                className={`h-10 rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-2 ${urlError ? "border-red-400 focus-visible:ring-red-300" : "focus-visible:ring-indigo-300"}`} />
+              {urlError && (
+                <p className="text-red-500 text-xs flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
+                </p>
               )}
-
-              {/* Table Body */}
-              {loadingArticles ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-                  <div className="relative w-10 h-10">
-                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-indigo-400 animate-spin" />
-                  </div>
-                  <p className="text-sm text-slate-500">Memuat artikel...</p>
-                </div>
-              ) : articles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-50 flex items-center justify-center shadow-[0_4px_20px_rgba(79,70,229,0.08)] animate-float">
-                    <Newspaper className="w-7 h-7 text-indigo-300" />
-                  </div>
-                  <div className="text-center space-y-1.5">
-                    <p className="text-sm font-semibold text-slate-700">Belum ada artikel</p>
-                    <p className="text-xs text-slate-400 max-w-xs">Masukkan URL halaman berita di atas, pilih mode, lalu klik <strong className="text-slate-600">Mulai Scraping</strong></p>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5">
-                    <Zap className="w-3 h-3 text-indigo-400" />
-                    Scraping → Stats → KB Pipeline
-                  </div>
-                </div>
-              ) : filteredArticles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
-                    <AlertCircle className="w-5 h-5 text-slate-300" />
-                  </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-semibold text-slate-700">Tidak ada hasil yang cocok</p>
-                    <p className="text-xs text-slate-400">{articles.length} artikel tersimpan, tapi tidak ada yang cocok filter aktif.</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={clearFilters}
-                    className="text-xs gap-1.5 h-8 border-slate-200 text-slate-500 hover:text-slate-800">
-                    Hapus Semua Filter
-                  </Button>
-                </div>
-              ) : viewMode === "markdown" ? (
-                <div className="divide-y divide-slate-100">
-                  {filteredArticles.map((article, i) => {
-                    const md = [
-                      `# ${article.title || "(Tanpa Judul)"}`,
-                      ``,
-                      `## Informasi Artikel`,
-                      ``,
-                      article.date ? `**Tanggal:** ${article.date}` : null,
-                      `**Sumber:** [${article.url}](${article.url})`,
-                      `**Status:** ${article.status}`,
-                      ``,
-                      `### Konten`,
-                      ``,
-                      article.content || "_Konten tidak tersedia._",
-                    ].filter(l => l !== null).join("\n");
-
-                    return (
-                      <div key={article.id} data-testid={`row-article-${article.id}`}
-                        className="px-5 py-5 hover:bg-indigo-50/30 transition-colors group">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <span className="text-[10px] text-slate-300 tabular-nums font-mono mt-1 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <StatusBadge status={article.status} />
-                            <Button data-testid={`button-detail-${article.id}`}
-                              size="sm" variant="outline"
-                              onClick={() => navigate(`/article/${article.id}`)}
-                              className="h-7 text-xs px-2 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
-                              <Eye className="w-3 h-3" />Detail
-                            </Button>
-                            <a href={article.url} target="_blank" rel="noopener noreferrer"
-                              data-testid={`link-source-${article.id}`}
-                              className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors">
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          </div>
-                        </div>
-                        <div data-testid={`preview-${article.id}`}
-                          className="prose prose-sm max-w-none
-                            prose-h1:text-base prose-h1:font-bold prose-h1:text-slate-900 prose-h1:mb-2 prose-h1:mt-0
-                            prose-h2:text-xs prose-h2:font-semibold prose-h2:text-indigo-600 prose-h2:uppercase prose-h2:tracking-wide prose-h2:mb-1.5 prose-h2:mt-3
-                            prose-h3:text-xs prose-h3:font-semibold prose-h3:text-slate-600 prose-h3:mb-1 prose-h3:mt-2
-                            prose-p:text-xs prose-p:text-slate-500 prose-p:leading-relaxed prose-p:my-0
-                            prose-strong:text-slate-700 prose-strong:font-semibold
-                            prose-a:text-indigo-500 prose-a:no-underline hover:prose-a:underline
-                            prose-em:text-slate-400">
-                          <ReactMarkdown>{md}</ReactMarkdown>
-                        </div>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              <Select value={mode} onValueChange={setMode} disabled={isRunning}>
+                <SelectTrigger data-testid="select-mode" className="w-44 h-10 rounded-xl border-slate-200 bg-slate-50 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {MODES.map(m => (
+                    <SelectItem key={m.value} value={m.value}>
+                      <div>
+                        <p className="font-medium">{m.label}</p>
+                        <p className="text-xs text-slate-400">{m.desc}</p>
                       </div>
-                    );
-                  })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button data-testid="button-start-scrape" onClick={startScrape}
+                disabled={isRunning}
+                className="h-10 px-6 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-2 font-semibold shadow-md shadow-indigo-300/40 transition-all duration-200 hover:scale-[1.02]">
+                {isRunning
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Scraping...</>
+                  : <><Zap className="w-4 h-4" />Mulai Scraping</>}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
+              <Select value={scrapeRange} onValueChange={setScrapeRange} disabled={isRunning}>
+                <SelectTrigger data-testid="select-scrape-range" className="w-40 h-8 rounded-full bg-slate-100 border-slate-200 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCRAPE_RANGES.map(r => (
+                    <SelectItem key={r.value} value={r.value}>
+                      <div>
+                        <p className="font-medium">{r.label}</p>
+                        <p className="text-xs text-slate-400">{r.desc}</p>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {scrapeRange === "custom" && (
+                <>
+                  <Input data-testid="input-custom-start" type="date" value={customStart}
+                    onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
+                    className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
+                  <Input data-testid="input-custom-end" type="date" value={customEnd}
+                    onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
+                    className="w-36 h-8 text-xs bg-slate-50 border-slate-200" />
+                </>
+              )}
+              {scrapeRange !== "all" && (
+                <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
+                  {SCRAPE_RANGES.find(r => r.value === scrapeRange)?.label}
+                </span>
+              )}
+              <span className="ml-auto text-xs text-slate-400 hidden lg:block">
+                {MODES.find(m => m.value === mode)?.label} — {MODES.find(m => m.value === mode)?.desc}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Stats Row ── */}
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { label: "Total",    value: statTotal, numColor: "text-slate-800",   accent: "bg-slate-400",   testid: "stat-total" },
+              { label: "Berhasil", value: statSucc,  numColor: "text-emerald-700", accent: "bg-emerald-500", testid: "stat-success" },
+              { label: "Partial",  value: statPart,  numColor: "text-amber-700",   accent: "bg-amber-500",   testid: "stat-partial" },
+              { label: "Gagal",    value: statFail,  numColor: "text-red-600",     accent: "bg-red-500",     testid: "stat-failed" },
+              { label: "Duplikat", value: statDupe,  numColor: "text-slate-400",   accent: "bg-slate-300",   testid: "stat-duplicate" },
+            ].map(({ label, value, numColor, accent, testid }) => (
+              <div key={label} className="bg-white rounded-2xl shadow-sm overflow-hidden flex">
+                <div className={`w-1 shrink-0 ${accent}`} />
+                <div className="px-4 py-4 min-w-0 flex-1">
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest leading-none">{label}</p>
+                  <p data-testid={testid} className={`text-2xl font-bold mt-1.5 leading-none tabular-nums ${numColor}`}>{value}</p>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px]">
-                        <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-slate-400 w-9">#</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Artikel</th>
-                        <th className="hidden md:table-cell text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-44">Preview</th>
-                        <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Tanggal</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-20">Status</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-20">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredArticles.map((article, i) => (
-                        <tr key={article.id} data-testid={`row-article-${article.id}`}
-                          className="hover:bg-slate-50/70 transition-colors align-top group">
-                          <td className="hidden sm:table-cell px-4 py-4 text-slate-300 text-xs tabular-nums">{i + 1}</td>
-                          <td className="px-4 py-4 max-w-[200px]">
-                            <button data-testid={`link-article-${article.id}`}
-                              onClick={() => navigate(`/article/${article.id}`)}
-                              className="text-slate-800 hover:text-indigo-600 text-left font-medium text-xs line-clamp-2 transition-colors leading-snug group-hover:text-indigo-600">
-                              {article.title || "(Tanpa Judul)"}
-                            </button>
-                            {article.error_reason && (
-                              <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-px rounded-full font-medium">
-                                {ERROR_REASON_LABELS[article.error_reason] ?? article.error_reason}
-                              </span>
-                            )}
-                            {/* Date shown inline on mobile */}
-                            <p className="sm:hidden text-[10px] text-slate-400 mt-1 tabular-nums">{article.date || ""}</p>
-                          </td>
-                          <td className="hidden md:table-cell px-4 py-4 w-44">
-                            <p data-testid={`preview-${article.id}`}
-                              className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
-                              {article.content
-                                ? article.content.slice(0, 160) + (article.content.length > 160 ? "…" : "")
-                                : <span className="italic text-slate-300">—</span>}
-                            </p>
-                          </td>
-                          <td className="hidden sm:table-cell px-4 py-4 text-slate-400 text-xs whitespace-nowrap tabular-nums">{article.date || "—"}</td>
-                          <td className="px-4 py-4"><StatusBadge status={article.status} /></td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-1.5">
-                              <Button data-testid={`button-detail-${article.id}`}
-                                size="sm" variant="outline"
+              </div>
+            ))}
+          </div>
+
+          {/* ── 3-column Grid ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+
+            {/* ═══ Left: Results + KB Pipeline (2 cols) ═══ */}
+            <div className="xl:col-span-2 space-y-4">
+
+              {/* Results Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
+                    </div>
+                    <h2 className="text-sm font-bold text-slate-800">Hasil Scraping</h2>
+                    {articles.length > 0 && (
+                      <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
+                        {hasActiveFilter ? `${filteredArticles.length} / ${articles.length}` : articles.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {articles.length > 0 && (
+                      <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
+                        <button onClick={() => setViewMode("table")}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "table" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+                          <LayoutList className="w-3.5 h-3.5" />Tabel
+                        </button>
+                        <button onClick={() => setViewMode("markdown")}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+                          <FileCode2 className="w-3.5 h-3.5" />Markdown
+                        </button>
+                      </div>
+                    )}
+                    {articles.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={fetchArticles}
+                        className="gap-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 text-xs px-2 rounded-lg">
+                        <RefreshCw className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {articles.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                    <div className="relative flex-1 min-w-[120px]">
+                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <Input data-testid="filter-title" value={titleFilter}
+                        onChange={e => setTitleFilter(e.target.value)}
+                        placeholder="Cari judul..." className="pl-8 h-8 text-xs border-slate-200 w-full bg-white rounded-full" />
+                    </div>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs border-slate-200 bg-white rounded-full">
+                        <SelectValue placeholder="Semua" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Status</SelectItem>
+                        <SelectItem value="success">Berhasil</SelectItem>
+                        <SelectItem value="partial">Partial</SelectItem>
+                        <SelectItem value="failed">Gagal</SelectItem>
+                        <SelectItem value="duplicate">Duplikat</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input data-testid="filter-date-from" type="date" value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                      className="hidden md:block w-32 h-8 text-xs border-slate-200 bg-white" />
+                    <span className="hidden md:block text-slate-300 text-xs">→</span>
+                    <Input data-testid="filter-date-to" type="date" value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                      className="hidden md:block w-32 h-8 text-xs border-slate-200 bg-white" />
+                    {hasActiveFilter && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters}
+                        className="h-8 text-xs text-red-500 hover:bg-red-50 px-2 gap-1">
+                        ✕ Hapus
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {loadingArticles ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                    <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-indigo-400 animate-spin" />
+                    <p className="text-sm text-slate-500">Memuat artikel...</p>
+                  </div>
+                ) : articles.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-50 flex items-center justify-center">
+                      <Newspaper className="w-6 h-6 text-indigo-300" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-semibold text-slate-700">Belum ada artikel</p>
+                      <p className="text-xs text-slate-400 max-w-xs">Masukkan URL halaman berita di atas, pilih mode, lalu klik <strong className="text-slate-600">Mulai Scraping</strong></p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5">
+                      <Zap className="w-3 h-3 text-indigo-400" />Scraping → Stats → KB Pipeline
+                    </div>
+                  </div>
+                ) : filteredArticles.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-slate-300" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-semibold text-slate-700">Tidak ada hasil yang cocok</p>
+                      <p className="text-xs text-slate-400">{articles.length} artikel tersimpan, tapi tidak ada yang cocok filter aktif.</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs gap-1.5 h-8 border-slate-200 text-slate-500">
+                      Hapus Semua Filter
+                    </Button>
+                  </div>
+                ) : viewMode === "markdown" ? (
+                  <div className="divide-y divide-slate-100">
+                    {filteredArticles.map((article, i) => {
+                      const md = [
+                        `# ${article.title || "(Tanpa Judul)"}`,
+                        ``,
+                        `## Informasi Artikel`,
+                        ``,
+                        article.date ? `**Tanggal:** ${article.date}` : null,
+                        `**Sumber:** [${article.url}](${article.url})`,
+                        `**Status:** ${article.status}`,
+                        ``,
+                        `### Konten`,
+                        ``,
+                        article.content || "_Konten tidak tersedia._",
+                      ].filter(l => l !== null).join("\n");
+                      return (
+                        <div key={article.id} data-testid={`row-article-${article.id}`}
+                          className="px-5 py-5 hover:bg-slate-50/60 transition-colors group">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <span className="text-[10px] text-slate-300 tabular-nums font-mono mt-1 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <StatusBadge status={article.status} />
+                              <Button data-testid={`button-detail-${article.id}`} size="sm" variant="outline"
                                 onClick={() => navigate(`/article/${article.id}`)}
-                                className="h-7 text-xs px-2 sm:px-2.5 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
-                                <Eye className="w-3 h-3" /><span className="hidden sm:inline">Detail</span>
+                                className="h-7 text-xs px-2 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
+                                <Eye className="w-3 h-3" />Detail
                               </Button>
                               <a href={article.url} target="_blank" rel="noopener noreferrer"
                                 data-testid={`link-source-${article.id}`}
@@ -966,132 +879,165 @@ const Index = () => {
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* ── KB Pipeline ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-slide-up-fade animation-delay-300">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-50">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                          </div>
+                          <div className="prose prose-sm max-w-none prose-headings:text-slate-800 prose-a:text-indigo-600 prose-p:text-slate-600 prose-p:text-sm">
+                            <ReactMarkdown>{md}</ReactMarkdown>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <h2 className="text-sm font-bold text-slate-800">KB Pipeline</h2>
-                  {eligibleArticles.length > 0 && (
-                    <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
-                      {eligibleArticles.length} eligible
-                    </span>
-                  )}
-                </div>
-                {kbDraft.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <a href="/export/kb" download>
-                      <Button data-testid="button-download-kb" variant="ghost" size="sm"
-                        className="h-7 text-xs gap-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
-                        <Download className="w-3 h-3" />Export JSON
-                      </Button>
-                    </a>
-                    <Link to="/review">
-                      <Button variant="ghost" size="sm"
-                        className="h-7 text-xs gap-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                        <CheckSquare className="w-3 h-3" />Review
-                      </Button>
-                    </Link>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/60">
+                          <th className="text-left px-5 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-8">#</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Judul</th>
+                          <th className="hidden md:table-cell text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-28">Tanggal</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-24">Status</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-24">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredArticles.map((article, i) => (
+                          <tr key={article.id} data-testid={`row-article-${article.id}`}
+                            className={`border-b border-slate-50 hover:bg-indigo-50/20 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/30" : ""}`}>
+                            <td className="px-5 py-4 text-slate-300 text-xs tabular-nums font-mono">{i + 1}</td>
+                            <td className="px-4 py-4 max-w-0">
+                              <p className="font-medium text-slate-800 text-sm leading-snug truncate">{article.title || "(Tanpa Judul)"}</p>
+                              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed line-clamp-1">
+                                {article.content
+                                  ? article.content.slice(0, 120) + (article.content.length > 120 ? "…" : "")
+                                  : <span className="italic text-slate-300">—</span>}
+                              </p>
+                            </td>
+                            <td className="hidden md:table-cell px-4 py-4 text-slate-400 text-xs whitespace-nowrap tabular-nums">{article.date || "—"}</td>
+                            <td className="px-4 py-4"><StatusBadge status={article.status} /></td>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-1.5">
+                                <Button data-testid={`button-detail-${article.id}`} size="sm" variant="outline"
+                                  onClick={() => navigate(`/article/${article.id}`)}
+                                  className="h-7 text-xs px-2 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
+                                  <Eye className="w-3 h-3" /><span className="hidden sm:inline">Detail</span>
+                                </Button>
+                                <a href={article.url} target="_blank" rel="noopener noreferrer"
+                                  data-testid={`link-source-${article.id}`}
+                                  className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors">
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
 
-              {articles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center shadow-[0_4px_20px_rgba(79,70,229,0.10)] animate-float">
-                    <BookOpen className="w-7 h-7 text-indigo-300" />
-                  </div>
-                  <div className="text-center space-y-1.5">
-                    <p className="text-sm font-semibold text-slate-700">Pipeline belum tersedia</p>
-                    <p className="text-xs text-slate-400">Lakukan scraping terlebih dahulu untuk mengaktifkan KB Pipeline</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] flex-wrap justify-center">
-                    {["Scraping", "Summary", "Auto Tag", "KB Draft", "Review"].map((s, i, arr) => (
-                      <span key={s} className="flex items-center gap-2">
-                        <span className="text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-medium">{s}</span>
-                        {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-slate-300" />}
+              {/* KB Pipeline Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                    </div>
+                    <h2 className="text-sm font-bold text-slate-800">KB Pipeline</h2>
+                    {eligibleArticles.length > 0 && (
+                      <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                        {eligibleArticles.length} eligible
                       </span>
-                    ))}
+                    )}
                   </div>
+                  {kbDraft.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <a href="/export/kb" download>
+                        <Button data-testid="button-download-kb" variant="ghost" size="sm"
+                          className="h-7 text-xs gap-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
+                          <Download className="w-3 h-3" />Export JSON
+                        </Button>
+                      </a>
+                      <Link to="/review">
+                        <Button variant="ghost" size="sm"
+                          className="h-7 text-xs gap-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                          <CheckSquare className="w-3 h-3" />Review
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="p-5">
-                  <Tabs defaultValue="kb-draft">
-                    <TabsList className="mb-5 bg-slate-100 border border-slate-200 h-9">
-                      <TabsTrigger value="kb-draft" className="gap-1.5 text-xs h-7">
-                        <ClipboardList className="w-3.5 h-3.5" />KB Draft
-                      </TabsTrigger>
-                      <TabsTrigger value="ai" className="gap-1.5 text-xs h-7">
-                        <Sparkles className="w-3.5 h-3.5" />AI Summary
-                      </TabsTrigger>
-                      <TabsTrigger value="supabase" className="gap-1.5 text-xs h-7">
-                        <Database className="w-3.5 h-3.5" />Supabase
-                      </TabsTrigger>
-                    </TabsList>
 
-                    {/* KB Draft Tab */}
-                    <TabsContent value="kb-draft" className="mt-0">
-                      {/* Steps container with connector line */}
-                      <div className="relative space-y-0">
-                        {/* Vertical connector line */}
-                        <div className="absolute left-[13.5px] top-7 bottom-7 w-px bg-slate-200 z-0" />
+                {articles.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center">
+                      <BookOpen className="w-6 h-6 text-indigo-300" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-semibold text-slate-700">Pipeline belum tersedia</p>
+                      <p className="text-xs text-slate-400">Lakukan scraping terlebih dahulu untuk mengaktifkan KB Pipeline</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] flex-wrap justify-center">
+                      {["Scraping", "Summary", "Auto Tag", "KB Draft", "Review"].map((s, i, arr) => (
+                        <span key={s} className="flex items-center gap-2">
+                          <span className="text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-medium">{s}</span>
+                          {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-slate-300" />}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5">
+                    <Tabs defaultValue="kb-draft">
+                      <TabsList className="mb-5 bg-slate-100 border border-slate-200 h-9">
+                        <TabsTrigger value="kb-draft" className="gap-1.5 text-xs h-7">
+                          <ClipboardList className="w-3.5 h-3.5" />KB Draft
+                        </TabsTrigger>
+                        <TabsTrigger value="ai" className="gap-1.5 text-xs h-7">
+                          <Sparkles className="w-3.5 h-3.5" />AI Summary
+                        </TabsTrigger>
+                        <TabsTrigger value="supabase" className="gap-1.5 text-xs h-7">
+                          <Database className="w-3.5 h-3.5" />Supabase
+                        </TabsTrigger>
+                      </TabsList>
 
-                        {/* Step 1 */}
-                        <div className="relative z-10 pb-3">
-                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "bg-emerald-50/40 shadow-[0_2px_12px_rgba(52,211,153,0.12)]" : "bg-slate-50/60 shadow-sm"}`}>
+                      <TabsContent value="kb-draft" className="mt-0">
+                        <div className="space-y-3">
+                          {/* Step 1 */}
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "bg-emerald-50/40" : "bg-slate-50/60"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={1} done={summaryDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
-                                  Generate Summary
-                                  {summaryDone && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Selesai</span>}
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Buat ringkasan 2–4 kalimat secara otomatis untuk artikel yang belum memiliki summary.</p>
+                                <h3 className="font-semibold text-sm text-slate-800">Generate Summary</h3>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Buat ringkasan singkat untuk setiap artikel success/partial.</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3 pl-10">
+                            <div className="flex flex-wrap items-center gap-2 pl-10">
                               <Button data-testid="button-generate-summary" onClick={doGenerateSummary}
-                                disabled={summaryLoading || isRunning} size="sm"
-                                className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-1.5 h-8 px-4 shadow-sm">
+                                disabled={summaryLoading || isRunning || eligibleArticles.length === 0}
+                                size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8 shadow-sm">
                                 {summaryLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : summaryDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlignLeft className="w-3.5 h-3.5" />}
                                 {summaryLoading ? "Generating..." : summaryDone ? "Re-generate" : "Generate Summary"}
                               </Button>
                               {summaryDone && summaryResult && (
-                                <span className="text-xs text-emerald-600 font-medium">{summaryResult.updated} dari {summaryResult.total} artikel diberi summary</span>
+                                <span className="text-xs text-emerald-600 font-medium">{summaryResult.updated} artikel diberi summary.</span>
                               )}
                               {summaryError && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{summaryError}</span>}
                             </div>
                           </div>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div className="relative z-10 pb-3">
-                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "bg-emerald-50/40 shadow-[0_2px_12px_rgba(52,211,153,0.12)]" : "bg-slate-50/60 shadow-sm"}`}>
+                          {/* Step 2 */}
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "bg-emerald-50/40" : "bg-slate-50/60"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={2} done={tagDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
-                                  Auto Tagging
-                                  {tagDone && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Selesai</span>}
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Generate tags otomatis: paspor, visa, iqomah, kbri, palestina, beasiswa, dll.</p>
+                                <h3 className="font-semibold text-sm text-slate-800">Auto Tagging</h3>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Tag otomatis topik, lokasi, dan entitas dari setiap artikel.</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3 pl-10">
+                            <div className="flex flex-wrap items-center gap-2 pl-10">
                               <Button data-testid="button-auto-tag" onClick={doAutoTag}
-                                disabled={tagLoading || isRunning} size="sm"
-                                className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-8 shadow-sm">
+                                disabled={tagLoading || isRunning || eligibleArticles.length === 0}
+                                size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-8 shadow-sm">
                                 {tagLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : tagDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Tag className="w-3.5 h-3.5" />}
                                 {tagLoading ? "Tagging..." : tagDone ? "Re-tag" : "Auto Tag"}
                               </Button>
@@ -1099,11 +1045,8 @@ const Index = () => {
                               {tagError && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{tagError}</span>}
                             </div>
                           </div>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div className="relative z-10">
-                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "bg-emerald-50/40 shadow-[0_2px_12px_rgba(52,211,153,0.12)]" : "bg-slate-50/60 shadow-sm"}`}>
+                          {/* Step 3 */}
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "bg-emerald-50/40" : "bg-slate-50/60"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={3} done={kbDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
@@ -1135,169 +1078,55 @@ const Index = () => {
                             )}
                           </div>
                         </div>
-                      </div>
 
-                      {/* KB Draft Preview */}
-                      {kbDraft.length > 0 && (
-                        <div className="rounded-xl border border-slate-200 overflow-hidden mt-4">
-                          <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-                            <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
-                            <span className="text-xs font-semibold text-slate-500">Preview KB Draft</span>
-                            <span className="text-xs text-slate-400">({kbDraft.length} artikel)</span>
-                          </div>
-                          <div className="overflow-x-auto max-h-72 overflow-y-auto">
-                            <table className="w-full text-xs">
-                              <thead className="sticky top-0 z-10">
-                                <tr className="bg-white border-b border-slate-100 text-slate-400">
-                                  <th className="text-left px-4 py-2.5 font-semibold w-7">#</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold">Judul</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-36">Slug</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-44">Summary</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-32">Tags</th>
-                                  <th className="text-left px-4 py-2.5 font-semibold w-20">Status</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {kbDraft.map((kb, i) => (
-                                  <tr key={kb.id || i} data-testid={`row-kb-${kb.id || i}`}
-                                    className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/40" : ""}`}>
-                                    <td className="px-4 py-2.5 text-slate-300 tabular-nums">{i + 1}</td>
-                                    <td className="px-4 py-2.5">
-                                      <p className="font-medium text-slate-800 line-clamp-2 leading-snug">{kb.title || "(Tanpa Judul)"}</p>
-                                      {kb.published_date && <p className="text-slate-400 mt-0.5">{kb.published_date}</p>}
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <span data-testid={`slug-${i}`}
-                                        className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded break-all">
-                                        {kb.slug}
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <p data-testid={`summary-${i}`} className="text-slate-500 line-clamp-3 leading-relaxed">
-                                        {kb.summary || <span className="italic text-slate-300">—</span>}
-                                      </p>
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <div data-testid={`tags-${i}`} className="flex flex-wrap gap-1">
-                                        {(kb.tags || []).map(t => (
-                                          <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded font-medium">{t}</span>
-                                        ))}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <span data-testid={`approval-${i}`}
-                                        className={`inline-block px-2 py-0.5 rounded font-semibold capitalize ${APPROVAL_COLORS[kb.approval_status] || "bg-slate-100 text-slate-500"}`}>
-                                        {kb.approval_status}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    {/* AI Summary Tab */}
-                    <TabsContent value="ai" className="mt-0">
-                      <div className="border border-slate-200 rounded-xl p-5 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-                            <Sparkles className="w-4 h-4 text-violet-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-slate-800">AI Summary — GPT-4o-mini</h3>
-                            <p className="text-xs text-slate-500">Upgrade ringkasan dengan AI untuk semua artikel di KB Draft</p>
-                          </div>
-                        </div>
-                        {kbDraft.length === 0 ? (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            Jalankan "Convert to KB Draft" terlebih dahulu.
-                          </div>
-                        ) : (
-                          <Button data-testid="button-ai-summary-all" onClick={generateAiSummaries}
-                            disabled={aiLoading}
-                            className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                            {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : aiDone ? <CheckCircle2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                            {aiLoading ? "Generating..." : aiDone ? "Selesai!" : "Generate AI Summary"}
-                          </Button>
-                        )}
-                        {aiError && (
-                          <p data-testid="text-ai-error" className="text-red-500 text-sm flex items-center gap-1.5">
-                            <AlertCircle className="w-3.5 h-3.5" />{aiError}
-                          </p>
-                        )}
-                        {aiDone && (
-                          <p data-testid="text-ai-success" className="text-emerald-600 text-sm flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5" />AI summary berhasil disimpan.
-                          </p>
-                        )}
-                      </div>
-                    </TabsContent>
-
-                    {/* Supabase Tab */}
-                    <TabsContent value="supabase" className="mt-0">
-                      <div className="border border-slate-200 rounded-xl p-5 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                            <Database className="w-4 h-4 text-emerald-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase</h3>
-                            <p className="text-xs text-slate-500">
-                              Push semua KB articles ke tabel <span className="font-mono bg-slate-100 px-1 rounded">kb_articles</span>.
-                            </p>
-                          </div>
-                        </div>
-                        {kbDraft.length === 0 ? (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            Jalankan "Convert to KB Draft" terlebih dahulu.
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            <Button data-testid="button-push-supabase" onClick={pushToSupabase}
-                              disabled={pushLoading}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                              {pushLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : pushDone ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
-                              {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
-                            </Button>
-                            <Button data-testid="button-fetch-db" onClick={fetchDbArticles}
-                              disabled={dbLoading} variant="outline" className="gap-2 border-slate-200">
-                              {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                              {dbLoading ? "Mengambil..." : "Lihat Data"}
-                            </Button>
-                          </div>
-                        )}
-                        {pushError && <p data-testid="text-push-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{pushError}</p>}
-                        {dbError && <p data-testid="text-db-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{dbError}</p>}
-                        {dbArticles.length > 0 && (
-                          <div className="rounded-xl border border-slate-200 overflow-hidden">
-                            <div className="bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500 border-b">
-                              {dbArticles.length} artikel di Supabase
+                        {kbDraft.length > 0 && (
+                          <div className="rounded-xl border border-slate-200 overflow-hidden mt-4">
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                              <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
+                              <span className="text-xs font-semibold text-slate-500">Preview KB Draft</span>
+                              <span className="text-xs text-slate-400">({kbDraft.length} artikel)</span>
                             </div>
-                            <div className="overflow-x-auto max-h-56 overflow-y-auto">
+                            <div className="overflow-x-auto max-h-72 overflow-y-auto">
                               <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="border-b bg-white text-slate-400">
-                                    <th className="text-left px-4 py-2 font-semibold">Judul</th>
-                                    <th className="text-left px-4 py-2 font-semibold w-24">Tanggal</th>
-                                    <th className="text-left px-4 py-2 font-semibold w-36">Tags</th>
+                                <thead className="sticky top-0 z-10">
+                                  <tr className="bg-white border-b border-slate-100 text-slate-400">
+                                    <th className="text-left px-4 py-2.5 font-semibold w-7">#</th>
+                                    <th className="text-left px-4 py-2.5 font-semibold">Judul</th>
+                                    <th className="text-left px-4 py-2.5 font-semibold w-36">Slug</th>
+                                    <th className="text-left px-4 py-2.5 font-semibold w-44">Summary</th>
+                                    <th className="text-left px-4 py-2.5 font-semibold w-32">Tags</th>
+                                    <th className="text-left px-4 py-2.5 font-semibold w-20">Status</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {dbArticles.map((a, i) => (
-                                    <tr key={i} className="border-b hover:bg-slate-50 transition-colors">
-                                      <td className="px-4 py-2 text-slate-800 font-medium">{a.title || "(Tanpa Judul)"}</td>
-                                      <td className="px-4 py-2 text-slate-400">{a.published_date || "—"}</td>
-                                      <td className="px-4 py-2">
-                                        <div className="flex flex-wrap gap-1">
-                                          {(a.tags || []).map((t: string) => (
-                                            <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded">{t}</span>
+                                  {kbDraft.map((kb, i) => (
+                                    <tr key={kb.id || i} data-testid={`row-kb-${kb.id || i}`}
+                                      className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/40" : ""}`}>
+                                      <td className="px-4 py-2.5 text-slate-300 tabular-nums">{i + 1}</td>
+                                      <td className="px-4 py-2.5">
+                                        <p className="font-medium text-slate-800 line-clamp-2 leading-snug">{kb.title || "(Tanpa Judul)"}</p>
+                                        {kb.published_date && <p className="text-slate-400 mt-0.5">{kb.published_date}</p>}
+                                      </td>
+                                      <td className="px-4 py-2.5">
+                                        <span data-testid={`slug-${i}`} className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded break-all">{kb.slug}</span>
+                                      </td>
+                                      <td className="px-4 py-2.5">
+                                        <p data-testid={`summary-${i}`} className="text-slate-500 line-clamp-3 leading-relaxed">
+                                          {kb.summary || <span className="italic text-slate-300">—</span>}
+                                        </p>
+                                      </td>
+                                      <td className="px-4 py-2.5">
+                                        <div data-testid={`tags-${i}`} className="flex flex-wrap gap-1">
+                                          {(kb.tags || []).map(t => (
+                                            <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded font-medium">{t}</span>
                                           ))}
                                         </div>
+                                      </td>
+                                      <td className="px-4 py-2.5">
+                                        <span data-testid={`approval-${i}`}
+                                          className={`inline-block px-2 py-0.5 rounded font-semibold capitalize ${APPROVAL_COLORS[kb.approval_status] || "bg-slate-100 text-slate-500"}`}>
+                                          {kb.approval_status}
+                                        </span>
                                       </td>
                                     </tr>
                                   ))}
@@ -1306,240 +1135,320 @@ const Index = () => {
                             </div>
                           </div>
                         )}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              )}
-            </div>
-          </div>
+                      </TabsContent>
 
-          {/* ═══════════════ RIGHT COLUMN (Sidebar) ═══════════════ */}
-          <div className="space-y-4 animate-slide-in-right animation-delay-300">
-
-            {/* ── Live Log Panel ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover animate-scale-in">
-              <div className="flex items-center justify-between px-4 py-3.5 border-b border-indigo-50">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <Terminal className="w-3.5 h-3.5 text-slate-500" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-800">Log Proses</span>
-                  {isRunning && (
-                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                      </span>
-                      Live
-                    </span>
-                  )}
-                </div>
-                {progress.phase === "scraping" && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
-                    <div className="w-16">
-                      <Progress value={pct} className="h-1" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Status strip */}
-              <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 border-b border-slate-600">
-                <Circle className="w-2 h-2 text-red-400 fill-red-400" />
-                <Circle className="w-2 h-2 text-amber-400 fill-amber-400" />
-                <Circle className="w-2 h-2 text-emerald-400 fill-emerald-400" />
-                <span className="text-slate-400 text-[10px] ml-2 font-mono">
-                  {progress.phase === "idle" ? "Menunggu perintah scraping..." : (phaseLabel[progress.phase] || progress.phase)}
-                </span>
-                {isRunning && <Loader2 className="w-3 h-3 text-slate-500 animate-spin ml-auto" />}
-              </div>
-
-              {/* Log lines */}
-              <div ref={logRef} data-testid="log-panel"
-                className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
-                {progress.phase === "idle" || progress.logs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
-                    <Terminal className="w-6 h-6 text-slate-700" />
-                    <p className="text-slate-600 text-xs leading-relaxed">
-                      Log scraping akan tampil di sini<br />
-                      <span className="text-slate-700">setelah kamu klik Mulai Scraping</span>
-                    </p>
-                  </div>
-                ) : (
-                  progress.logs.map((line, i) => (
-                    <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
-                      <span className="text-slate-700 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
-                      {line}
-                    </div>
-                  ))
-                )}
-                {isRunning && (
-                  <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
-                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                    <span className="animate-pulse">memproses...</span>
-                  </div>
-                )}
-              </div>
-
-              {progress.phase === "done" && (
-                <div className="px-4 py-2.5 bg-slate-700 border-t border-slate-600 flex flex-wrap items-center gap-3 text-[11px]">
-                  <span className="text-emerald-400 font-medium">✓ {progress.success} berhasil</span>
-                  <span className="text-amber-400">⚠ {progress.partial} partial</span>
-                  <span className="text-red-400">✗ {progress.failed} gagal</span>
-                  <span className="text-slate-400">↺ {progress.duplicate} duplikat</span>
-                </div>
-              )}
-            </div>
-
-            {/* ── Scheduler Card ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden card-hover">
-              <button
-                onClick={() => setSchedulerOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-indigo-50 hover:bg-indigo-50/40 transition-colors"
-                data-testid="scheduler-toggle"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <Timer className="w-3.5 h-3.5 text-indigo-600" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-800">Scheduler</span>
-                  {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
-                      {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
-                    </span>
-                  )}
-                </div>
-                {schedulerOpen ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-indigo-400" />}
-              </button>
-
-              {schedulerOpen && (
-                <div className="p-4 space-y-4">
-                  {/* Status mini-cards */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-slate-50 p-2.5 text-center">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Last Run</p>
-                      <p className="text-xs font-semibold text-slate-700 mt-0.5 tabular-nums leading-tight">
-                        {schedulerSettings.last_run_at
-                          ? new Date(schedulerSettings.last_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-indigo-50 p-2.5 text-center">
-                      <p className="text-[10px] text-indigo-400 uppercase tracking-wide">Next</p>
-                      <p className="text-xs font-semibold text-indigo-700 mt-0.5 tabular-nums leading-tight">
-                        {schedulerSettings.next_run_at
-                          ? new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-emerald-50 p-2.5 text-center">
-                      <p className="text-[10px] text-emerald-500 uppercase tracking-wide">Artikel</p>
-                      <p className="text-xl font-bold text-emerald-700 mt-0.5 tabular-nums leading-none">
-                        {schedulerSettings.last_run_articles_added}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Settings form */}
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      <div className="space-y-1 flex-1 min-w-[130px]">
-                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Mode Jadwal</Label>
-                        <Select value={schedulerSettings.interval}
-                          onValueChange={v => setSchedulerSettings(s => ({
-                            ...s, interval: v as "manual" | "daily" | "weekly", enabled: v !== "manual",
-                          }))}>
-                          <SelectTrigger data-testid="scheduler-interval" className="h-8 text-xs bg-slate-50 border-slate-200">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="manual">Manual Only</SelectItem>
-                            <SelectItem value="daily">Harian</SelectItem>
-                            <SelectItem value="weekly">Mingguan</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {schedulerSettings.interval !== "manual" && (
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Jam (WIB)</Label>
-                          <Input data-testid="scheduler-time" type="time"
-                            value={schedulerSettings.time_of_day}
-                            onChange={e => setSchedulerSettings(s => ({ ...s, time_of_day: e.target.value }))}
-                            className="w-24 h-8 text-xs bg-slate-50 border-slate-200" />
+                      <TabsContent value="ai" className="mt-0">
+                        <div className="border border-slate-200 rounded-xl p-5 space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                              <Sparkles className="w-4 h-4 text-violet-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-sm text-slate-800">AI Summary — GPT-4o-mini</h3>
+                              <p className="text-xs text-slate-500">Upgrade ringkasan dengan AI untuk semua artikel di KB Draft</p>
+                            </div>
+                          </div>
+                          {kbDraft.length === 0 ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              Jalankan "Convert to KB Draft" terlebih dahulu.
+                            </div>
+                          ) : (
+                            <Button data-testid="button-ai-summary-all" onClick={generateAiSummaries}
+                              disabled={aiLoading}
+                              className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
+                              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : aiDone ? <CheckCircle2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                              {aiLoading ? "Generating..." : aiDone ? "Selesai!" : "Generate AI Summary"}
+                            </Button>
+                          )}
+                          {aiError && <p data-testid="text-ai-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{aiError}</p>}
+                          {aiDone && <p data-testid="text-ai-success" className="text-emerald-600 text-sm flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" />AI summary berhasil disimpan.</p>}
                         </div>
-                      )}
-                    </div>
-                    {schedulerSettings.interval === "weekly" && (
-                      <div className="space-y-1">
-                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Hari</Label>
-                        <Select value={schedulerSettings.day_of_week}
-                          onValueChange={v => setSchedulerSettings(s => ({ ...s, day_of_week: v }))}>
-                          <SelectTrigger data-testid="scheduler-dow" className="h-8 text-xs bg-slate-50 border-slate-200">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[{ v:"mon",l:"Senin" },{ v:"tue",l:"Selasa" },{ v:"wed",l:"Rabu" },{ v:"thu",l:"Kamis" },{ v:"fri",l:"Jumat" },{ v:"sat",l:"Sabtu" },{ v:"sun",l:"Minggu" }].map(d => (
-                              <SelectItem key={d.v} value={d.v}>{d.l}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Default</Label>
-                      <Input data-testid="scheduler-url" type="url"
-                        placeholder="https://www.kemlu.go.id/cairo/berita"
-                        value={schedulerSettings.url}
-                        onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
-                        className="h-8 text-xs bg-slate-50 border-slate-200" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Scrape Mode</Label>
-                      <Select value={schedulerSettings.scrape_mode}
-                        onValueChange={v => setSchedulerSettings(s => ({ ...s, scrape_mode: v }))}>
-                        <SelectTrigger data-testid="scheduler-mode" className="h-8 text-xs bg-slate-50 border-slate-200">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MODES.map(m => (
-                            <SelectItem key={m.value} value={m.value}>
-                              <p className="font-medium">{m.label}</p>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      </TabsContent>
 
-                    {/* Incremental toggle */}
-                    <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-700">Incremental</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {schedulerSettings.incremental ? "Hanya artikel baru" : "Full refresh"}
+                      <TabsContent value="supabase" className="mt-0">
+                        <div className="border border-slate-200 rounded-xl p-5 space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                              <Database className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase</h3>
+                              <p className="text-xs text-slate-500">
+                                Push semua KB articles ke tabel <span className="font-mono bg-slate-100 px-1 rounded">kb_articles</span>.
+                              </p>
+                            </div>
+                          </div>
+                          {kbDraft.length === 0 ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              Jalankan "Convert to KB Draft" terlebih dahulu.
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              <Button data-testid="button-push-supabase" onClick={pushToSupabase}
+                                disabled={pushLoading}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                                {pushLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : pushDone ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                                {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
+                              </Button>
+                              <Button data-testid="button-fetch-db" onClick={fetchDbArticles}
+                                disabled={dbLoading} variant="outline" className="gap-2 border-slate-200">
+                                {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                {dbLoading ? "Mengambil..." : "Lihat Data"}
+                              </Button>
+                            </div>
+                          )}
+                          {pushError && <p data-testid="text-push-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{pushError}</p>}
+                          {dbError && <p data-testid="text-db-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{dbError}</p>}
+                          {dbArticles.length > 0 && (
+                            <div className="rounded-xl border border-slate-200 overflow-hidden">
+                              <div className="bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500 border-b">
+                                {dbArticles.length} artikel di Supabase
+                              </div>
+                              <div className="overflow-x-auto max-h-56 overflow-y-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b bg-white text-slate-400">
+                                      <th className="text-left px-4 py-2 font-semibold">Judul</th>
+                                      <th className="text-left px-4 py-2 font-semibold w-24">Tanggal</th>
+                                      <th className="text-left px-4 py-2 font-semibold w-36">Tags</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {dbArticles.map((a, i) => (
+                                      <tr key={i} className="border-b hover:bg-slate-50 transition-colors">
+                                        <td className="px-4 py-2 text-slate-800 font-medium">{a.title || "(Tanpa Judul)"}</td>
+                                        <td className="px-4 py-2 text-slate-400">{a.published_date || "—"}</td>
+                                        <td className="px-4 py-2">
+                                          <div className="flex flex-wrap gap-1">
+                                            {(a.tags || []).map((t: string) => (
+                                              <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded">{t}</span>
+                                            ))}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ═══ Right Sidebar (1 col) ═══ */}
+            <div className="space-y-4">
+
+              {/* Log Panel */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <Terminal className="w-3.5 h-3.5 text-slate-500" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">Log Proses</span>
+                    {isRunning && (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                        </span>
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  {progress.phase === "scraping" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
+                      <div className="w-16"><Progress value={pct} className="h-1" /></div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 border-b border-slate-600">
+                  <Circle className="w-2 h-2 text-red-400 fill-red-400" />
+                  <Circle className="w-2 h-2 text-amber-400 fill-amber-400" />
+                  <Circle className="w-2 h-2 text-emerald-400 fill-emerald-400" />
+                  <span className="text-slate-400 text-[10px] ml-2 font-mono">
+                    {progress.phase === "idle" ? "Menunggu perintah scraping..." : (phaseLabel[progress.phase] || progress.phase)}
+                  </span>
+                  {isRunning && <Loader2 className="w-3 h-3 text-slate-500 animate-spin ml-auto" />}
+                </div>
+                <div ref={logRef} data-testid="log-panel"
+                  className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
+                  {progress.phase === "idle" || progress.logs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+                      <Terminal className="w-6 h-6 text-slate-700" />
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        Log scraping akan tampil di sini<br />
+                        <span className="text-slate-700">setelah kamu klik Mulai Scraping</span>
+                      </p>
+                    </div>
+                  ) : (
+                    progress.logs.map((line, i) => (
+                      <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
+                        <span className="text-slate-700 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
+                        {line}
+                      </div>
+                    ))
+                  )}
+                  {isRunning && (
+                    <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                      <span className="animate-pulse">memproses...</span>
+                    </div>
+                  )}
+                </div>
+                {progress.phase === "done" && (
+                  <div className="px-4 py-2.5 bg-slate-700 border-t border-slate-600 flex flex-wrap items-center gap-3 text-[11px]">
+                    <span className="text-emerald-400 font-medium">✓ {progress.success} berhasil</span>
+                    <span className="text-amber-400">⚠ {progress.partial} partial</span>
+                    <span className="text-red-400">✗ {progress.failed} gagal</span>
+                    <span className="text-slate-400">↺ {progress.duplicate} duplikat</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Scheduler Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <button
+                  onClick={() => setSchedulerOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  data-testid="scheduler-toggle"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Timer className="w-3.5 h-3.5 text-indigo-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">Scheduler</span>
+                    {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
+                      <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                        {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
+                      </span>
+                    )}
+                  </div>
+                  {schedulerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </button>
+
+                {schedulerOpen && (
+                  <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-xl bg-slate-50 p-2.5 text-center">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">Last Run</p>
+                        <p className="text-xs font-semibold text-slate-700 mt-0.5 tabular-nums leading-tight">
+                          {schedulerSettings.last_run_at
+                            ? new Date(schedulerSettings.last_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                            : "—"}
                         </p>
                       </div>
-                      <button data-testid="scheduler-incremental-toggle"
-                        onClick={() => setSchedulerSettings(s => ({ ...s, incremental: !s.incremental }))}
-                        className="shrink-0 ml-3">
-                        {schedulerSettings.incremental
-                          ? <ToggleRight className="w-7 h-7 text-indigo-600" />
-                          : <ToggleLeft className="w-7 h-7 text-slate-400" />}
-                      </button>
+                      <div className="rounded-xl bg-indigo-50 p-2.5 text-center">
+                        <p className="text-[10px] text-indigo-400 uppercase tracking-wide">Next</p>
+                        <p className="text-xs font-semibold text-indigo-700 mt-0.5 tabular-nums leading-tight">
+                          {schedulerSettings.next_run_at
+                            ? new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                            : "—"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-emerald-50 p-2.5 text-center">
+                        <p className="text-[10px] text-emerald-500 uppercase tracking-wide">Artikel</p>
+                        <p className="text-xl font-bold text-emerald-700 mt-0.5 tabular-nums leading-none">
+                          {schedulerSettings.last_run_articles_added}
+                        </p>
+                      </div>
                     </div>
-
-                    {/* Actions */}
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        <div className="space-y-1 flex-1 min-w-[130px]">
+                          <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Mode Jadwal</Label>
+                          <Select value={schedulerSettings.interval}
+                            onValueChange={v => setSchedulerSettings(s => ({
+                              ...s, interval: v as "manual" | "daily" | "weekly", enabled: v !== "manual",
+                            }))}>
+                            <SelectTrigger data-testid="scheduler-interval" className="h-8 text-xs bg-slate-50 border-slate-200">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="manual">Manual Only</SelectItem>
+                              <SelectItem value="daily">Harian</SelectItem>
+                              <SelectItem value="weekly">Mingguan</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {schedulerSettings.interval !== "manual" && (
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Jam (WIB)</Label>
+                            <Input data-testid="scheduler-time" type="time"
+                              value={schedulerSettings.time_of_day}
+                              onChange={e => setSchedulerSettings(s => ({ ...s, time_of_day: e.target.value }))}
+                              className="w-24 h-8 text-xs bg-slate-50 border-slate-200" />
+                          </div>
+                        )}
+                      </div>
+                      {schedulerSettings.interval === "weekly" && (
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Hari</Label>
+                          <Select value={schedulerSettings.day_of_week}
+                            onValueChange={v => setSchedulerSettings(s => ({ ...s, day_of_week: v }))}>
+                            <SelectTrigger data-testid="scheduler-dow" className="h-8 text-xs bg-slate-50 border-slate-200">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[{ v:"mon",l:"Senin" },{ v:"tue",l:"Selasa" },{ v:"wed",l:"Rabu" },{ v:"thu",l:"Kamis" },{ v:"fri",l:"Jumat" },{ v:"sat",l:"Sabtu" },{ v:"sun",l:"Minggu" }].map(d => (
+                                <SelectItem key={d.v} value={d.v}>{d.l}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Default</Label>
+                        <Input data-testid="scheduler-url" type="url"
+                          placeholder="https://www.kemlu.go.id/cairo/berita"
+                          value={schedulerSettings.url}
+                          onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
+                          className="h-8 text-xs bg-slate-50 border-slate-200" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Mode Scraping</Label>
+                        <Select value={schedulerSettings.scrape_mode}
+                          onValueChange={v => setSchedulerSettings(s => ({ ...s, scrape_mode: v }))}>
+                          <SelectTrigger data-testid="scheduler-mode" className="h-8 text-xs bg-slate-50 border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="list">List Only</SelectItem>
+                            <SelectItem value="full">Full Article</SelectItem>
+                            <SelectItem value="kb">KB Mode</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setSchedulerSettings(s => ({ ...s, incremental: !s.incremental }))} className="shrink-0">
+                          {schedulerSettings.incremental
+                            ? <ToggleRight className="w-8 h-8 text-indigo-600" />
+                            : <ToggleLeft className="w-8 h-8 text-slate-300" />}
+                        </button>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700">Incremental</p>
+                          <p className="text-[10px] text-slate-400">Hanya ambil artikel baru (lewati duplikat)</p>
+                        </div>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <Button data-testid="scheduler-save" onClick={saveSchedulerSettings}
+                      <Button data-testid="button-save-scheduler" onClick={saveSchedulerSettings}
                         disabled={schedulerSaving} size="sm"
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8">
+                        className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-1.5 h-8 px-4 shadow-sm">
                         {schedulerSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         Simpan
                       </Button>
-                      <Button data-testid="scheduler-run-now" variant="outline" onClick={triggerRunNow}
-                        disabled={schedulerRunNow || !schedulerSettings.url.trim()}
-                        size="sm" className="flex-1 gap-1.5 border-slate-200 h-8">
+                      <Button data-testid="button-run-now" onClick={triggerRunNow}
+                        disabled={schedulerRunNow || !schedulerSettings.url} size="sm" variant="outline"
+                        className="gap-1.5 h-8 border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full">
                         {schedulerRunNow ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                         Jalankan
                       </Button>
@@ -1548,96 +1457,77 @@ const Index = () => {
                         <RefreshCw className="w-3.5 h-3.5" />
                       </Button>
                     </div>
-
                     {schedulerSettings.interval !== "manual" && schedulerSettings.enabled && (
                       <p className="text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg leading-relaxed">
                         ✓ Aktif — {schedulerSettings.interval === "daily"
                           ? `setiap hari pukul ${schedulerSettings.time_of_day}`
-                          : `setiap ${({ mon:"Senin",tue:"Selasa",wed:"Rabu",thu:"Kamis",fri:"Jumat",sat:"Sabtu",sun:"Minggu" })[schedulerSettings.day_of_week] || schedulerSettings.day_of_week} pukul ${schedulerSettings.time_of_day}`} WIB
+                          : `setiap ${DOW_LABELS[schedulerSettings.day_of_week] || schedulerSettings.day_of_week} pukul ${schedulerSettings.time_of_day}`} WIB
                       </p>
                     )}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* ── Selector Settings Card ── */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(79,70,229,0.08)] overflow-hidden">
-              <button
-                className="w-full flex items-center justify-between px-4 py-3.5 border-b border-indigo-50 hover:bg-indigo-50/40 transition-colors"
-                onClick={() => setSettingsOpen(v => !v)}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center">
-                    <Settings2 className="w-3.5 h-3.5 text-violet-600" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-800">CSS Selector</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!settingsOpen && (
-                    <span className="text-[10px] text-indigo-400 font-mono hidden sm:inline truncate max-w-[120px]">
-                      {settings.article_link_selector}
-                    </span>
-                  )}
-                  {settingsOpen ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-indigo-400" />}
-                </div>
-              </button>
-              {settingsOpen && (
-                <div className="p-4 space-y-4">
-                  <div className="space-y-3">
-                    {SELECTOR_FIELDS.map(({ key, label, hint }) => (
-                      <div key={key} className="space-y-1">
-                        <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">{label}</Label>
-                        <Textarea data-testid={`input-${key}`} rows={2} value={settings[key]}
-                          onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
-                          className="font-mono text-xs resize-none bg-indigo-50/40 border-indigo-100 rounded-xl focus-visible:ring-indigo-300"
-                          placeholder={DEFAULT_SETTINGS[key]} />
-                        <p className="text-[10px] text-slate-400">{hint}</p>
-                      </div>
-                    ))}
+              {/* CSS Selector Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  onClick={() => setSettingsOpen(v => !v)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center">
+                      <Settings2 className="w-3.5 h-3.5 text-violet-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">CSS Selector</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button data-testid="button-save-settings" onClick={saveSettings}
-                      disabled={settingsSaving} size="sm"
-                      className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-1.5 h-8 px-4 shadow-sm">
-                      {settingsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                      Simpan
-                    </Button>
-                    <Button data-testid="button-reset-settings" onClick={resetSettings}
-                      variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 h-8 rounded-full">
-                      <RotateCcw className="w-3.5 h-3.5" />Reset
-                    </Button>
-                    {settingsError && (
-                      <p className="text-xs text-red-500 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5" />{settingsError}
-                      </p>
+                    {!settingsOpen && (
+                      <span className="text-[10px] text-slate-400 font-mono hidden sm:inline truncate max-w-[100px]">
+                        {settings.article_link_selector}
+                      </span>
                     )}
+                    {settingsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </div>
-                </div>
-              )}
-            </div>
+                </button>
+                {settingsOpen && (
+                  <div className="p-4 space-y-4">
+                    <div className="space-y-3">
+                      {SELECTOR_FIELDS.map(({ key, label, hint }) => (
+                        <div key={key} className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">{label}</Label>
+                          <Textarea data-testid={`input-${key}`} rows={2} value={settings[key]}
+                            onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
+                            className="font-mono text-xs resize-none bg-indigo-50/40 border-indigo-100 rounded-xl focus-visible:ring-indigo-300"
+                            placeholder={DEFAULT_SETTINGS[key]} />
+                          <p className="text-[10px] text-slate-400">{hint}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button data-testid="button-save-settings" onClick={saveSettings}
+                        disabled={settingsSaving} size="sm"
+                        className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 text-white gap-1.5 h-8 px-4 shadow-sm">
+                        {settingsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                        Simpan
+                      </Button>
+                      <Button data-testid="button-reset-settings" onClick={resetSettings}
+                        variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 h-8 rounded-full">
+                        <RotateCcw className="w-3.5 h-3.5" />Reset
+                      </Button>
+                      {settingsError && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" />{settingsError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
+            </div>
           </div>
         </div>
-      </main>
-
-      {/* ── Mobile Bottom Tab Nav ── */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 sm:hidden bg-white/90 backdrop-blur-lg border-t border-indigo-100 shadow-[0_-4px_24px_rgba(79,70,229,0.10)]">
-        <div className="flex items-stretch h-16 max-w-screen-sm mx-auto">
-          <Link to="/" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 transition-all duration-200 active:scale-90">
-            <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <Newspaper className="w-[18px] h-[18px] text-indigo-600" />
-            </div>
-            <span className="text-[10px] font-semibold text-indigo-600">Scraper</span>
-          </Link>
-          <Link to="/review" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-indigo-600 transition-all duration-200 active:scale-90">
-            <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-indigo-100 transition-colors">
-              <CheckSquare className="w-[18px] h-[18px]" />
-            </div>
-            <span className="text-[10px] font-medium">Review</span>
-          </Link>
-        </div>
-      </nav>
+      </div>
     </div>
   );
 };
