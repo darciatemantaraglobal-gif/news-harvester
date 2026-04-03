@@ -2,3 +2,10 @@ flask
 requests
 beautifulsoup4
 lxml
+apscheduler
+beautifulsoup4
+flask
+lxml
+openai
+requests
+supabase
