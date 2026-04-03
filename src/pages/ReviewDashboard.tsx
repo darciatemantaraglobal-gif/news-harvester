@@ -199,7 +199,7 @@ export default function ReviewDashboard() {
   return (
     <div className="min-h-screen bg-[#EEF0FF] pb-16 sm:pb-0">
       {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 sticky top-0 z-20 shadow-lg shadow-indigo-500/20">
+      <header className="bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] sticky top-0 z-20 shadow-lg shadow-purple-900/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link to="/">

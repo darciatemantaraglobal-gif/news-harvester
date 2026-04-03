@@ -575,16 +575,16 @@ const Index = () => {
     <div className="min-h-screen bg-[#EEF0FF] text-slate-900 pb-16 sm:pb-0">
 
       {/* ── Navbar ── */}
-      <header className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 sticky top-0 z-20 shadow-lg shadow-indigo-500/20">
+      <header className="bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] sticky top-0 z-20 shadow-lg shadow-purple-900/40">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <Newspaper className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10">
+              <img src="/AIGYPT.png" alt="AINA" className="w-6 h-6 object-contain" style={{ filter: "invert(1) brightness(0.95) drop-shadow(0 0 2px rgba(200,160,255,0.4))" }} />
             </div>
             <div className="leading-none">
               <p className="font-bold text-white text-sm tracking-tight">AINA Scraper</p>
-              <p className="hidden sm:block text-[10px] text-indigo-200 mt-0.5">Internal Knowledge Scraping Tool</p>
+              <p className="hidden sm:block text-[10px] text-purple-300 mt-0.5">Internal Knowledge Scraping Tool</p>
             </div>
           </div>
 
