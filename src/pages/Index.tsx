@@ -367,9 +367,22 @@ const Index = () => {
         setJustFinished(false);
         setSelectedArticles(new Set());
         setClearAllConfirm(false);
-        setProgress({ running: false, phase: "idle", current: 0, total: 0, success: 0, partial: 0, failed: 0, duplicate: 0, logs: [] });
         setResetAllConfirm(false);
-        toast({ title: "Reset selesai", description: `${data.articles_deleted ?? 0} artikel & ${data.kb_deleted ?? 0} KB Draft dihapus. Siap scraping ulang.` });
+
+        if (data.restarting) {
+          // Data dihapus & scraping ulang otomatis dimulai — biarkan progress polling yang update UI
+          const lastJob = data.last_job as Record<string, unknown> | undefined;
+          const lastUrl = lastJob?.url as string | undefined;
+          toast({
+            title: "Reset & Scraping ulang",
+            description: `${data.articles_deleted ?? 0} artikel dihapus. Scraping ulang ${lastUrl ? `dari ${lastUrl}` : ""} dimulai otomatis.`,
+          });
+          // Set progress ke "running" agar panel muncul, polling akan update sisanya
+          setProgress({ running: true, phase: "listing", current: 0, total: 0, success: 0, partial: 0, failed: 0, duplicate: 0, logs: ["[AUTO-RESTART] Memulai scraping ulang..."] });
+        } else {
+          setProgress({ running: false, phase: "idle", current: 0, total: 0, success: 0, partial: 0, failed: 0, duplicate: 0, logs: [] });
+          toast({ title: "Reset selesai", description: `${data.articles_deleted ?? 0} artikel & ${data.kb_deleted ?? 0} KB Draft dihapus. Siap scraping ulang.` });
+        }
       } else {
         toast({ title: "Gagal reset", description: String(data.error || `Server error ${res.status}`), variant: "destructive" });
       }

@@ -38,6 +38,7 @@ CONFIG_DIR = "config"
 DATA_FILE = os.path.join(DATA_DIR, "scraped_articles.json")
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 SCHEDULER_FILE = os.path.join(CONFIG_DIR, "scheduler_settings.json")
+LAST_JOB_FILE = os.path.join(DATA_DIR, "last_job.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
@@ -183,6 +184,31 @@ def _save_settings(data: dict):
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
+def _load_last_job() -> dict | None:
+    """Load parameter scrape terakhir yang dijalankan."""
+    if os.path.exists(LAST_JOB_FILE):
+        try:
+            with open(LAST_JOB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return None
+
+
+def _save_last_job(url: str, mode: str, start_date: date | None, end_date: date | None):
+    """Simpan parameter scrape terakhir ke disk."""
+    job = {
+        "url": url,
+        "mode": mode,
+        "start_date": start_date.isoformat() if start_date else None,
+        "end_date": end_date.isoformat() if end_date else None,
+        "saved_at": datetime.now().isoformat(),
+    }
+    with open(LAST_JOB_FILE, "w", encoding="utf-8") as f:
+        json.dump(job, f, ensure_ascii=False, indent=2)
+
+
 # State global untuk progress tracking
 scrape_state = {
     "running": False,
@@ -223,6 +249,9 @@ def _run_scrape(url: str, settings: dict, mode: str,
                 start_date: date | None = None, end_date: date | None = None,
                 incremental: bool = True, scheduled: bool = False):
     run_label = "[SCHEDULED]" if scheduled else "[MANUAL]"
+    # Simpan parameter job ini agar bisa di-restart setelah reset
+    if not scheduled:
+        _save_last_job(url, mode, start_date, end_date)
     with state_lock:
         scrape_state["running"] = True
         scrape_state["phase"] = "listing"
@@ -495,10 +524,32 @@ def api_reset_all():
             "logs": [],
             "articles": [],
         })
+
+    # Auto-restart scrape terakhir jika ada
+    last_job = _load_last_job()
+    restarting = False
+    if last_job and last_job.get("url"):
+        try:
+            job_url = last_job["url"]
+            job_mode = last_job.get("mode", "full")
+            job_start = _parse_date_param(last_job.get("start_date"))
+            job_end = _parse_date_param(last_job.get("end_date"))
+            settings = _load_settings()
+            threading.Thread(
+                target=_run_scrape,
+                args=(job_url, settings, job_mode, job_start, job_end),
+                daemon=True,
+            ).start()
+            restarting = True
+        except Exception as e:
+            logging.warning(f"Auto-restart gagal: {e}")
+
     return jsonify({
         "status": "ok",
         "articles_deleted": article_count,
         "kb_deleted": kb_count,
+        "restarting": restarting,
+        "last_job": last_job,
     })
 
 
