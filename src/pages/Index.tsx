@@ -265,6 +265,7 @@ const Index = () => {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
 
   const fetchArticles = useCallback(async () => {
@@ -447,6 +448,9 @@ const Index = () => {
         stopPoll();
         setJustFinished(true);
         await fetchArticles();
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 200);
         toast({
           title: "Scraping selesai!",
           description: `${data.success} berhasil · ${data.partial} partial · ${data.failed} gagal · ${data.duplicate} duplikat`,
@@ -916,7 +920,7 @@ const Index = () => {
             <div className="lg:col-span-2 space-y-4 lg:space-y-5">
 
               {/* Results Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div ref={resultsRef} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
