@@ -5,6 +5,7 @@ import {
   AlertCircle, CheckCircle2, FileText, Clock, CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiUrl } from "@/lib/api";
 
 interface Article {
   id: string;
@@ -45,7 +46,7 @@ const ArticleDetail = () => {
   const { data: article, isLoading, isError } = useQuery<Article>({
     queryKey: ["/api/article", id],
     queryFn: async () => {
-      const res = await fetch(`/api/article/${id}`);
+      const res = await fetch(apiUrl(`/api/article/${id}`));
       if (!res.ok) throw new Error("Article not found");
       return res.json();
     },
