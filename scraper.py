@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 from utils import get_soup, delay, BLOCKED_CODES
 from content_cleaner import clean_text
+from kemlu_scraper import is_kemlu_url, scrape_kemlu
 
 # ─── Date Parsing Helpers ────────────────────────────────────────────────────
 
@@ -283,6 +284,17 @@ def scrape_all(
     """
     if settings is None:
         settings = DEFAULT_SETTINGS
+
+    # ── Deteksi situs khusus ──────────────────────────────────────────────────
+    if is_kemlu_url(start_url):
+        return scrape_kemlu(
+            start_url,
+            mode=mode,
+            existing_articles=existing_articles,
+            progress_callback=progress_callback,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     link_sels = _parse_selectors(settings.get("article_link_selector", DEFAULT_SETTINGS["article_link_selector"]))
     next_sels = _parse_selectors(settings.get("next_page_selector", DEFAULT_SETTINGS["next_page_selector"]))
