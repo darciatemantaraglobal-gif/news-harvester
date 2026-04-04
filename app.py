@@ -20,12 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app, origins=[
-    "https://ainanews.vercel.app",
-    "http://localhost:5000",
-    "http://localhost:5001",
-    "http://localhost:5173",
-])
+CORS(app, origins="*")
 
 DATA_DIR = "data"
 CONFIG_DIR = "config"
