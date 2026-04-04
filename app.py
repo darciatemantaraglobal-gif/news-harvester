@@ -366,6 +366,31 @@ def api_article(article_id):
     return jsonify(article)
 
 
+@app.route("/api/articles/bulk-delete", methods=["POST"])
+def api_articles_bulk_delete():
+    """Hapus artikel terpilih berdasarkan daftar ID."""
+    data = request.get_json(force=True)
+    ids = data.get("ids", [])
+    if not ids:
+        return jsonify({"error": "Tidak ada ID yang dipilih."}), 400
+    id_set = set(ids)
+    articles = _load_articles()
+    before = len(articles)
+    articles = [a for a in articles if a.get("id") not in id_set]
+    _save_articles(articles)
+    deleted = before - len(articles)
+    return jsonify({"status": "ok", "deleted": deleted, "remaining": len(articles)})
+
+
+@app.route("/api/articles/clear-all", methods=["POST"])
+def api_articles_clear_all():
+    """Hapus semua hasil scraping."""
+    articles = _load_articles()
+    count = len(articles)
+    _save_articles([])
+    return jsonify({"status": "ok", "deleted": count})
+
+
 @app.route("/export/json")
 def export_json():
     articles = _load_articles()

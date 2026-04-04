@@ -9,12 +9,13 @@ import {
   ClipboardList, Download, RefreshCw, CheckSquare, Terminal,
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
-  LayoutList, FileCode2, XCircle, Copy, Globe, X,
+  LayoutList, FileCode2, XCircle, Copy, Globe, X, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -219,6 +220,10 @@ const Index = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [clearAllConfirm, setClearAllConfirm] = useState(false);
+
   const [settings, setSettings] = useState<ScraperSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -288,6 +293,64 @@ const Index = () => {
       }
     } catch {}
     setKbDraftLoading(false);
+  };
+
+  const toggleSelectArticle = (id: string) => {
+    setSelectedArticles(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const toggleSelectAllArticles = () => {
+    if (selectedArticles.size === filteredArticles.length) {
+      setSelectedArticles(new Set());
+    } else {
+      setSelectedArticles(new Set(filteredArticles.map(a => a.id)));
+    }
+  };
+
+  const deleteSelectedArticles = async () => {
+    if (selectedArticles.size === 0) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/articles/bulk-delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedArticles) }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Artikel dihapus", description: `${data.deleted} artikel berhasil dihapus.` });
+        setSelectedArticles(new Set());
+        await fetchArticles();
+      } else {
+        toast({ title: "Gagal", description: data.error || "Tidak bisa menghapus artikel.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Gagal", description: "Tidak dapat terhubung ke server.", variant: "destructive" });
+    }
+    setDeleteLoading(false);
+  };
+
+  const clearAllArticles = async () => {
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/articles/clear-all"), { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Semua artikel dihapus", description: `${data.deleted} artikel berhasil dibersihkan.` });
+        setSelectedArticles(new Set());
+        setClearAllConfirm(false);
+        await fetchArticles();
+      } else {
+        toast({ title: "Gagal", description: data.error || "Tidak bisa membersihkan.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Gagal", description: "Tidak dapat terhubung ke server.", variant: "destructive" });
+    }
+    setDeleteLoading(false);
   };
 
   const fetchSchedulerSettings = useCallback(async () => {
@@ -542,7 +605,7 @@ const Index = () => {
   });
 
   const hasActiveFilter = titleFilter || statusFilter !== "all" || dateFrom || dateTo;
-  const clearFilters = () => { setTitleFilter(""); setStatusFilter("all"); setDateFrom(""); setDateTo(""); };
+  const clearFilters = () => { setTitleFilter(""); setStatusFilter("all"); setDateFrom(""); setDateTo(""); setSelectedArticles(new Set()); };
 
   const statSucc = progress.phase !== "idle" ? progress.success : articles.filter(a => a.status === "success").length;
   const statPart = progress.phase !== "idle" ? progress.partial : articles.filter(a => a.status === "partial").length;
@@ -859,6 +922,26 @@ const Index = () => {
                         <RefreshCw className="w-3 h-3" />
                       </Button>
                     )}
+                    {articles.length > 0 && !clearAllConfirm && (
+                      <Button variant="ghost" size="sm" onClick={() => setClearAllConfirm(true)}
+                        disabled={isRunning || deleteLoading}
+                        className="gap-1 text-red-400 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2 rounded-lg">
+                        <Trash2 className="w-3 h-3" />Hapus Semua
+                      </Button>
+                    )}
+                    {clearAllConfirm && (
+                      <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1">
+                        <span className="text-xs text-red-700 font-medium whitespace-nowrap">Yakin hapus semua?</span>
+                        <button onClick={clearAllArticles} disabled={deleteLoading}
+                          className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded-md">
+                          {deleteLoading ? "..." : "Ya"}
+                        </button>
+                        <button onClick={() => setClearAllConfirm(false)}
+                          className="text-xs text-slate-500 hover:text-slate-700 px-1.5 py-0.5 rounded-md hover:bg-slate-100">
+                          Batal
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -897,6 +980,23 @@ const Index = () => {
                         ✕ Hapus
                       </Button>
                     )}
+                  </div>
+                )}
+
+                {/* Bulk action bar */}
+                {selectedArticles.size > 0 && (
+                  <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-100">
+                    <span className="text-xs font-semibold text-red-700">{selectedArticles.size} artikel dipilih</span>
+                    <Button size="sm" disabled={deleteLoading}
+                      onClick={deleteSelectedArticles}
+                      className="gap-1.5 text-white bg-red-600 hover:bg-red-700 h-7 text-xs px-3 rounded-lg">
+                      {deleteLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      Hapus Terpilih
+                    </Button>
+                    <button onClick={() => setSelectedArticles(new Set())}
+                      className="text-xs text-slate-400 hover:text-slate-600 underline">
+                      Batal pilih
+                    </button>
                   </div>
                 )}
 
@@ -978,7 +1078,14 @@ const Index = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/60">
-                          <th className="text-left px-5 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-8">#</th>
+                          <th className="px-4 py-3 w-10">
+                            <Checkbox
+                              checked={filteredArticles.length > 0 && selectedArticles.size === filteredArticles.length}
+                              onCheckedChange={toggleSelectAllArticles}
+                              className={selectedArticles.size > 0 && selectedArticles.size < filteredArticles.length ? "data-[state=checked]:bg-slate-400" : ""}
+                            />
+                          </th>
+                          <th className="hidden sm:table-cell text-left px-3 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-8">#</th>
                           <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Judul</th>
                           <th className="hidden md:table-cell text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-28">Tanggal</th>
                           <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-24">Status</th>
@@ -986,10 +1093,15 @@ const Index = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredArticles.map((article, i) => (
+                        {filteredArticles.map((article, i) => {
+                          const isSelected = selectedArticles.has(article.id);
+                          return (
                           <tr key={article.id} data-testid={`row-article-${article.id}`}
-                            className={`border-b border-slate-50 hover:bg-indigo-50/20 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/30" : ""}`}>
-                            <td className="px-5 py-4 text-slate-300 text-xs tabular-nums font-mono">{i + 1}</td>
+                            className={`border-b border-slate-50 transition-colors align-top ${isSelected ? "bg-red-50/40" : i % 2 === 1 ? "bg-slate-50/30 hover:bg-indigo-50/20" : "hover:bg-indigo-50/20"}`}>
+                            <td className="px-4 py-4 w-10">
+                              <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectArticle(article.id)} />
+                            </td>
+                            <td className="hidden sm:table-cell px-3 py-4 text-slate-300 text-xs tabular-nums font-mono">{i + 1}</td>
                             <td className="px-4 py-4 max-w-0">
                               <p className="font-medium text-slate-800 text-sm leading-snug truncate">{article.title || "(Tanpa Judul)"}</p>
                               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed line-clamp-1">
@@ -1032,7 +1144,8 @@ const Index = () => {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
