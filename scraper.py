@@ -446,7 +446,37 @@ def extract_article_detail(url: str, settings: dict, mode: str = "full") -> dict
         soup = get_soup(url)
 
         article["title"] = _find_first(soup, title_sels)
-        article["date"] = _find_first(soup, date_sels)
+
+        # ── Ekstrak tanggal: CSS selector dulu, lalu meta-tag fallback ────────
+        raw_date = _find_first(soup, date_sels)
+
+        if not raw_date:
+            # Fallback 1: <meta property="article:published_time"> (WordPress, OG)
+            for attr_pair in [
+                ("property", "article:published_time"),
+                ("property", "og:article:published_time"),
+                ("name",     "datePublished"),
+                ("name",     "date"),
+                ("name",     "publish_date"),
+                ("itemprop", "datePublished"),
+            ]:
+                m = soup.find("meta", attrs={attr_pair[0]: attr_pair[1]})
+                if m and m.get("content"):
+                    raw_date = m["content"]
+                    break
+
+        if not raw_date:
+            # Fallback 2: <time datetime="..."> — ambil atribut datetime langsung
+            t = soup.find("time", datetime=True)
+            if t:
+                raw_date = t["datetime"]
+
+        # Normalisasi ke YYYY-MM-DD agar konsisten
+        if raw_date:
+            parsed = parse_article_date(raw_date)
+            article["date"] = parsed.isoformat() if parsed else raw_date.strip()[:10]
+        else:
+            article["date"] = ""
 
         if mode in ("full", "kb"):
             raw_content = _find_first(soup, content_sels)

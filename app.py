@@ -640,7 +640,14 @@ def api_auto_tag():
 
 @app.route("/api/convert-kb", methods=["POST"])
 def api_convert_kb():
-    """Konversi semua artikel ke format KB draft untuk AINA."""
+    """Konversi semua artikel ke format KB draft untuk AINA.
+    
+    Body opsional:
+      { "cutoff_days": 30 }          → hanya artikel <= 30 hari terakhir
+      { "cutoff_date": "2026-01-01" } → hanya artikel >= tanggal ini
+    Artikel tanpa tanggal selalu disertakan kecuali ada parameter "skip_undated": true.
+    """
+    data = request.get_json(force=True, silent=True) or {}
     articles = _load_articles()
     if not articles:
         return jsonify({"error": "Belum ada artikel untuk dikonversi."}), 400
@@ -649,8 +656,38 @@ def api_convert_kb():
     if not eligible:
         return jsonify({"error": "Tidak ada artikel dengan status success/partial."}), 400
 
+    # ── Terapkan filter tanggal jika ada ──────────────────────────────────────
+    cutoff: date | None = None
+    if data.get("cutoff_days"):
+        try:
+            cutoff = date.today() - timedelta(days=int(data["cutoff_days"]))
+        except (ValueError, TypeError):
+            pass
+    elif data.get("cutoff_date"):
+        cutoff = _parse_date_param(data["cutoff_date"])
+
+    skip_undated = bool(data.get("skip_undated", False))
+    skipped = 0
+
+    if cutoff:
+        filtered = []
+        for a in eligible:
+            art_date = _parse_date_param(a.get("date"))
+            if art_date is None:
+                if skip_undated:
+                    skipped += 1
+                    continue
+                filtered.append(a)  # tanpa tanggal → ikut sertakan
+            elif art_date >= cutoff:
+                filtered.append(a)
+            else:
+                skipped += 1
+        eligible = filtered
+
+    if not eligible:
+        return jsonify({"error": "Tidak ada artikel yang memenuhi filter tanggal."}), 400
+
     now = _now_iso()
-    # Preserve existing status/notes if re-converting
     existing_kb = {a["id"]: a for a in _load_kb() if a.get("id")}
 
     kb_articles = []
@@ -663,7 +700,7 @@ def api_convert_kb():
         kb_articles.append(kb)
 
     _save_kb(kb_articles)
-    return jsonify({"status": "ok", "count": len(kb_articles)})
+    return jsonify({"status": "ok", "count": len(kb_articles), "skipped": skipped})
 
 
 @app.route("/api/kb-draft")

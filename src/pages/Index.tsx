@@ -242,6 +242,7 @@ const Index = () => {
 
   const [kbLoading, setKbLoading] = useState(false);
   const [kbDone, setKbDone] = useState(false);
+  const [kbCutoff, setKbCutoff] = useState<string>("all"); // "all"|"7"|"30"|"90"|"180"
   const [kbCount, setKbCount] = useState(0);
   const [kbError, setKbError] = useState("");
 
@@ -611,13 +612,20 @@ const Index = () => {
   const doConvertKb = async () => {
     setKbLoading(true); setKbError(""); setKbDone(false);
     try {
-      const res = await fetch(apiUrl("/api/convert-kb"), { method: "POST" });
+      const body: Record<string, unknown> = {};
+      if (kbCutoff !== "all") body.cutoff_days = parseInt(kbCutoff);
+      const res = await fetch(apiUrl("/api/convert-kb"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
       const data = await res.json();
       if (!res.ok) setKbError(data.error || "Gagal mengkonversi.");
       else {
         setKbDone(true); setKbCount(data.count);
         await fetchKbDraft();
-        toast({ title: "KB Draft dibuat", description: `${data.count} artikel berhasil dikonversi ke KB Draft.` });
+        const skippedNote = data.skipped > 0 ? ` (${data.skipped} artikel dilewati karena terlalu lama)` : "";
+        toast({ title: "KB Draft dibuat", description: `${data.count} artikel berhasil dikonversi ke KB Draft.${skippedNote}` });
       }
     } catch { setKbError("Tidak bisa menghubungi server."); }
     finally { setKbLoading(false); }
@@ -1388,6 +1396,20 @@ const Index = () => {
                               </div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 pl-10">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">Berita dari:</span>
+                                <select
+                                  value={kbCutoff}
+                                  onChange={e => setKbCutoff(e.target.value)}
+                                  disabled={kbLoading || isRunning}
+                                  className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
+                                  <option value="all">Semua waktu</option>
+                                  <option value="7">7 hari terakhir</option>
+                                  <option value="30">30 hari terakhir</option>
+                                  <option value="90">90 hari terakhir</option>
+                                  <option value="180">6 bulan terakhir</option>
+                                </select>
+                              </div>
                               <Button data-testid="button-convert-kb" onClick={doConvertKb}
                                 disabled={kbLoading || isRunning || eligibleArticles.length === 0}
                                 size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 shadow-sm">
