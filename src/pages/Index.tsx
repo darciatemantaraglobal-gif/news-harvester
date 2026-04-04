@@ -1568,6 +1568,7 @@ const Index = () => {
 
               {/* Log Panel */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
@@ -1584,13 +1585,75 @@ const Index = () => {
                       </span>
                     )}
                   </div>
-                  {progress.phase === "scraping" && (
+                  {(progress.phase === "listing" || progress.phase === "scraping") && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
-                      <div className="w-16"><Progress value={pct} className="h-1" /></div>
+                      {progress.phase === "scraping" && (
+                        <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
+                      )}
+                      <div className="w-20">
+                        {progress.phase === "scraping"
+                          ? <Progress value={pct} className="h-1.5" />
+                          : <div className="relative h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                              <div className="absolute top-0 left-0 h-full w-1/2 bg-indigo-400 rounded-full"
+                                style={{ animation: "indeterminate 1.4s ease-in-out infinite" }} />
+                            </div>
+                        }
+                      </div>
                     </div>
                   )}
                 </div>
+
+                {/* Status banner — prominent indicator */}
+                {progress.phase === "done" ? (
+                  progress.failed === 0 && progress.partial === 0 ? (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border-b border-emerald-100">
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-emerald-800">Scraping selesai!</p>
+                        <p className="text-xs text-emerald-600">
+                          {progress.success} artikel berhasil
+                          {progress.duplicate > 0 && ` · ${progress.duplicate} duplikat dilewati`}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border-b border-amber-100">
+                      <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-amber-800">Selesai dengan peringatan</p>
+                        <p className="text-xs text-amber-700">
+                          {progress.success} berhasil · {progress.partial > 0 && `${progress.partial} partial · `}{progress.failed > 0 && `${progress.failed} gagal · `}{progress.duplicate > 0 && `${progress.duplicate} duplikat`}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                ) : isRunning ? (
+                  <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-50 border-b border-indigo-100">
+                    <Loader2 className="w-4 h-4 text-indigo-500 animate-spin flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-indigo-700">
+                        {progress.phase === "listing"
+                          ? "Mengumpulkan daftar artikel..."
+                          : `Scraping artikel ${progress.current} / ${progress.total}`}
+                      </p>
+                      {progress.phase === "scraping" && progress.total > 0 && (
+                        <p className="text-[10px] text-indigo-400 mt-0.5">
+                          {progress.success} berhasil · {progress.failed} gagal · {progress.duplicate} duplikat
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Terminal-style log bar */}
                 <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 border-b border-slate-600">
                   <Circle className="w-2 h-2 text-red-400 fill-red-400" />
                   <Circle className="w-2 h-2 text-amber-400 fill-amber-400" />
@@ -1598,8 +1661,9 @@ const Index = () => {
                   <span className="text-slate-400 text-[10px] ml-2 font-mono">
                     {progress.phase === "idle" ? "Menunggu perintah scraping..." : (phaseLabel[progress.phase] || progress.phase)}
                   </span>
-                  {isRunning && <Loader2 className="w-3 h-3 text-slate-500 animate-spin ml-auto" />}
                 </div>
+
+                {/* Log content */}
                 <div ref={logRef} data-testid="log-panel"
                   className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
                   {progress.logs.length === 0 ? (
@@ -1625,14 +1689,6 @@ const Index = () => {
                     </div>
                   )}
                 </div>
-                {progress.phase === "done" && (
-                  <div className="px-4 py-2.5 bg-slate-700 border-t border-slate-600 flex flex-wrap items-center gap-3 text-[11px]">
-                    <span className="text-emerald-400 font-medium">✓ {progress.success} berhasil</span>
-                    <span className="text-amber-400">⚠ {progress.partial} partial</span>
-                    <span className="text-red-400">✗ {progress.failed} gagal</span>
-                    <span className="text-slate-400">↺ {progress.duplicate} duplikat</span>
-                  </div>
-                )}
               </div>
 
               {/* Scheduler Card */}
