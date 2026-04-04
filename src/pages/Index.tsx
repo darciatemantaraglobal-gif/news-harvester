@@ -360,6 +360,9 @@ const Index = () => {
       let data: Record<string, unknown> = {};
       try { data = await res.json(); } catch { /* non-JSON */ }
       if (res.ok) {
+        stopPoll();
+        wasRunningRef.current = false;
+        lastLogsRef.current = [];
         setArticles([]);
         setKbDraft([]);
         setKbDone(false);
@@ -475,20 +478,26 @@ const Index = () => {
       const res = await fetch(apiUrl("/api/progress"), { cache: "no-store" });
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
-      // Preserve last known logs — if backend briefly resets (e.g. process restart),
-      // don't blank out the log panel; keep showing the last logs we had
+
+      // Auto-resume polling if backend is already running (e.g. page refresh mid-scrape)
+      if (data.running && !pollRef.current) {
+        wasRunningRef.current = true;
+        pollTickRef.current = 0;
+        pollRef.current = setInterval(pollProgress, 1000);
+      }
+
+      // Preserve last known logs — if backend briefly resets, keep old logs visible
       if (data.logs && data.logs.length > 0) {
         lastLogsRef.current = data.logs;
       } else if (data.running || data.phase !== "idle") {
-        // Backend is active but returned no logs — keep old logs visible
         data.logs = lastLogsRef.current;
       }
       setProgress(data);
       if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
 
-      // Refresh articles every 5 ticks (~5 seconds) while scraping is running
+      // Refresh articles every 2 ticks (~2 seconds) while scraping — feels live
       pollTickRef.current += 1;
-      if (data.running && pollTickRef.current % 5 === 0) {
+      if (data.running && pollTickRef.current % 2 === 0) {
         fetchArticles();
       }
 
@@ -1010,9 +1019,19 @@ const Index = () => {
                       <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
                     </div>
                     <h2 className="text-sm font-bold text-slate-800">Hasil Scraping</h2>
+                    {/* Live article counter — updates every 2s during scrape */}
                     {articles.length > 0 && (
-                      <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
+                        isRunning
+                          ? "text-indigo-600 bg-indigo-100 animate-pulse"
+                          : "text-indigo-500 bg-indigo-50"
+                      }`}>
                         {hasActiveFilter ? `${filteredArticles.length} / ${articles.length}` : articles.length}
+                      </span>
+                    )}
+                    {isRunning && articles.length === 0 && progress.phase === "scraping" && (
+                      <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
+                        {progress.success} artikel
                       </span>
                     )}
                   </div>
@@ -1057,6 +1076,44 @@ const Index = () => {
                     )}
                   </div>
                 </div>
+
+                {/* ── Live scraping status strip ── */}
+                {isRunning && (
+                  <div className={`flex items-center gap-3 px-5 py-2.5 border-b ${
+                    progress.phase === "listing"
+                      ? "bg-blue-50 border-blue-100"
+                      : "bg-indigo-50 border-indigo-100"
+                  }`}>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-indigo-500" />
+                    <div className="flex-1 min-w-0">
+                      {progress.phase === "listing" ? (
+                        <p className="text-xs font-semibold text-blue-700">
+                          Mengumpulkan daftar artikel dari halaman...
+                        </p>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs font-semibold text-indigo-700 shrink-0">
+                            Scraping {progress.current} / {progress.total}
+                          </p>
+                          <div className="flex-1 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                              style={{ width: `${progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-bold text-indigo-500 tabular-nums shrink-0">
+                            {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
+                          </span>
+                        </div>
+                      )}
+                      {progress.phase === "scraping" && (
+                        <p className="text-[10px] text-indigo-400 mt-0.5">
+                          {progress.success} berhasil · {progress.partial > 0 ? `${progress.partial} partial · ` : ""}{progress.failed > 0 ? `${progress.failed} gagal · ` : ""}{progress.duplicate > 0 ? `${progress.duplicate} duplikat` : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {articles.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
