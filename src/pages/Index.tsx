@@ -779,6 +779,47 @@ const Index = () => {
             ))}
           </div>
 
+          {/* ── Pipeline Nudge Banner ── */}
+          {!isRunning && eligibleArticles.length > 0 && kbDraft.length === 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5">
+              <div className="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0">
+                <ArrowRight className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-indigo-900">
+                  {eligibleArticles.length} artikel siap diproses ke KB Draft
+                </p>
+                <p className="text-xs text-indigo-700 mt-0.5 leading-relaxed">
+                  Jalankan langkah pipeline di bawah:{" "}
+                  <span className="font-semibold">Generate Summary → Auto Tag → Convert to KB Draft</span>,
+                  lalu buka <span className="font-semibold">Review KB Draft</span> untuk approval workflow.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+                <span className="text-[11px] text-indigo-400 font-medium hidden sm:inline">Langkah 1–3 di bawah ↓</span>
+              </div>
+            </div>
+          )}
+
+          {!isRunning && kbDraft.length > 0 && (
+            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5">
+              <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-emerald-900">KB Draft siap — {kbDraft.length} artikel</p>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  Buka Review Dashboard untuk approval workflow, atau jalankan AI Summary sebelum dikirim ke Supabase.
+                </p>
+              </div>
+              <Link to="/review">
+                <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs h-8 rounded-xl">
+                  <CheckSquare className="w-3.5 h-3.5" />Review KB Draft
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* ── 3-column Grid ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 items-start">
 
@@ -956,6 +997,23 @@ const Index = () => {
                                   ? article.content.slice(0, 120) + (article.content.length > 120 ? "…" : "")
                                   : <span className="italic text-slate-300">—</span>}
                               </p>
+                              {article.status === "partial" && (
+                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug">
+                                  <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
+                                  <span>
+                                    {article.error_reason
+                                      ? `${ERROR_REASON_LABELS[article.error_reason] || article.error_reason} — `
+                                      : ""}
+                                    Konten tidak lengkap, namun tetap dapat dikonversi ke KB Draft.
+                                  </span>
+                                </div>
+                              )}
+                              {article.status === "failed" && article.error_reason && (
+                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 leading-snug">
+                                  <XCircle className="w-3 h-3 shrink-0 mt-px" />
+                                  <span>{ERROR_REASON_LABELS[article.error_reason] || article.error_reason} — Artikel tidak dapat dikonversi ke KB.</span>
+                                </div>
+                              )}
                             </td>
                             <td className="hidden md:table-cell px-4 py-4 text-slate-400 text-xs whitespace-nowrap tabular-nums">{article.date || "—"}</td>
                             <td className="px-4 py-4"><StatusBadge status={article.status} /></td>

@@ -334,17 +334,38 @@ export default function ReviewDashboard() {
                 <Loader2 className="w-5 h-5 animate-spin" />Memuat artikel...
               </div>
             ) : articles.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-2">
-                <AlertCircle className="w-10 h-10 opacity-30" />
-                <p className="text-sm font-medium">Tidak ada artikel</p>
-                <p className="text-xs text-center max-w-xs">
-                  {statusFilter === "all"
-                    ? "Jalankan Convert to KB Draft di halaman Scraper terlebih dahulu."
-                    : `Tidak ada artikel dengan status "${statusFilter}".`}
-                </p>
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 px-6">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-slate-300" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-semibold text-slate-600">
+                    {statusFilter === "all" ? "Belum ada KB Draft" : `Tidak ada artikel dengan status "${statusFilter}"`}
+                  </p>
+                  {statusFilter === "all" && (
+                    <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                      KB Draft dibuat dari hasil scraping. Ikuti langkah berikut di halaman Scraper:
+                    </p>
+                  )}
+                </div>
+                {statusFilter === "all" && (
+                  <div className="flex flex-col gap-1.5 w-full max-w-xs">
+                    {[
+                      { n: 1, label: "Mulai Scraping — ambil artikel dari URL berita" },
+                      { n: 2, label: "Generate Summary — buat ringkasan tiap artikel" },
+                      { n: 3, label: "Auto Tag — beri tag topik otomatis" },
+                      { n: 4, label: "Convert to KB Draft — konversi ke format KB AINA" },
+                    ].map(s => (
+                      <div key={s.n} className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{s.n}</span>
+                        <span className="text-xs text-slate-600">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <Link to="/">
-                  <Button variant="outline" size="sm" className="mt-2 gap-1.5 rounded-xl">
-                    <ChevronLeft className="w-3.5 h-3.5" />Ke Scraper
+                  <Button size="sm" className="mt-1 gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <ChevronLeft className="w-3.5 h-3.5" />Ke Halaman Scraper
                   </Button>
                 </Link>
               </div>
@@ -411,6 +432,12 @@ export default function ReviewDashboard() {
                                 }`}>{article.scrape_status}</span>
                               )}
                             </div>
+                            {article.scrape_status === "partial" && (
+                              <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug">
+                                <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
+                                <span>Konten artikel ini tidak lengkap saat di-scrape. Verifikasi dan lengkapi konten secara manual sebelum diapprove, atau reject jika tidak layak.</span>
+                              </div>
+                            )}
                             {article.summary && (
                               <p className="md:hidden text-[10px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
                                 {article.summary}
