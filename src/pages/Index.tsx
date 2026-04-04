@@ -223,6 +223,8 @@ const Index = () => {
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [clearAllConfirm, setClearAllConfirm] = useState(false);
+  const [resetAllConfirm, setResetAllConfirm] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const [settings, setSettings] = useState<ScraperSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -346,6 +348,33 @@ const Index = () => {
       });
     }
     setDeleteLoading(false);
+  };
+
+  const resetAll = async () => {
+    setResetLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/reset-all"), { method: "POST" });
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-JSON */ }
+      if (res.ok) {
+        setArticles([]);
+        setKbDraft([]);
+        setKbDone(false);
+        setSummaryDone(false);
+        setTagDone(false);
+        setJustFinished(false);
+        setSelectedArticles(new Set());
+        setClearAllConfirm(false);
+        setProgress({ running: false, phase: "idle", current: 0, total: 0, success: 0, partial: 0, failed: 0, duplicate: 0, logs: [] });
+        setResetAllConfirm(false);
+        toast({ title: "Reset selesai", description: `${data.articles_deleted ?? 0} artikel & ${data.kb_deleted ?? 0} KB Draft dihapus. Siap scraping ulang.` });
+      } else {
+        toast({ title: "Gagal reset", description: String(data.error || `Server error ${res.status}`), variant: "destructive" });
+      }
+    } catch (err: unknown) {
+      toast({ title: "Koneksi gagal", description: err instanceof TypeError ? "Tidak dapat terhubung ke server." : String(err), variant: "destructive" });
+    }
+    setResetLoading(false);
   };
 
   const clearAllArticles = async () => {
@@ -689,6 +718,32 @@ const Index = () => {
                   · next: {new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
                 </span>
               )}
+            </div>
+          )}
+          {/* Reset All button */}
+          {!resetAllConfirm ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setResetAllConfirm(true)}
+              disabled={isRunning}
+              className="gap-1.5 text-white/60 hover:text-white hover:bg-white/15 h-8 lg:h-9 text-xs px-2 sm:px-3 rounded-full"
+              title="Reset semua data"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Reset</span>
+            </Button>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-red-900/60 border border-red-400/40 rounded-full px-2.5 py-1.5">
+              <span className="text-[11px] text-red-200 font-medium whitespace-nowrap">Reset semua?</span>
+              <button onClick={resetAll} disabled={resetLoading}
+                className="text-[11px] font-bold text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded-full">
+                {resetLoading ? "..." : "Ya"}
+              </button>
+              <button onClick={() => setResetAllConfirm(false)}
+                className="text-[11px] text-white/60 hover:text-white px-1.5 py-0.5 rounded-full hover:bg-white/10">
+                Batal
+              </button>
             </div>
           )}
           <Link to="/review">

@@ -1,0 +1,110 @@
+Tolong audit dan perbaiki seluruh repo ini sampai bisa jalan normal, dengan fokus utama pada backend Flask + scraper Python + koneksi frontend.
+
+Masalah utama yang harus kamu selesaikan:
+
+1. File Python inti rusak formatnya, terutama:
+- app.py
+- scraper.py
+- kemlu_scraper.py
+
+Beberapa file terlihat seperti ketimpa jadi satu baris panjang / line break rusak / format Python hancur, sehingga kemungkinan besar memicu SyntaxError saat dijalankan. 
+Tugasmu:
+- cek seluruh isi file tersebut
+- rapikan ulang line break, indentation, import, function definitions, class definitions, comments, dan block code
+- pastikan semua syntax Python valid
+- kalau ada bagian yang ambigu karena file rusak, rekonstruksi logic paling masuk akal berdasarkan nama fungsi, route, dan alur aplikasi
+- jangan ubah tujuan utama aplikasinya, hanya perbaiki agar kembali stabil dan runnable
+
+2. Pastikan app.py benar-benar bisa dijalankan sebagai entry point backend.
+Yang harus dicek:
+- import tidak rusak
+- Flask app terbentuk dengan benar
+- route API tetap berfungsi
+- `if __name__ == "__main__"` valid
+- tidak ada syntax error atau name error saat startup
+
+3. Audit koneksi antar file backend:
+- app.py
+- scraper.py
+- kemlu_scraper.py
+- db_services.py
+- ai_services.py
+- file helper lain yang dipakai
+Pastikan semua import path benar, nama fungsi sinkron, dan tidak ada function/module yang dipanggil tapi tidak tersedia.
+
+4. Cek error runtime potensial:
+- variabel yang belum didefinisikan
+- function call mismatch
+- return value yang salah
+- exception handling yang kurang aman
+- dependency yang belum diimport
+- object Flask / Blueprint / scheduler / service yang belum diinisialisasi dengan benar
+
+5. Validasi environment variable handling.
+Beberapa fitur tampaknya butuh env seperti:
+- SUPABASE_URL
+- SUPABASE_KEY atau sejenisnya
+- OPENAI_API_KEY
+- env lain yang dipakai project
+Tugasmu:
+- buat fallback / guard yang aman jika env belum ada
+- jangan bikin app langsung crash total hanya karena fitur opsional belum diisi
+- tampilkan warning log yang jelas kalau env tertentu belum tersedia
+- kalau fitur AI / DB tidak bisa dipakai tanpa env, handle gracefully
+
+6. Audit dependency dan startup config:
+- requirements.txt
+- package.json
+- Procfile
+- .replit
+- vite.config.ts
+Pastikan semua konsisten.
+Target:
+- backend Flask bisa jalan sendiri
+- frontend Vite bisa jalan sendiri
+- proxy frontend ke backend benar
+- command run/dev tidak saling bentrok port
+- entry command sesuai struktur repo
+
+7. Audit integrasi frontend-backend.
+Karena frontend memakai Vite dan proxy ke backend, pastikan:
+- backend default di port yang benar
+- frontend proxy target benar
+- endpoint `/api/...` sinkron dengan route Flask
+- tidak ada mismatch URL/path
+- frontend tidak gagal hanya karena target backend salah port
+
+8. Setelah perbaikan, lakukan testing minimal:
+- startup backend
+- startup frontend
+- test endpoint API utama
+- test scraper utama
+- test salah satu scraping flow sampai dapat hasil
+- pastikan app tidak langsung crash saat boot
+
+9. Tambahkan logging yang rapi.
+Saya ingin debugging lebih mudah, jadi:
+- tambahkan logging startup
+- logging error scraper
+- logging warning env yang belum ada
+- logging request API penting
+- jangan terlalu noisy, tapi cukup informatif
+
+10. Jangan refactor besar-besaran.
+Prioritas utama:
+- perbaiki kerusakan
+- stabilkan sistem
+- pertahankan struktur dan tujuan proyek
+- hanya lakukan perubahan seperlunya agar repo sehat kembali
+
+Output yang saya mau dari kamu:
+A. daftar file yang diperbaiki
+B. penjelasan singkat tiap masalah yang ditemukan
+C. perubahan before/after secara ringkas
+D. kode final yang sudah dirapikan
+E. langkah menjalankan project
+F. catatan env yang wajib diisi
+G. kalau ada bagian yang masih asumsi karena file terlalu rusak, jelaskan secara jujur
+
+Kerjakan langsung, jangan cuma kasih saran. 
+Fokus utama: bikin repo ini bisa jalan lagi.

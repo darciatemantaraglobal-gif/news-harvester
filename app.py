@@ -391,6 +391,44 @@ def api_articles_clear_all():
     return jsonify({"status": "ok", "deleted": count})
 
 
+@app.route("/api/reset-all", methods=["POST"])
+def api_reset_all():
+    """Reset semua data: artikel, KB Draft, dan progress/log."""
+    global scrape_state
+    # Hapus artikel scraping
+    article_count = len(_load_articles())
+    _save_articles([])
+    # Hapus KB Draft
+    kb_count = len(_load_kb())
+    _save_kb([])
+    # Hapus file KB approved/exported jika ada
+    for f in [KB_APPROVED_FILE, KB_EXPORTED_FILE]:
+        try:
+            if os.path.exists(f):
+                os.remove(f)
+        except Exception:
+            pass
+    # Reset progress/log
+    with state_lock:
+        scrape_state.update({
+            "running": False,
+            "phase": "idle",
+            "current": 0,
+            "total": 0,
+            "success": 0,
+            "partial": 0,
+            "failed": 0,
+            "duplicate": 0,
+            "logs": [],
+            "articles": [],
+        })
+    return jsonify({
+        "status": "ok",
+        "articles_deleted": article_count,
+        "kb_deleted": kb_count,
+    })
+
+
 @app.route("/export/json")
 def export_json():
     articles = _load_articles()
