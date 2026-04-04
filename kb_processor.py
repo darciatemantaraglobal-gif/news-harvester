@@ -1,6 +1,7 @@
 # kb_processor.py — Modul pemrosesan Knowledge Base draft untuk AINA
 import re
 import unicodedata
+from formatter import format_aina_response
 
 # ─── Tag Configuration ──────────────────────────────────────────────────────
 
@@ -136,14 +137,23 @@ def convert_to_kb_format(article: dict) -> dict:
     else:
         tags = generate_tags(title, content)
 
+    # Build formatter context so it can apply trust layer and structure fixes
+    fmt_ctx = {
+        "source_url": article.get("url", ""),
+        "source_name": article.get("source", ""),
+        "scrape_status": article.get("status", "unknown"),
+        "published_date": article.get("date", ""),
+        "add_trust_footer": False,  # trust footer off by default in KB storage
+    }
+
     return {
         "id": article.get("id", ""),
         "title": title,
         "slug": generate_slug(title) or article.get("id", ""),
         "source_url": article.get("url", ""),
         "published_date": article.get("date", ""),
-        "content": content,
-        "summary": summary,
+        "content": format_aina_response(content, fmt_ctx),
+        "summary": format_aina_response(summary, fmt_ctx),
         "tags": tags,
         "scrape_status": article.get("status", "unknown"),
         "approval_status": "pending",

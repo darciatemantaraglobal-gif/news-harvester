@@ -1,5 +1,6 @@
 import os
 import logging
+from formatter import format_aina_response
 
 _client = None
 
@@ -36,7 +37,8 @@ def generate_ai_summary(title: str, content: str) -> str:
         max_tokens=300,
         temperature=0.3,
     )
-    return response.choices[0].message.content.strip()
+    raw = response.choices[0].message.content.strip()
+    return format_aina_response(raw)
 
 
 def check_openai_available() -> bool:

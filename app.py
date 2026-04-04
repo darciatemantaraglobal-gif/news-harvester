@@ -1,5 +1,5 @@
 # app.py — Flask server untuk News Scraper
-import os, json, csv, io, threading, re, unicodedata, logging
+import os, json, csv, io, threading, re, unicodedata, logging, time
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
@@ -212,6 +212,7 @@ def _save_last_job(url: str, mode: str, start_date: date | None, end_date: date 
 # State global untuk progress tracking
 scrape_state = {
     "running": False,
+    "cancelled": False,   # set by reset-all to abort in-flight scrape saves
     "phase": "idle",      # idle, listing, scraping, done
     "current": 0,
     "total": 0,
@@ -254,6 +255,7 @@ def _run_scrape(url: str, settings: dict, mode: str,
         _save_last_job(url, mode, start_date, end_date)
     with state_lock:
         scrape_state["running"] = True
+        scrape_state["cancelled"] = False   # clear any previous cancellation
         scrape_state["phase"] = "listing"
         scrape_state["current"] = 0
         scrape_state["total"] = 0
@@ -291,6 +293,9 @@ def _run_scrape(url: str, settings: dict, mode: str,
             """Dipanggil setelah setiap artikel berhasil di-scrape — simpan segera ke disk."""
             url_key = article.get("url", "")
             with state_lock:
+                # If reset was called while we were scraping, discard this write
+                if scrape_state.get("cancelled"):
+                    return
                 if url_key and url_key in merged_urls:
                     return
                 if url_key:
@@ -317,8 +322,11 @@ def _run_scrape(url: str, settings: dict, mode: str,
             article_callback=_article_callback,
         )
 
-        # Final save — ensure consistent state after all articles are processed
-        _save_articles(merged)
+        # Final save — skip if reset was called mid-scrape
+        with state_lock:
+            was_cancelled = scrape_state.get("cancelled", False)
+        if not was_cancelled:
+            _save_articles(merged)
 
         with state_lock:
             scrape_state["articles"] = merged
@@ -497,12 +505,23 @@ def api_articles_clear_all():
 def api_reset_all():
     """Reset semua data: artikel, KB Draft, dan progress/log."""
     global scrape_state
-    # Hapus artikel scraping
+    # Count existing items for the response
     article_count = len(_load_articles())
-    _save_articles([])
-    # Hapus KB Draft
     kb_count = len(_load_kb())
+
+    # Step 1: cancel any in-flight scrape BEFORE clearing files, so the
+    # background thread won't overwrite the empty files when it finishes
+    with state_lock:
+        scrape_state["cancelled"] = True
+
+    # Step 2: brief pause so any _save_articles call already inside the lock
+    # can finish, then our write wins cleanly
+    time.sleep(0.15)
+
+    # Step 3: now safe to clear files
+    _save_articles([])
     _save_kb([])
+
     # Hapus file KB approved/exported jika ada
     for f in [KB_APPROVED_FILE, KB_EXPORTED_FILE]:
         try:
@@ -510,10 +529,12 @@ def api_reset_all():
                 os.remove(f)
         except Exception:
             pass
-    # Reset progress/log
+
+    # Reset progress/log and lift the cancellation flag
     with state_lock:
         scrape_state.update({
             "running": False,
+            "cancelled": False,
             "phase": "idle",
             "current": 0,
             "total": 0,
