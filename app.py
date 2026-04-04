@@ -22,6 +22,16 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app, origins="*")
 
+
+@app.after_request
+def add_no_cache_headers(response):
+    """Pastikan API responses tidak di-cache oleh browser."""
+    if request.path.startswith("/api/") or request.path in ("/settings", "/kb-drafts"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 DATA_DIR = "data"
 CONFIG_DIR = "config"
 DATA_FILE = os.path.join(DATA_DIR, "scraped_articles.json")
@@ -230,7 +240,30 @@ def _run_scrape(url: str, settings: dict, mode: str,
         if not incremental:
             _progress_callback(f"{run_label} Mode full refresh — data lama dibersihkan.")
 
-        new_articles = scrape_all(
+        # Merged list yang akan di-update secara inkremental
+        merged = list(existing)
+        merged_urls = {a["url"] for a in existing}
+
+        def _article_callback(article):
+            """Dipanggil setelah setiap artikel berhasil di-scrape — simpan segera ke disk."""
+            url_key = article.get("url", "")
+            with state_lock:
+                if url_key and url_key in merged_urls:
+                    return
+                if url_key:
+                    merged_urls.add(url_key)
+                merged.append(article)
+                # Update running counters
+                s = article.get("status", "")
+                if s == "success":
+                    scrape_state["success"] += 1
+                elif s == "partial":
+                    scrape_state["partial"] += 1
+                elif s == "failed":
+                    scrape_state["failed"] += 1
+            _save_articles(merged)
+
+        scrape_all(
             url,
             settings=settings,
             mode=mode,
@@ -238,11 +271,10 @@ def _run_scrape(url: str, settings: dict, mode: str,
             progress_callback=_progress_callback,
             start_date=start_date,
             end_date=end_date,
+            article_callback=_article_callback,
         )
 
-        # Gabungkan dengan artikel lama (skip URL yang sudah ada)
-        existing_urls = {a["url"] for a in existing}
-        merged = existing + [a for a in new_articles if a["url"] not in existing_urls]
+        # Final save — ensure consistent state after all articles are processed
         _save_articles(merged)
 
         with state_lock:

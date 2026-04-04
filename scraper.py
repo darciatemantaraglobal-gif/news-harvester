@@ -274,6 +274,7 @@ def scrape_all(
     progress_callback=None,
     start_date: date | None = None,
     end_date: date | None = None,
+    article_callback=None,
 ):
     """
     Scrape semua artikel dari halaman list + pagination.
@@ -294,6 +295,7 @@ def scrape_all(
             progress_callback=progress_callback,
             start_date=start_date,
             end_date=end_date,
+            article_callback=article_callback,
         )
 
     link_sels = _parse_selectors(settings.get("article_link_selector", DEFAULT_SETTINGS["article_link_selector"]))
@@ -402,6 +404,8 @@ def scrape_all(
             seen_title_date.add((t, d))
 
         all_articles.append(article)
+        if article_callback:
+            article_callback(article)
 
         status_icons = {"success": "✓", "partial": "◐", "failed": "✗"}
         icon = status_icons.get(article["status"], "?")

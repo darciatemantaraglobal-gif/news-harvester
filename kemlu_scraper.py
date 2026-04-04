@@ -178,6 +178,7 @@ def scrape_kemlu(
     progress_callback=None,
     start_date=None,
     end_date=None,
+    article_callback=None,
 ) -> list[dict]:
     """
     Entry point scraping kemlu.go.id.
@@ -278,6 +279,8 @@ def scrape_kemlu(
             seen_title_date.add((t, d))
 
         all_articles.append(article)
+        if article_callback:
+            article_callback(article)
 
         icons = {"success": "✓", "partial": "◐", "failed": "✗"}
         icon = icons.get(article["status"], "?")

@@ -266,13 +266,14 @@ const Index = () => {
   const [schedulerRunNow, setSchedulerRunNow] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTickRef = useRef(0);
   const logRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
 
   const fetchArticles = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/articles"));
+      const res = await fetch(apiUrl("/api/articles"), { cache: "no-store" });
       if (res.ok) setArticles(await res.json());
     } catch {}
     setLoadingArticles(false);
@@ -468,13 +469,21 @@ const Index = () => {
 
   const pollProgress = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/progress"));
+      const res = await fetch(apiUrl("/api/progress"), { cache: "no-store" });
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
       setProgress(data);
       if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+
+      // Refresh articles every 5 ticks (~5 seconds) while scraping is running
+      pollTickRef.current += 1;
+      if (data.running && pollTickRef.current % 5 === 0) {
+        fetchArticles();
+      }
+
       if (wasRunningRef.current && !data.running && data.phase === "done") {
         stopPoll();
+        pollTickRef.current = 0;
         setJustFinished(true);
         await fetchArticles();
         setTimeout(() => {
@@ -522,6 +531,7 @@ const Index = () => {
       try { data = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok) { setUrlError(data.error || `Server error ${res.status}`); return; }
       wasRunningRef.current = true;
+      pollTickRef.current = 0;
       pollRef.current = setInterval(pollProgress, 1000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
