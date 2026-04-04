@@ -882,6 +882,91 @@ def export_kb_exported():
     )
 
 
+@app.route("/export/kb-markdown")
+def export_kb_markdown():
+    """Export semua KB draft sebagai file .md yang rapi dan mudah dibaca."""
+    kb = _load_kb()
+    if not kb:
+        return jsonify({"error": "Belum ada KB Draft."}), 404
+
+    STATUS_ICON = {
+        "pending": "⏳",
+        "reviewed": "🔍",
+        "approved": "✅",
+        "rejected": "❌",
+        "exported": "📦",
+    }
+
+    today = datetime.now().strftime("%d %B %Y, %H:%M")
+    lines: list[str] = []
+
+    # ── Header dokumen ──────────────────────────────────────────────────────
+    lines.append("# Knowledge Base — AINA")
+    lines.append("")
+    lines.append(f"> **Diekspor pada:** {today}  ")
+    lines.append(f"> **Total artikel:** {len(kb)}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    for i, article in enumerate(kb, 1):
+        title = article.get("title") or "Tanpa Judul"
+        slug = article.get("slug") or "-"
+        source_url = article.get("source_url") or ""
+        pub_date = article.get("published_date") or "-"
+        summary = (article.get("summary") or "").strip()
+        content = (article.get("content") or "").strip()
+        tags = article.get("tags") or []
+        status = article.get("approval_status") or "pending"
+        status_display = f"{STATUS_ICON.get(status, '')} {status}"
+
+        # ── Judul artikel ──────────────────────────────────────────────────
+        lines.append(f"## {i}. {title}")
+        lines.append("")
+
+        # ── Metadata ───────────────────────────────────────────────────────
+        lines.append("| | |")
+        lines.append("|:---|:---|")
+        lines.append(f"| **Tanggal terbit** | {pub_date} |")
+        if source_url:
+            lines.append(f"| **Sumber** | [{source_url}]({source_url}) |")
+        lines.append(f"| **Slug** | `{slug}` |")
+        if tags:
+            tag_str = " · ".join(f"`{t}`" for t in tags)
+            lines.append(f"| **Tags** | {tag_str} |")
+        lines.append(f"| **Status** | {status_display} |")
+        lines.append("")
+
+        # ── Ringkasan ──────────────────────────────────────────────────────
+        if summary:
+            lines.append("### Ringkasan")
+            lines.append("")
+            lines.append(summary)
+            lines.append("")
+
+        # ── Konten Lengkap ─────────────────────────────────────────────────
+        if content:
+            lines.append("### Konten Lengkap")
+            lines.append("")
+            # Bagi konten menjadi paragraf berdasarkan newline
+            for para in content.split("\n"):
+                para = para.strip()
+                if para:
+                    lines.append(para)
+                    lines.append("")
+
+        lines.append("---")
+        lines.append("")
+
+    md_output = "\n".join(lines)
+    filename = f"kb_aina_{datetime.now().strftime('%Y%m%d_%H%M')}.md"
+    return Response(
+        md_output,
+        mimetype="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
 # ─── Scheduler API ───────────────────────────────────────────────────────────
 
 @app.route("/api/scheduler/settings", methods=["GET"])

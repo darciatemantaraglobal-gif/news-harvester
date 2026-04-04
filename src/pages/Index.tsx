@@ -1273,6 +1273,12 @@ const Index = () => {
                   </div>
                   {kbDraft.length > 0 && (
                     <div className="flex items-center gap-2">
+                      <a href={apiUrl("/export/kb-markdown")} download>
+                        <Button variant="ghost" size="sm"
+                          className="h-7 text-xs gap-1.5 text-violet-600 hover:bg-violet-50 rounded-lg">
+                          <Download className="w-3 h-3" />Download .md
+                        </Button>
+                      </a>
                       <a href={apiUrl("/export/kb")} download>
                         <Button data-testid="button-download-kb" variant="ghost" size="sm"
                           className="h-7 text-xs gap-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
