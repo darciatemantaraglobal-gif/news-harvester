@@ -7,12 +7,25 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from scraper import scrape_all
-from ai_services import generate_ai_summary
-from db_services import push_kb_articles, fetch_kb_articles_from_db
+from ai_services import generate_ai_summary, check_openai_available
+from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
+# ─── Logging Setup ─────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-CORS(app, origins=["https://ainanews.vercel.app", "http://localhost:5000", "http://localhost:5001"])
+CORS(app, origins=[
+    "https://ainanews.vercel.app",
+    "http://localhost:5000",
+    "http://localhost:5001",
+    "http://localhost:5173",
+])
 
 DATA_DIR = "data"
 CONFIG_DIR = "config"
@@ -838,6 +851,30 @@ def scheduler_run_now():
         return jsonify({"error": "URL scheduler belum dikonfigurasi"}), 400
     threading.Thread(target=_run_scheduled_scrape, daemon=True).start()
     return jsonify({"status": "started"})
+
+
+def _log_startup_info():
+    """Log informasi startup dan periksa env variables."""
+    logger.info("=" * 60)
+    logger.info("AINA News Scraper Backend — Starting Up")
+    logger.info("=" * 60)
+
+    if check_openai_available():
+        logger.info("[ENV] OPENAI_API_KEY: tersedia ✓")
+    else:
+        logger.warning("[ENV] OPENAI_API_KEY: TIDAK DITEMUKAN — fitur AI Summary tidak aktif")
+
+    if check_supabase_available():
+        logger.info("[ENV] SUPABASE_URL + SUPABASE_KEY: tersedia ✓")
+    else:
+        logger.warning("[ENV] SUPABASE_URL/SUPABASE_KEY: TIDAK DITEMUKAN — fitur Push Supabase tidak aktif")
+
+    logger.info(f"[ENV] Data dir: {os.path.abspath(DATA_DIR)}")
+    logger.info("[STARTUP] Backend siap menerima request.")
+    logger.info("=" * 60)
+
+
+_log_startup_info()
 
 
 if __name__ == "__main__":
