@@ -1,0 +1,7 @@
+{
+  "article_link_selector": "article h3 a",
+  "next_page_selector": "a.next",
+  "title_selector": "h1.entry-title",
+  "date_selector": ".date, .news-date, time, .published-date, .post-date",
+  "content_selector": ".entry-content"
+}

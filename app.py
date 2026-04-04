@@ -6,7 +6,8 @@ from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from scraper import scrape_all
+from scraper import scrape_all, auto_detect_selectors
+from kemlu_scraper import is_kemlu_url
 from ai_services import generate_ai_summary, check_openai_available
 from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
@@ -235,6 +236,19 @@ def _run_scrape(url: str, settings: dict, mode: str,
         scrape_state["articles"] = []
 
     try:
+        # ── Auto-detect selectors untuk non-kemlu sites ───────────────────────
+        if not is_kemlu_url(url):
+            detected = auto_detect_selectors(url, log_fn=_progress_callback)
+            if detected:
+                settings = {**settings, **detected}
+                # Simpan selector yang terdeteksi ke file settings agar persistent
+                try:
+                    cfg = _load_settings()
+                    cfg.update(detected)
+                    _save_settings(cfg)
+                except Exception:
+                    pass
+
         # Incremental: load existing untuk deduplication; Full refresh: start clean
         existing = _load_articles() if incremental else []
         if not incremental:
@@ -321,6 +335,25 @@ def post_settings():
             current[k] = str(data[k]).strip()
     _save_settings(current)
     return jsonify({"status": "ok", "settings": current})
+
+
+@app.route("/api/detect-selectors", methods=["POST"])
+def api_detect_selectors():
+    """
+    Deteksi otomatis CSS selector dari URL yang diberikan.
+    Body: { "url": "https://..." }
+    """
+    data = request.get_json(force=True)
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "URL diperlukan"}), 400
+    logs: list[str] = []
+    detected = auto_detect_selectors(url, log_fn=lambda m: logs.append(m))
+    if detected:
+        current = _load_settings()
+        current.update(detected)
+        _save_settings(current)
+    return jsonify({"detected": detected, "logs": logs})
 
 
 def _parse_date_param(s: str | None) -> date | None:

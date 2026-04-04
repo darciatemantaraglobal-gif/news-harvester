@@ -3,11 +3,227 @@ import re
 import uuid
 import requests
 from datetime import date, datetime, timedelta
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from utils import get_soup, delay, BLOCKED_CODES
 from content_cleaner import clean_text
 from kemlu_scraper import is_kemlu_url, scrape_kemlu
+
+
+# ─── Auto-Detect Selectors ───────────────────────────────────────────────────
+
+# Pola URL yang BUKAN artikel (navigasi, author, kategori, dsb.)
+_SKIP_PATTERNS = {
+    "/author/", "/category/", "/tag/", "/page/", "/feed/",
+    "/wp-content/", "/wp-admin/", "/wp-json/",
+    "#", "mailto:", "javascript:",
+    "/search", "/login", "/register",
+}
+
+# Kandidat selector untuk link artikel di halaman list
+_LINK_CANDIDATES = [
+    "article h2 a",
+    "article h3 a",
+    "article h1 a",
+    "h2.entry-title a",
+    "h3.entry-title a",
+    "h1.entry-title a",
+    ".entry-title a",
+    ".post-title a",
+    ".news-title a",
+    ".article-title a",
+    "article a[rel='bookmark']",
+    "article a[rel=\"bookmark\"]",
+    ".post h2 a",
+    ".post h3 a",
+    "a[href*='/berita/']",
+    "a[href*='/news/']",
+    "a[href*='/artikel/']",
+    "a[href*='/post/']",
+    "a[href*='/read/']",
+    "a[href*='/publication/']",
+    "a[href*='/press-release/']",
+]
+
+# Kandidat selector next-page
+_NEXT_CANDIDATES = [
+    "a.next",
+    "a[rel=next]",
+    "a[rel='next']",
+    ".nav-next a",
+    ".next-posts-link",
+    ".navigation a.next",
+    ".page-numbers.next",
+    'a.page-numbers[aria-label="Next Page"]',
+    ".nav-links a.next",
+]
+
+# Kandidat selector title artikel
+_TITLE_CANDIDATES = [
+    "h1.entry-title",
+    "h1.post-title",
+    "h1.article-title",
+    "h1.news-title",
+    ".post-title h1",
+    "header h1",
+    "h1",
+    "h2.entry-title",
+]
+
+# Kandidat selector tanggal artikel
+_DATE_CANDIDATES = [
+    "time[datetime]",
+    "time",
+    ".entry-date",
+    ".published",
+    ".post-date",
+    ".date",
+    ".meta-date",
+    ".article-date",
+    ".news-date",
+    "span.date",
+    ".post-meta time",
+    ".byline time",
+]
+
+# Kandidat selector konten artikel
+_CONTENT_CANDIDATES = [
+    ".entry-content",
+    ".post-content",
+    ".article-content",
+    ".news-content",
+    ".ck-content",
+    ".post-body",
+    ".article-body",
+    ".content-area article",
+    "article .content",
+    ".single-content",
+    ".post-text",
+    "article",
+]
+
+
+def _is_article_url(href: str, base_domain: str) -> bool:
+    """Return True jika URL terlihat seperti link artikel (bukan navigasi)."""
+    if not href or not href.startswith("http"):
+        return False
+    if base_domain and base_domain not in href:
+        return False
+    for pat in _SKIP_PATTERNS:
+        if pat in href:
+            return False
+    return True
+
+
+def auto_detect_selectors(url: str, log_fn=None) -> dict:
+    """
+    Otomatis deteksi CSS selector yang tepat untuk URL yang diberikan.
+    Mengembalikan dict selector yang bisa langsung dipakai sebagai `settings`.
+    Selector yang tidak terdeteksi tidak disertakan (gunakan default).
+    """
+    def log(msg):
+        if log_fn:
+            log_fn(msg)
+
+    result = {}
+    base_domain = urlparse(url).netloc
+
+    # ── Fetch halaman list ────────────────────────────────────────────────────
+    log("[AUTO] Mendeteksi struktur halaman...")
+    try:
+        soup = get_soup(url)
+    except Exception as e:
+        log(f"[AUTO] Gagal fetch halaman: {e}")
+        return result
+
+    # ── Deteksi selector link artikel ────────────────────────────────────────
+    best_link_sel = None
+    best_links: list[str] = []
+
+    for sel in _LINK_CANDIDATES:
+        try:
+            els = soup.select(sel)
+            valid = []
+            seen = set()
+            for el in els:
+                href = el.get("href", "")
+                if _is_article_url(href, base_domain) and href not in seen:
+                    seen.add(href)
+                    valid.append(href)
+            if len(valid) > len(best_links):
+                best_links = valid
+                best_link_sel = sel
+        except Exception:
+            continue
+
+    if best_link_sel and best_links:
+        result["article_link_selector"] = best_link_sel
+        log(f"[AUTO] Link artikel → '{best_link_sel}' ({len(best_links)} link ditemukan)")
+    else:
+        log("[AUTO] Tidak bisa deteksi link artikel — pakai selector default")
+        return result
+
+    # ── Deteksi next-page selector ───────────────────────────────────────────
+    for sel in _NEXT_CANDIDATES:
+        try:
+            el = soup.select_one(sel)
+            if el and el.get("href"):
+                result["next_page_selector"] = sel
+                log(f"[AUTO] Next page → '{sel}'")
+                break
+        except Exception:
+            continue
+    else:
+        log("[AUTO] Tidak ada pagination ditemukan")
+
+    # ── Fetch satu artikel sampel untuk deteksi title/date/content ───────────
+    sample_url = best_links[0]
+    log(f"[AUTO] Menganalisa artikel sampel...")
+    try:
+        art_soup = get_soup(sample_url)
+    except Exception as e:
+        log(f"[AUTO] Gagal fetch artikel sampel: {e}")
+        return result
+
+    # Title
+    for sel in _TITLE_CANDIDATES:
+        try:
+            el = art_soup.select_one(sel)
+            if el and el.get_text(strip=True):
+                result["title_selector"] = sel
+                log(f"[AUTO] Title → '{sel}'")
+                break
+        except Exception:
+            continue
+
+    # Date
+    for sel in _DATE_CANDIDATES:
+        try:
+            el = art_soup.select_one(sel)
+            if el and el.get_text(strip=True):
+                result["date_selector"] = sel
+                log(f"[AUTO] Tanggal → '{sel}'")
+                break
+        except Exception:
+            continue
+    else:
+        log("[AUTO] Selector tanggal tidak ditemukan")
+
+    # Content
+    for sel in _CONTENT_CANDIDATES:
+        try:
+            el = art_soup.select_one(sel)
+            if el and len(el.get_text(strip=True)) > 100:
+                result["content_selector"] = sel
+                log(f"[AUTO] Konten → '{sel}'")
+                break
+        except Exception:
+            continue
+    else:
+        log("[AUTO] Selector konten tidak ditemukan")
+
+    log(f"[AUTO] Deteksi selesai — {len(result)} selector berhasil diidentifikasi")
+    return result
 
 # ─── Date Parsing Helpers ────────────────────────────────────────────────────
 
