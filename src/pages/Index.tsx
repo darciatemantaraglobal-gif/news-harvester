@@ -267,6 +267,7 @@ const Index = () => {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTickRef = useRef(0);
+  const lastLogsRef = useRef<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
@@ -472,6 +473,14 @@ const Index = () => {
       const res = await fetch(apiUrl("/api/progress"), { cache: "no-store" });
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
+      // Preserve last known logs — if backend briefly resets (e.g. process restart),
+      // don't blank out the log panel; keep showing the last logs we had
+      if (data.logs && data.logs.length > 0) {
+        lastLogsRef.current = data.logs;
+      } else if (data.running || data.phase !== "idle") {
+        // Backend is active but returned no logs — keep old logs visible
+        data.logs = lastLogsRef.current;
+      }
       setProgress(data);
       if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
 
@@ -1592,7 +1601,7 @@ const Index = () => {
                 </div>
                 <div ref={logRef} data-testid="log-panel"
                   className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
-                  {progress.phase === "idle" || progress.logs.length === 0 ? (
+                  {progress.logs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
                       <Terminal className="w-6 h-6 text-slate-700" />
                       <p className="text-slate-600 text-xs leading-relaxed">

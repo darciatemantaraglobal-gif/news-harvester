@@ -905,4 +905,6 @@ _log_startup_info()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    # use_reloader=False: prevents Werkzeug stat reloader from restarting the process
+    # mid-scrape (which would wipe in-memory scrape_state and cause progress log to blank out)
+    app.run(host="0.0.0.0", port=8000, debug=True, use_reloader=False)
