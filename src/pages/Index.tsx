@@ -320,16 +320,29 @@ const Index = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selectedArticles) }),
       });
-      const data = await res.json();
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
       if (res.ok) {
-        toast({ title: "Artikel dihapus", description: `${data.deleted} artikel berhasil dihapus.` });
+        toast({ title: "Artikel dihapus", description: `${data.deleted ?? selectedArticles.size} artikel berhasil dihapus.` });
         setSelectedArticles(new Set());
         await fetchArticles();
       } else {
-        toast({ title: "Gagal", description: data.error || "Tidak bisa menghapus artikel.", variant: "destructive" });
+        toast({
+          title: "Gagal menghapus",
+          description: res.status === 404
+            ? "Endpoint tidak ditemukan — pastikan backend sudah di-deploy ulang dengan kode terbaru."
+            : String(data.error || `Server error ${res.status}`),
+          variant: "destructive",
+        });
       }
-    } catch {
-      toast({ title: "Gagal", description: "Tidak dapat terhubung ke server.", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({
+        title: "Koneksi gagal",
+        description: err instanceof TypeError
+          ? "Tidak dapat terhubung ke server. Periksa koneksi atau status backend."
+          : String(err),
+        variant: "destructive",
+      });
     }
     setDeleteLoading(false);
   };
@@ -338,17 +351,30 @@ const Index = () => {
     setDeleteLoading(true);
     try {
       const res = await fetch(apiUrl("/api/articles/clear-all"), { method: "POST" });
-      const data = await res.json();
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
       if (res.ok) {
-        toast({ title: "Semua artikel dihapus", description: `${data.deleted} artikel berhasil dibersihkan.` });
+        toast({ title: "Semua artikel dihapus", description: `${data.deleted ?? 0} artikel berhasil dibersihkan.` });
         setSelectedArticles(new Set());
         setClearAllConfirm(false);
         await fetchArticles();
       } else {
-        toast({ title: "Gagal", description: data.error || "Tidak bisa membersihkan.", variant: "destructive" });
+        toast({
+          title: "Gagal menghapus",
+          description: res.status === 404
+            ? "Endpoint tidak ditemukan — pastikan backend sudah di-deploy ulang dengan kode terbaru."
+            : String(data.error || `Server error ${res.status}`),
+          variant: "destructive",
+        });
       }
-    } catch {
-      toast({ title: "Gagal", description: "Tidak dapat terhubung ke server.", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({
+        title: "Koneksi gagal",
+        description: err instanceof TypeError
+          ? "Tidak dapat terhubung ke server. Periksa koneksi atau status backend."
+          : String(err),
+        variant: "destructive",
+      });
     }
     setDeleteLoading(false);
   };
