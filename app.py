@@ -1103,9 +1103,9 @@ def _log_startup_info():
         logger.warning("[ENV] OPENAI_API_KEY: TIDAK DITEMUKAN — fitur AI Summary tidak aktif")
 
     if check_supabase_available():
-        logger.info("[ENV] SUPABASE_URL + SUPABASE_KEY: tersedia ✓")
+        logger.info("[ENV] SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY: tersedia ✓")
     else:
-        logger.warning("[ENV] SUPABASE_URL/SUPABASE_KEY: TIDAK DITEMUKAN — fitur Push Supabase tidak aktif")
+        logger.warning("[ENV] SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY: TIDAK DITEMUKAN — fitur Push Supabase tidak aktif")
 
     logger.info(f"[ENV] Data dir: {os.path.abspath(DATA_DIR)}")
     logger.info("[STARTUP] Backend siap menerima request.")

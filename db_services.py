@@ -48,6 +48,16 @@ def _map_tags_to_category(tags: list) -> str:
     return "Administrasi"  # safe default — most KBRI content is administrative
 
 
+# The AINA knowledge_base table requires a non-null author_id (FK to auth.users).
+# Set SUPABASE_AUTHOR_ID env var to the UUID of the AINA admin account that will
+# "own" scraper-imported articles. Defaults to the primary admin observed in the DB.
+_FALLBACK_AUTHOR_ID = "38a8f526-b1a7-47ef-9a04-ecc8b2b63f27"
+
+
+def _get_author_id() -> str:
+    return os.environ.get("SUPABASE_AUTHOR_ID") or _FALLBACK_AUTHOR_ID
+
+
 def _build_aina_payload(kb_article: dict) -> dict:
     """
     Convert a local KB draft article into a payload ready for AINA's knowledge_base table.
@@ -60,6 +70,7 @@ def _build_aina_payload(kb_article: dict) -> dict:
       -           → status = "pending"
       -           → hidden = false
       -           → article_type = "narrative"
+      -           → author_id = SUPABASE_AUTHOR_ID env var (or fallback admin UUID)
     """
     title = (kb_article.get("title") or "").strip()[:120]
     content = (kb_article.get("content") or "").strip()
@@ -72,6 +83,7 @@ def _build_aina_payload(kb_article: dict) -> dict:
     keywords = ", ".join(str(t) for t in tags if t)[:300]
 
     payload = {
+        "author_id": _get_author_id(),
         "title": title,
         "content": content,
         "category": category,
@@ -80,10 +92,9 @@ def _build_aina_payload(kb_article: dict) -> dict:
         "article_type": "narrative",
         "keywords": keywords,
         "summary": summary,
-        "last_updated": None,   # Supabase will use DB default / NOW()
     }
-    # Remove None values to avoid overriding DB defaults
-    return {k: v for k, v in payload.items() if v is not None and v != ""}
+    # Remove empty strings to avoid overriding DB defaults for optional fields
+    return {k: v for k, v in payload.items() if v != ""}
 
 
 def get_supabase():
