@@ -733,16 +733,21 @@ def api_kb_draft():
 
 @app.route("/api/push-supabase", methods=["POST"])
 def api_push_supabase():
-    """Push KB articles ke Supabase."""
+    """Push KB articles ke AINA's Supabase knowledge_base table dengan status='pending'."""
     if not os.path.exists(KB_FILE):
-        return jsonify({"error": "KB belum dikonversi. Jalankan Convert to KB Format terlebih dahulu."}), 400
+        return jsonify({"error": "KB belum dikonversi. Jalankan Convert to KB Draft terlebih dahulu."}), 400
     with open(KB_FILE, "r", encoding="utf-8") as f:
         kb_articles = json.load(f)
     if not kb_articles:
         return jsonify({"error": "KB kosong."}), 400
     try:
         result = push_kb_articles(kb_articles)
-        return jsonify({"status": "ok", "inserted": result["inserted"]})
+        return jsonify({
+            "status": "ok",
+            "inserted": result["inserted"],
+            "skipped": result.get("skipped", 0),
+            "errors": result.get("errors", []),
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

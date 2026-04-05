@@ -662,7 +662,13 @@ const Index = () => {
       if (!res.ok) setPushError(data.error || "Gagal push ke Supabase.");
       else {
         setPushDone(true); setPushCount(data.inserted || 0);
-        toast({ title: "Push ke Supabase berhasil", description: `${data.inserted || 0} artikel berhasil di-insert.` });
+        const skipped = data.skipped || 0;
+        const errCount = (data.errors || []).length;
+        let desc = `${data.inserted || 0} artikel berhasil di-insert ke knowledge_base AINA (status: pending).`;
+        if (skipped > 0) desc += ` ${skipped} dilewati (tanpa konten).`;
+        if (errCount > 0) desc += ` ${errCount} gagal.`;
+        toast({ title: "Push ke Supabase berhasil", description: desc });
+        if (errCount > 0) setPushError(`${errCount} artikel gagal di-push. Cek console untuk detail.`);
       }
     } catch { setPushError("Tidak bisa menghubungi server."); }
     finally { setPushLoading(false); }
@@ -1579,9 +1585,9 @@ const Index = () => {
                               <Database className="w-4 h-4 text-emerald-600" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase</h3>
+                              <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase AINA</h3>
                               <p className="text-xs text-slate-500">
-                                Push semua KB articles ke tabel <span className="font-mono bg-slate-100 px-1 rounded">kb_articles</span>.
+                                Insert semua KB articles ke tabel <span className="font-mono bg-slate-100 px-1 rounded">knowledge_base</span> AINA dengan <span className="font-mono bg-slate-100 px-1 rounded">status: pending</span> untuk review admin.
                               </p>
                             </div>
                           </div>
@@ -1617,21 +1623,21 @@ const Index = () => {
                                   <thead>
                                     <tr className="border-b bg-white text-slate-400">
                                       <th className="text-left px-4 py-2 font-semibold">Judul</th>
-                                      <th className="text-left px-4 py-2 font-semibold w-24">Tanggal</th>
-                                      <th className="text-left px-4 py-2 font-semibold w-36">Tags</th>
+                                      <th className="text-left px-4 py-2 font-semibold w-32">Kategori</th>
+                                      <th className="text-left px-4 py-2 font-semibold w-24">Status AINA</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {dbArticles.map((a, i) => (
                                       <tr key={i} className="border-b hover:bg-slate-50 transition-colors">
                                         <td className="px-4 py-2 text-slate-800 font-medium">{a.title || "(Tanpa Judul)"}</td>
-                                        <td className="px-4 py-2 text-slate-400">{a.published_date || "—"}</td>
+                                        <td className="px-4 py-2 text-slate-500">{a.category || "—"}</td>
                                         <td className="px-4 py-2">
-                                          <div className="flex flex-wrap gap-1">
-                                            {(a.tags || []).map((t: string) => (
-                                              <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded">{t}</span>
-                                            ))}
-                                          </div>
+                                          <span className={`px-1.5 py-px rounded font-medium ${
+                                            a.status === "approved" ? "bg-emerald-50 text-emerald-700" :
+                                            a.status === "rejected" ? "bg-red-50 text-red-600" :
+                                            "bg-amber-50 text-amber-700"
+                                          }`}>{a.status || "pending"}</span>
                                         </td>
                                       </tr>
                                     ))}
