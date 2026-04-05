@@ -736,12 +736,12 @@ const Index = () => {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ─── Dark Header Card ─── */}
-        <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20">
+        <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20 animate-fade-in-up">
           <div className="flex items-center gap-2.5 sm:gap-3 lg:gap-4 min-w-0">
             <img
               src="/AIGYPT_logo.png"
               alt="AINA"
-              className="w-8 h-8 sm:w-9 sm:h-9 lg:w-12 lg:h-12 object-contain shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 lg:w-12 lg:h-12 object-contain shrink-0 animate-float"
               style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(200,160,255,0.8))" }}
             />
             <div className="leading-none min-w-0">
@@ -803,9 +803,9 @@ const Index = () => {
         <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── URL Input Card ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-100">
             {/* Animated gradient top bar */}
-            <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+            <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 gradient-flow" />
 
             <div className="p-3.5 sm:p-5 lg:p-7 space-y-3.5 sm:space-y-4 lg:space-y-5">
 
@@ -935,13 +935,13 @@ const Index = () => {
           {/* Mobile: horizontal scroll · sm+: 5-col grid */}
           <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
             {[
-              { label: "Total",    value: statTotal, icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",    iconColor: "text-slate-500",   top: "bg-slate-300",    testid: "stat-total" },
-              { label: "Berhasil", value: statSucc,  icon: CheckCircle2, numColor: "text-emerald-600", iconBg: "bg-emerald-100",  iconColor: "text-emerald-600", top: "bg-emerald-400",  testid: "stat-success" },
-              { label: "Partial",  value: statPart,  icon: AlertCircle,  numColor: "text-amber-600",   iconBg: "bg-amber-100",    iconColor: "text-amber-500",   top: "bg-amber-400",    testid: "stat-partial" },
-              { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",      iconColor: "text-red-500",     top: "bg-red-400",      testid: "stat-failed" },
-              { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-600",  iconBg: "bg-violet-100",   iconColor: "text-violet-500",  top: "bg-violet-400",   testid: "stat-duplicate" },
-            ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid }) => (
-              <div key={label} className="snap-start shrink-0 w-[116px] sm:w-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+              { label: "Total",    value: statTotal, icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",    iconColor: "text-slate-500",   top: "bg-gradient-to-r from-slate-300 to-slate-400",       testid: "stat-total",     delay: "animation-delay-150" },
+              { label: "Berhasil", value: statSucc,  icon: CheckCircle2, numColor: "text-emerald-600", iconBg: "bg-emerald-100",  iconColor: "text-emerald-600", top: "bg-gradient-to-r from-emerald-400 to-teal-400",     testid: "stat-success",   delay: "animation-delay-200" },
+              { label: "Partial",  value: statPart,  icon: AlertCircle,  numColor: "text-amber-600",   iconBg: "bg-amber-100",    iconColor: "text-amber-500",   top: "bg-gradient-to-r from-amber-400 to-orange-400",     testid: "stat-partial",   delay: "animation-delay-300" },
+              { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",      iconColor: "text-red-500",     top: "bg-gradient-to-r from-red-400 to-rose-500",         testid: "stat-failed",    delay: "animation-delay-400" },
+              { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-600",  iconBg: "bg-violet-100",   iconColor: "text-violet-500",  top: "bg-gradient-to-r from-violet-400 to-purple-500",    testid: "stat-duplicate", delay: "animation-delay-500" },
+            ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid, delay }) => (
+              <div key={label} className={`snap-start shrink-0 w-[116px] sm:w-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
                 {/* Coloured top accent */}
                 <div className={`h-[3px] w-full ${top}`} />
 
@@ -972,7 +972,7 @@ const Index = () => {
 
           {/* ── Pipeline Nudge Banner ── */}
           {!isRunning && eligibleArticles.length > 0 && kbDraft.length === 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5 animate-fade-in-up">
               <div className="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0">
                 <ArrowRight className="w-4 h-4 text-white" />
               </div>
@@ -993,7 +993,7 @@ const Index = () => {
           )}
 
           {!isRunning && kbDraft.length > 0 && (
-            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5">
+            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5 animate-fade-in-up">
               <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4 text-white" />
               </div>
@@ -1018,7 +1018,7 @@ const Index = () => {
             <div className="lg:col-span-2 space-y-4 lg:space-y-5">
 
               {/* Results Card */}
-              <div ref={resultsRef} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div ref={resultsRef} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-200">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -1271,9 +1271,10 @@ const Index = () => {
                       <tbody>
                         {filteredArticles.map((article, i) => {
                           const isSelected = selectedArticles.has(article.id);
+                          const rowDelay = i < 8 ? `animation-delay-${[75, 100, 150, 200, 300, 400, 500, 600][i]}` : "";
                           return (
                           <tr key={article.id} data-testid={`row-article-${article.id}`}
-                            className={`border-b border-slate-50 transition-colors align-top ${isSelected ? "bg-red-50/40" : i % 2 === 1 ? "bg-slate-50/30 hover:bg-indigo-50/20" : "hover:bg-indigo-50/20"}`}>
+                            className={`border-b border-slate-50 transition-colors align-top animate-fade-in-up ${rowDelay} ${isSelected ? "bg-red-50/40" : i % 2 === 1 ? "bg-slate-50/30 hover:bg-indigo-50/20" : "hover:bg-indigo-50/20"}`}>
                             <td className="px-4 py-4 w-10">
                               <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectArticle(article.id)} />
                             </td>
@@ -1329,7 +1330,7 @@ const Index = () => {
               </div>
 
               {/* KB Pipeline Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-300">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -1658,7 +1659,7 @@ const Index = () => {
             <div className="space-y-4">
 
               {/* Log Panel */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
@@ -1783,7 +1784,7 @@ const Index = () => {
               </div>
 
               {/* Scheduler Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-300">
                 <button
                   onClick={() => setSchedulerOpen(o => !o)}
                   className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
@@ -1937,7 +1938,7 @@ const Index = () => {
               </div>
 
               {/* CSS Selector Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-400">
                 <button
                   className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                   onClick={() => setSettingsOpen(v => !v)}
