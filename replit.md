@@ -21,10 +21,20 @@ Full-stack monorepo:
 - `config/` — Scheduler settings
 
 ### Frontend (React/TypeScript)
-- `src/pages/Index.tsx` — Main Scraper dashboard
-- `src/pages/ReviewDashboard.tsx` — KB Review interface
+- `src/pages/HomePage.tsx` — Hub/landing page (Step 1: pick source, Step 2: Review)
+- `src/pages/Index.tsx` — Scraper page at `/scraper` (Berita Kemlu/KBRI)
+- `src/pages/PdfPage.tsx` — PDF upload page at `/pdf` (Kitab Arab)
+- `src/pages/ReviewDashboard.tsx` — KB Review & approval interface at `/review`
+- `src/components/BottomNav.tsx` — Shared bottom nav (Beranda | Review), consistent across all pages
 - `src/components/ui/` — shadcn/ui components
 - `src/lib/api.ts` — API helper (uses VITE_API_URL env var, falls back to relative URLs)
+
+## Navigation / Routes
+- `/` → HomePage (hub: choose Berita or PDF, then Review)
+- `/scraper` → Index (news scraper)
+- `/pdf` → PdfPage (PDF kitab upload + OCR)
+- `/review` → ReviewDashboard (approval workflow + push to Supabase)
+- `/article/:id` → ArticleDetail
 
 ## Running the Project
 

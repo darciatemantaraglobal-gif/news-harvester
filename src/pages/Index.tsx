@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
 import { useNavigate, Link } from "react-router-dom";
+import { BottomNav } from "@/components/BottomNav";
 import ReactMarkdown from "react-markdown";
 import {
   Newspaper, Zap, FileJson, FileText, Loader2, ExternalLink,
   BookOpen, CheckCircle2, Sparkles, Database, Upload, Settings2,
-  ChevronDown, ChevronUp, Save, RotateCcw, Tag, AlignLeft,
+  ChevronDown, ChevronUp, ChevronLeft, Save, RotateCcw, Tag, AlignLeft,
   ClipboardList, Download, RefreshCw, CheckSquare, Terminal,
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
@@ -772,15 +773,21 @@ const Index = () => {
         {/* ─── Dark Header Card ─── */}
         <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20 animate-fade-in-up">
           <div className="flex items-center gap-2.5 sm:gap-3 lg:gap-4 min-w-0">
+            <Link to="/">
+              <Button variant="ghost" size="sm" className="gap-1 lg:gap-2 text-white/70 hover:text-white hover:bg-white/15 -ml-1 h-8 lg:h-10 px-2 lg:px-3 text-xs lg:text-sm">
+                <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Beranda</span>
+              </Button>
+            </Link>
+            <div className="w-px h-4 lg:h-6 bg-white/30 shrink-0 hidden sm:block" />
             <img
               src="/AIGYPT_logo.png"
               alt="AINA"
-              className="w-8 h-8 sm:w-9 sm:h-9 lg:w-12 lg:h-12 object-contain shrink-0 animate-float"
+              className="w-8 h-8 sm:w-9 sm:h-9 lg:w-12 lg:h-12 object-contain shrink-0 animate-float hidden sm:block"
               style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(200,160,255,0.8))" }}
             />
             <div className="leading-none min-w-0">
-              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">AINA Scraper</p>
-              <p className="text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Internal Knowledge Scraping Tool</p>
+              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">Berita Kemlu / KBRI</p>
+              <p className="text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Scrape artikel dari portal resmi</p>
             </div>
           </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
@@ -2166,27 +2173,8 @@ const Index = () => {
         </div>
       </div>
 
-      {/* ─── Bottom Nav (all screens) ─── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-14 lg:h-16 px-2 lg:px-8 max-w-screen-2xl mx-auto">
-          <button className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl bg-slate-900 text-white min-w-[60px] lg:min-w-[100px]">
-            <Newspaper style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">Scraper</span>
-          </button>
-          <Link to="/review" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
-            <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">Review</span>
-          </Link>
-          <Link to="/pdf" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
-            <FileText style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">PDF</span>
-          </Link>
-          <a href={apiUrl("/export/json")} download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
-            <FileJson style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">JSON</span>
-          </a>
-        </div>
-      </nav>
+      {/* ─── Bottom Nav ─── */}
+      <BottomNav active="scraper" />
     </div>
   );
 };

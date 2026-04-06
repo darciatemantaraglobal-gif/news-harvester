@@ -3,10 +3,11 @@ import { apiUrl } from "@/lib/api";
 import { Link } from "react-router-dom";
 import {
   FileText, Upload, Loader2, ChevronLeft, CheckCircle2,
-  AlertCircle, BookOpen, Newspaper, CheckSquare, X,
+  AlertCircle, BookOpen, CheckSquare, X,
   Sparkles, Info, ScanLine, Layers, DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BottomNav } from "@/components/BottomNav";
 
 interface UploadResult {
   filename: string;
@@ -105,7 +106,7 @@ export default function PdfPage() {
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
           <Link to="/">
             <Button variant="ghost" size="sm" className="gap-1 lg:gap-2 text-white/70 hover:text-white hover:bg-white/15 -ml-1 h-8 lg:h-10 px-2 lg:px-3 text-xs lg:text-sm">
-              <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Scraper</span>
+              <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Beranda</span>
             </Button>
           </Link>
           <div className="w-px h-4 lg:h-6 bg-white/30 shrink-0 hidden sm:block" />
@@ -416,22 +417,7 @@ export default function PdfPage() {
       </div>
 
       {/* ─── Bottom Nav ─── */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-14 lg:h-16 px-2 lg:px-8 max-w-screen-2xl mx-auto">
-          <Link to="/" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
-            <Newspaper style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">Scraper</span>
-          </Link>
-          <Link to="/review" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
-            <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">Review</span>
-          </Link>
-          <div className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl bg-slate-900 text-white min-w-[60px] lg:min-w-[100px]">
-            <FileText style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">PDF</span>
-          </div>
-        </div>
-      </nav>
+      <BottomNav active="pdf" />
     </div>
   );
 }
