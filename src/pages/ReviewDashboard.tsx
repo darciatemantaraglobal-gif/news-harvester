@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   Newspaper, CheckCircle2, XCircle, Clock, Eye, Send, Download,
   Loader2, ChevronLeft, RefreshCw, FileJson, CheckSquare,
-  AlertCircle, Filter, BarChart3, FileText,
+  AlertCircle, Filter, BarChart3, FileText, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +88,8 @@ export default function ReviewDashboard() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkMsg, setBulkMsg] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null);
   // Notes local state (keyed by id)
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
@@ -178,6 +180,26 @@ export default function ReviewDashboard() {
     setBulkLoading(false);
   };
 
+  const doPushApproved = async () => {
+    setPushLoading(true);
+    setPushResult(null);
+    try {
+      const res = await fetch(apiUrl("/api/push-approved"), { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        setPushResult({ ok: true, msg: `${data.inserted} artikel berhasil di-push ke Supabase. ${data.skipped ? `${data.skipped} dilewati.` : ""}` });
+        await fetchArticles();
+        await fetchStats();
+      } else {
+        setPushResult({ ok: false, msg: data.error || "Push gagal." });
+      }
+    } catch {
+      setPushResult({ ok: false, msg: "Gagal terhubung ke backend." });
+    }
+    setPushLoading(false);
+    setTimeout(() => setPushResult(null), 6000);
+  };
+
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const n = new Set(prev);
@@ -218,6 +240,13 @@ export default function ReviewDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
+            {stats.approved > 0 && (
+              <Button variant="ghost" size="sm" onClick={doPushApproved} disabled={pushLoading}
+                className="gap-1.5 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 hover:text-emerald-200 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full border border-emerald-500/30">
+                {pushLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+                <span className="hidden sm:inline text-xs lg:text-sm">Push Supabase</span>
+              </Button>
+            )}
             <a href={apiUrl("/export/kb-approved")} download>
               <Button variant="ghost" size="sm"
                 className="gap-1.5 text-white/80 hover:text-white hover:bg-white/15 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full">
@@ -513,6 +542,20 @@ export default function ReviewDashboard() {
             )}
           </div>
 
+          {/* ── Push result toast ── */}
+          {pushResult && (
+            <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border ${
+              pushResult.ok
+                ? "text-emerald-700 bg-emerald-50 border-emerald-100"
+                : "text-red-700 bg-red-50 border-red-100"
+            }`}>
+              {pushResult.ok
+                ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                : <AlertCircle className="w-4 h-4 shrink-0" />}
+              {pushResult.msg}
+            </div>
+          )}
+
           {/* ── Download section ── */}
           {(stats.approved > 0 || stats.exported > 0) && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 p-4">
@@ -520,9 +563,19 @@ export default function ReviewDashboard() {
                 <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
                   <FileJson className="w-3.5 h-3.5 text-indigo-600" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">Download Hasil Review</h3>
+                <h3 className="text-sm font-bold text-slate-800">Export & Push ke Supabase</h3>
               </div>
               <div className="flex flex-wrap gap-2.5">
+                {stats.approved > 0 && (
+                  <Button data-testid="button-push-supabase" onClick={doPushApproved} disabled={pushLoading}
+                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-9 text-xs">
+                    {pushLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    Push ke Supabase
+                    <span className="bg-emerald-500 text-white text-xs px-1.5 py-px rounded-md font-bold">
+                      {stats.approved}
+                    </span>
+                  </Button>
+                )}
                 {stats.approved > 0 && (
                   <a href={apiUrl("/export/kb-approved")} download>
                     <Button data-testid="button-download-approved" variant="outline"

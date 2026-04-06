@@ -766,6 +766,44 @@ def api_push_supabase():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/push-approved", methods=["POST"])
+def api_push_approved():
+    """Push hanya artikel yang sudah approved ke Supabase, lalu tandai sebagai exported."""
+    if not os.path.exists(KB_APPROVED_FILE):
+        return jsonify({"error": "Belum ada artikel yang diapprove."}), 400
+    with open(KB_APPROVED_FILE, "r", encoding="utf-8") as f:
+        approved = json.load(f)
+    if not approved:
+        return jsonify({"error": "Tidak ada artikel approved untuk di-push."}), 400
+    try:
+        result = push_kb_articles(approved)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    # Mark successfully-pushed articles as exported in the main KB file
+    if result.get("inserted", 0) > 0:
+        pushed_ids = {a["id"] for a in approved}
+        kb = _load_kb()
+        now = _now_iso()
+        for a in kb:
+            if a.get("id") in pushed_ids and a.get("approval_status") == "approved":
+                a["approval_status"] = "exported"
+                a["last_updated"] = now
+                _sync_article_to(KB_EXPORTED_FILE, a)
+        _save_kb(kb)
+        # Clear approved file — those articles are now exported
+        remaining = [a for a in approved if a.get("id") not in pushed_ids]
+        with open(KB_APPROVED_FILE, "w", encoding="utf-8") as f:
+            json.dump(remaining, f, ensure_ascii=False, indent=2)
+
+    return jsonify({
+        "status": "ok",
+        "inserted": result["inserted"],
+        "skipped": result.get("skipped", 0),
+        "errors": result.get("errors", []),
+    })
+
+
 @app.route("/api/ai-summary", methods=["POST"])
 def api_ai_summary():
     """Generate AI summary untuk satu artikel."""
