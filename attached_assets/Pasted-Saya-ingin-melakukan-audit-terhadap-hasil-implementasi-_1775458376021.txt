@@ -1,0 +1,72 @@
+Saya ingin melakukan audit terhadap hasil implementasi Phase 2 pada repo ini.
+
+Tujuan audit:
+- Memastikan flow scraping berita lama tetap aman dan tidak berubah
+- Memastikan penulisan ke Supabase (knowledge_sources & knowledge_chunks) berjalan benar
+- Memastikan semua perubahan tetap additive dan non-breaking
+- Memastikan jalur baru tidak menggantikan flow lama
+
+Tolong lakukan audit dengan format berikut:
+
+1. Ringkasan Perubahan
+- Jelaskan secara singkat apa saja yang ditambahkan di Phase 2
+- Fokus pada penambahan pipeline write ke Supabase
+
+2. Daftar File
+- File apa saja yang:
+  a) ditambahkan
+  b) diubah
+- Untuk file yang diubah, jelaskan perubahan singkatnya
+
+3. Validasi Flow Existing
+Jawab dengan jelas:
+- Apakah flow scraping berita lama masih utuh?
+- Apakah ada logic lama yang diganti atau dihapus?
+- Apakah command/endpoint scraping lama masih bekerja sama seperti sebelumnya?
+- Apakah jalur baru tidak menjadi default?
+
+4. Validasi Write ke Supabase
+- Bagaimana flow data dari hasil scraping → mapping → insert ke knowledge_sources?
+- Bagaimana flow chunking → insert ke knowledge_chunks?
+- Apakah relasi source_id terjaga dengan benar?
+- Apakah ada handling untuk duplicate data?
+- Apakah update existing data aman (tidak menumpuk duplikat chunk)?
+
+5. Mode Eksekusi
+- Apakah pipeline baru:
+  a) otomatis berjalan
+  b) atau hanya opt-in/manual
+- Jika manual, bagaimana cara menjalankannya?
+
+6. Risiko & Potensi Error
+- Apakah ada bagian yang menyentuh logic kritikal?
+- Apakah ada kemungkinan error jika Supabase schema belum tersedia?
+- Apakah ada kemungkinan race condition / duplicate insert?
+- Apakah ada dependency baru?
+
+7. Simulasi Flow
+Jelaskan singkat:
+- flow scraping sebelum Phase 2
+- flow scraping setelah Phase 2
+Pastikan terlihat bahwa flow lama tetap berjalan
+
+8. Kesimpulan
+Pilih salah satu:
+- AMAN
+- PERLU PERBAIKAN
+- BERISIKO
+
+Dan jelaskan alasannya secara tegas.
+
+9. Verifikasi Tambahan
+Jawab ya/tidak:
+- Apakah pipeline lama masih default?
+- Apakah pipeline baru bisa dijalankan tanpa mengganggu flow lama?
+- Apakah data benar-benar masuk ke knowledge_sources?
+- Apakah chunk benar-benar masuk ke knowledge_chunks?
+
+PENTING:
+- Jangan menambah fitur baru
+- Jangan menulis ulang code
+- Fokus hanya pada audit dan pelaporan
+- Jawaban harus jujur, jelas, dan spesifik
