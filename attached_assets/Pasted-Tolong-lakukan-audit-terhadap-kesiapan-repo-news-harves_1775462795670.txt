@@ -1,0 +1,106 @@
+Tolong lakukan audit terhadap kesiapan repo news-harvester dalam mendukung Phase 5 Step 2 (Analytics & Feedback Brain AINA).
+
+Tujuan audit:
+- Memastikan metadata ingestion cukup untuk analytics AINA
+- Memastikan run history bisa digunakan untuk observability
+- Memastikan tidak ada perubahan yang merusak flow scraping
+
+==================================================
+
+1. Validasi Struktur Perubahan
+
+- Apakah ada perubahan baru setelah Phase 5 Step 1?
+- File apa saja yang ditambahkan atau diubah?
+- Apakah perubahan bersifat additive-only?
+
+==================================================
+
+2. Validasi Run History
+
+- Apakah ingestion history masih tersedia?
+- Field apa saja yang tersedia?
+  - started_at
+  - finished_at
+  - status
+  - scraped_count
+  - inserted
+  - updated
+  - skipped
+  - rejected
+  - chunk_count
+  - error_message
+
+- Disimpan di mana?
+  - JSON file?
+  - Supabase?
+- Apakah mudah diakses dari luar (AINA)?
+
+==================================================
+
+3. Validasi Metadata untuk Analytics
+
+- Apakah data yang dikirim ke knowledge_sources masih konsisten?
+  - source_name
+  - source_category
+  - source_type
+  - source_trust_hint
+  - timestamps (published_at, created_at)
+
+- Apakah metadata ini cukup untuk:
+  - trust scoring
+  - source mix analysis
+  - freshness analysis
+
+==================================================
+
+4. Validasi Kesiapan Integrasi Analytics
+
+- Apakah AINA bisa membaca run history ini?
+- Jika belum:
+  - apa hambatan utamanya?
+  - apakah perlu sinkronisasi ke Supabase?
+
+==================================================
+
+5. Validasi Non-Breaking
+
+- Apakah flow scraping utama tetap utuh?
+- Apakah scheduler tetap berjalan normal?
+- Apakah pipeline ingestion tidak berubah behaviornya?
+
+==================================================
+
+6. Risiko & Bug Potensial
+
+Cari kemungkinan:
+- run history tidak sinkron dengan real ingestion
+- metadata tidak konsisten antar artikel
+- missing field yang dibutuhkan analytics
+- kesulitan akses data dari AINA
+- potensi bottleneck jika history terlalu besar
+
+==================================================
+
+7. Kesimpulan
+
+Berikan verdict:
+- AMAN
+- PERLU FIX
+- BERISIKO
+
+Dan jelaskan alasannya.
+
+==================================================
+
+8. Bonus Improvement
+
+Berikan saran ringan:
+- sinkronisasi ingestion history ke Supabase
+- normalisasi metadata field
+- batching analytics-friendly format
+- TTL untuk history lama
+
+PENTING:
+- Jangan mengubah flow scraping
+- Fokus hanya audit & laporan
+- Jangan menambahkan fitur besar
