@@ -563,6 +563,20 @@ def export_json():
     )
 
 
+@app.route("/api/ingestion-history")
+def api_ingestion_history():
+    history_file = os.path.join(DATA_DIR, "ingestion_history.json")
+    try:
+        if os.path.exists(history_file):
+            with open(history_file, "r", encoding="utf-8") as f:
+                runs = json.load(f)
+        else:
+            runs = []
+    except Exception:
+        runs = []
+    return jsonify({"runs": list(reversed(runs)), "total": len(runs)})
+
+
 KB_FILE = os.path.join(DATA_DIR, "kb_articles.json")
 KB_APPROVED_FILE = os.path.join(DATA_DIR, "kb_approved.json")
 KB_EXPORTED_FILE = os.path.join(DATA_DIR, "kb_exported.json")

@@ -10,7 +10,24 @@ import {
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
   LayoutList, FileCode2, XCircle, Copy, Globe, X, Trash2,
+  History, Shield, Activity,
 } from "lucide-react";
+
+function getSourceMeta(url: string): {
+  category: string; categoryColor: string;
+  trust: string; trustColor: string;
+} {
+  try {
+    const domain = new URL(url).hostname.toLowerCase();
+    if (domain.includes("kemlu.go.id") || domain.includes("kbri") || domain.includes("kemenlu")) {
+      return { category: "Official", categoryColor: "bg-blue-100 text-blue-700", trust: "High", trustColor: "bg-emerald-100 text-emerald-700" };
+    }
+    if (domain.includes("pcinu") || domain.includes("ppi-") || domain.includes("ppimesir") || domain.includes("indonesia")) {
+      return { category: "Community", categoryColor: "bg-violet-100 text-violet-700", trust: "Medium", trustColor: "bg-amber-100 text-amber-700" };
+    }
+  } catch {}
+  return { category: "Article", categoryColor: "bg-slate-100 text-slate-500", trust: "Default", trustColor: "bg-slate-100 text-slate-500" };
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -266,6 +283,10 @@ const Index = () => {
   const [schedulerSaving, setSchedulerSaving] = useState(false);
   const [schedulerRunNow, setSchedulerRunNow] = useState(false);
 
+  const [ingestionHistory, setIngestionHistory] = useState<Record<string, unknown>[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTickRef = useRef(0);
   const lastLogsRef = useRef<string[]>([]);
@@ -426,6 +447,18 @@ const Index = () => {
     } catch {}
   }, []);
 
+  const fetchIngestionHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/ingestion-history"), { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setIngestionHistory(data.runs ?? []);
+      }
+    } catch {}
+    setHistoryLoading(false);
+  }, []);
+
   const saveSchedulerSettings = async () => {
     setSchedulerSaving(true);
     try {
@@ -523,6 +556,7 @@ const Index = () => {
     fetchSettings();
     fetchKbDraft();
     fetchSchedulerSettings();
+    fetchIngestionHistory();
     pollProgress();
     return () => stopPoll();
   }, []);
@@ -972,22 +1006,36 @@ const Index = () => {
 
           {/* ── Pipeline Nudge Banner ── */}
           {!isRunning && eligibleArticles.length > 0 && kbDraft.length === 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5 animate-fade-in-up">
-              <div className="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0">
-                <ArrowRight className="w-4 h-4 text-white" />
+            <div className="flex flex-col gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5 animate-fade-in-up">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0">
+                  <Activity className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-indigo-900">
+                    {eligibleArticles.length} artikel siap — ikuti pipeline KB di bawah
+                  </p>
+                  <p className="text-xs text-indigo-600 mt-0.5">Jalankan setiap langkah secara berurutan</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-indigo-900">
-                  {eligibleArticles.length} artikel siap diproses ke KB Draft
-                </p>
-                <p className="text-xs text-indigo-700 mt-0.5 leading-relaxed">
-                  Jalankan langkah pipeline di bawah:{" "}
-                  <span className="font-semibold">Generate Summary → Auto Tag → Convert to KB Draft</span>,
-                  lalu buka <span className="font-semibold">Review KB Draft</span> untuk approval workflow.
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
-                <span className="text-[11px] text-indigo-400 font-medium hidden sm:inline">Langkah 1–3 di bawah ↓</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { n: 1, label: "Scraping", done: true,       color: "bg-emerald-500 text-white" },
+                  { n: 2, label: "Summary",  done: summaryDone, color: "bg-indigo-500 text-white" },
+                  { n: 3, label: "Auto Tag", done: tagDone,     color: "bg-violet-500 text-white" },
+                  { n: 4, label: "Convert KB", done: kbDone,   color: "bg-amber-500 text-white" },
+                  { n: 5, label: "Push Supabase", done: false,  color: "bg-slate-400 text-white" },
+                ].map(({ n, label, done, color }, idx, arr) => (
+                  <span key={n} className="flex items-center gap-1">
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${done ? color : "bg-white border border-indigo-200 text-indigo-400"}`}>
+                      <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-extrabold">
+                        {done ? "✓" : n}
+                      </span>
+                      {label}
+                    </span>
+                    {idx < arr.length - 1 && <ArrowRight className="w-2.5 h-2.5 text-indigo-300 shrink-0" />}
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -1286,6 +1334,19 @@ const Index = () => {
                                   ? article.content.slice(0, 120) + (article.content.length > 120 ? "…" : "")
                                   : <span className="italic text-slate-300">—</span>}
                               </p>
+                              {article.url && (() => {
+                                const meta = getSourceMeta(article.url);
+                                return (
+                                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${meta.categoryColor}`}>
+                                      <Globe className="w-2.5 h-2.5" />{meta.category}
+                                    </span>
+                                    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${meta.trustColor}`}>
+                                      <Shield className="w-2.5 h-2.5" />Trust: {meta.trust}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                               {article.status === "partial" && (
                                 <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug">
                                   <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
@@ -1932,6 +1993,113 @@ const Index = () => {
                           ? `setiap hari pukul ${schedulerSettings.time_of_day}`
                           : `setiap ${DOW_LABELS[schedulerSettings.day_of_week] || schedulerSettings.day_of_week} pukul ${schedulerSettings.time_of_day}`} WIB
                       </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Riwayat Pipeline Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-350">
+                <button
+                  onClick={() => { setHistoryOpen(o => !o); if (!historyOpen) fetchIngestionHistory(); }}
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <History className="w-3.5 h-3.5 text-emerald-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">Riwayat Pipeline</span>
+                    {ingestionHistory.length > 0 && (
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        {ingestionHistory.length} run
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {historyLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
+                    {historyOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                  </div>
+                </button>
+
+                {historyOpen && (
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[11px] text-slate-400 font-medium">Hasil pipeline background (terbaru di atas)</p>
+                      <Button variant="ghost" size="sm" onClick={fetchIngestionHistory}
+                        disabled={historyLoading}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-emerald-600">
+                        <RefreshCw className={`w-3 h-3 ${historyLoading ? "animate-spin" : ""}`} />
+                      </Button>
+                    </div>
+
+                    {ingestionHistory.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                        <History className="w-8 h-8 text-slate-200" />
+                        <p className="text-xs text-slate-400 font-medium">Belum ada riwayat</p>
+                        <p className="text-[11px] text-slate-300">Pipeline belum pernah dijalankan,<br />atau scheduler belum aktif.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {ingestionHistory.map((run, i) => {
+                          const status = run.status as string;
+                          const isSuccess = status === "success";
+                          const isFailed  = status === "failed";
+                          const isSkipped = status === "skipped_concurrent";
+                          const startedAt = run.started_at as string;
+                          const dt = startedAt ? new Date(startedAt) : null;
+                          const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
+                          const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";
+                          const inserted   = (run.inserted   as number) ?? 0;
+                          const updated    = (run.updated    as number) ?? 0;
+                          const chunks     = (run.chunk_count as number) ?? 0;
+                          const duration   = (run.duration_sec as number) ?? 0;
+                          const errMsg     = run.error_message as string | null;
+                          return (
+                            <div key={i} className={`rounded-xl p-3 border text-xs ${
+                              isSuccess ? "bg-emerald-50/60 border-emerald-100"
+                              : isFailed ? "bg-red-50/60 border-red-100"
+                              : "bg-amber-50/60 border-amber-100"
+                            }`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  {isSuccess ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    : isFailed ? <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                    : <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                                  <span className="font-semibold text-slate-700">{dateStr}</span>
+                                  <span className="text-slate-400">{timeStr}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] shrink-0">
+                                  {isSuccess && (
+                                    <>
+                                      <span className="text-emerald-700 font-semibold">+{inserted} baru</span>
+                                      {updated > 0 && <span className="text-blue-600">{updated} update</span>}
+                                      <span className="text-slate-400">{chunks} chunk</span>
+                                      <span className="text-slate-300">{duration.toFixed(1)}s</span>
+                                    </>
+                                  )}
+                                  {isFailed && (
+                                    <span className="text-red-500 font-semibold truncate max-w-[120px]" title={errMsg ?? ""}>
+                                      {errMsg ? errMsg.slice(0, 40) + (errMsg.length > 40 ? "…" : "") : "Error"}
+                                    </span>
+                                  )}
+                                  {isSkipped && <span className="text-amber-600 font-semibold">Dilewati (concurrent)</span>}
+                                </div>
+                              </div>
+                              {isSuccess && (
+                                <div className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-400 pl-5">
+                                  <span>{(run.scraped_count as number) ?? 0} di-scrape</span>
+                                  <span>·</span>
+                                  <span>{(run.skipped as number) ?? 0} dilewati</span>
+                                  <span>·</span>
+                                  <span>{(run.rejected as number) ?? 0} ditolak</span>
+                                  <span>·</span>
+                                  <span className="text-indigo-400 font-mono text-[10px] truncate max-w-[100px]">{(run.url as string ?? "").replace(/^https?:\/\//, "").slice(0, 25)}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 )}
