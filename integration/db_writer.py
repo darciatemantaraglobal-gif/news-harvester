@@ -113,8 +113,13 @@ def _insert_source(sb, record: dict, content_hash: str) -> str | None:
         "status":          record.get("status", "pending"),
         "cleaned_content": record.get("cleaned_content", ""),
         "content_hash":    content_hash,
+        "scraped_at":      record.get("scraped_at", datetime.now(tz=timezone.utc).isoformat()),
+        "source_category": record.get("source_category", "article"),
+        "source_trust_hint": record.get("source_trust_hint", "default"),
         "updated_at":      datetime.now(tz=timezone.utc).isoformat(),
     }
+    if record.get("published_at"):
+        payload["published_at"] = record["published_at"]
     # Remove empty optional strings to use DB defaults where sensible
     payload = {k: v for k, v in payload.items() if v != ""}
 
@@ -138,15 +143,19 @@ def _update_source(sb, source_id: str, record: dict, content_hash: str) -> bool:
     Returns True on success.
     """
     payload = {
-        "title":           (record.get("title") or "")[:200],
-        "source_name":     record.get("source_name", ""),
-        "summary":         (record.get("summary") or "")[:600],
-        "tags":            record.get("tags", []),
-        "status":          record.get("status", "pending"),
-        "cleaned_content": record.get("cleaned_content", ""),
-        "content_hash":    content_hash,
-        "updated_at":      datetime.now(tz=timezone.utc).isoformat(),
+        "title":             (record.get("title") or "")[:200],
+        "source_name":       record.get("source_name", ""),
+        "summary":           (record.get("summary") or "")[:600],
+        "tags":              record.get("tags", []),
+        "status":            record.get("status", "pending"),
+        "cleaned_content":   record.get("cleaned_content", ""),
+        "content_hash":      content_hash,
+        "source_category":   record.get("source_category", "article"),
+        "source_trust_hint": record.get("source_trust_hint", "default"),
+        "updated_at":        datetime.now(tz=timezone.utc).isoformat(),
     }
+    if record.get("published_at"):
+        payload["published_at"] = record["published_at"]
     try:
         sb.table("knowledge_sources").update(payload).eq("id", source_id).execute()
         logger.info(f"[DB_WRITER] Updated source id={source_id[:8]}: {payload.get('title','')[:60]}")
