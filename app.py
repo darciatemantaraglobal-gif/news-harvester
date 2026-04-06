@@ -1,5 +1,6 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata, logging, time
+import pdfplumber
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
@@ -801,6 +802,85 @@ def api_push_approved():
         "inserted": result["inserted"],
         "skipped": result.get("skipped", 0),
         "errors": result.get("errors", []),
+    })
+
+
+@app.route("/api/pdf/upload", methods=["POST"])
+def api_pdf_upload():
+    """Upload satu atau lebih PDF, ekstrak teks, simpan sebagai KB draft."""
+    files = request.files.getlist("files")
+    if not files or all(f.filename == "" for f in files):
+        return jsonify({"error": "Tidak ada file PDF yang diupload."}), 400
+
+    kb = _load_kb()
+    now = _now_iso()
+    results = []
+
+    for file in files:
+        fname = file.filename or ""
+        if not fname.lower().endswith(".pdf"):
+            results.append({"filename": fname, "status": "error", "error": "Bukan file PDF"})
+            continue
+        try:
+            pdf_bytes = file.read()
+            pages_text = []
+            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text and text.strip():
+                        pages_text.append(text.strip())
+
+            if not pages_text:
+                results.append({"filename": fname, "status": "error", "error": "PDF tidak dapat diekstrak (mungkin berisi gambar/scan saja)"})
+                continue
+
+            full_text = "\n\n".join(pages_text)
+            title = os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").strip()
+            slug = generate_slug(title)
+            tags = generate_tags(title + " " + full_text[:600])
+            summary = generate_summary(title, full_text)
+            article_id = f"pdf-{slug}-{int(time.time())}"
+
+            kb_article = {
+                "id": article_id,
+                "title": title,
+                "slug": slug,
+                "source_url": f"pdf://{fname}",
+                "published_date": now[:10],
+                "content": full_text,
+                "summary": summary,
+                "tags": tags,
+                "scrape_status": "success",
+                "approval_status": "pending",
+                "last_updated": now,
+                "notes": "",
+                "source_type": "pdf",
+            }
+
+            existing_idx = next((i for i, a in enumerate(kb) if a.get("id") == article_id), None)
+            if existing_idx is not None:
+                kb[existing_idx] = kb_article
+            else:
+                kb.append(kb_article)
+
+            results.append({
+                "filename": fname,
+                "status": "ok",
+                "id": article_id,
+                "title": title,
+                "pages": len(pages_text),
+                "chars": len(full_text),
+            })
+        except Exception as e:
+            results.append({"filename": fname, "status": "error", "error": str(e)[:300]})
+
+    _save_kb(kb)
+    ok_count = sum(1 for r in results if r["status"] == "ok")
+    return jsonify({
+        "status": "ok",
+        "processed": ok_count,
+        "total": len(files),
+        "results": results,
     })
 
 

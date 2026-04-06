@@ -2177,13 +2177,13 @@ const Index = () => {
             <CheckSquare style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">Review</span>
           </Link>
+          <Link to="/pdf" className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors min-w-[60px] lg:min-w-[100px]">
+            <FileText style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
+            <span className="text-[10px] lg:text-xs font-semibold">PDF</span>
+          </Link>
           <a href={apiUrl("/export/json")} download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
             <FileJson style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
             <span className="text-[10px] lg:text-xs font-semibold">JSON</span>
-          </a>
-          <a href={apiUrl("/export/csv")} download className="flex flex-col items-center gap-0.5 lg:gap-1 px-4 lg:px-8 py-1.5 lg:py-2 rounded-xl lg:rounded-2xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors min-w-[60px] lg:min-w-[100px]">
-            <FileText style={{ width: 18, height: 18 }} className="lg:!w-5 lg:!h-5" />
-            <span className="text-[10px] lg:text-xs font-semibold">CSV</span>
           </a>
         </div>
       </nav>
