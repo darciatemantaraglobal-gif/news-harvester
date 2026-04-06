@@ -110,7 +110,7 @@ def _insert_source(sb, record: dict, content_hash: str) -> str | None:
         "source_url":      record.get("source_url", ""),
         "summary":         (record.get("summary") or "")[:600],
         "tags":            record.get("tags", []),
-        "status":          record.get("status", "published"),
+        "status":          record.get("status", "pending"),
         "cleaned_content": record.get("cleaned_content", ""),
         "content_hash":    content_hash,
         "updated_at":      datetime.now(tz=timezone.utc).isoformat(),
@@ -142,7 +142,7 @@ def _update_source(sb, source_id: str, record: dict, content_hash: str) -> bool:
         "source_name":     record.get("source_name", ""),
         "summary":         (record.get("summary") or "")[:600],
         "tags":            record.get("tags", []),
-        "status":          record.get("status", "published"),
+        "status":          record.get("status", "pending"),
         "cleaned_content": record.get("cleaned_content", ""),
         "content_hash":    content_hash,
         "updated_at":      datetime.now(tz=timezone.utc).isoformat(),
@@ -283,8 +283,8 @@ def ingest_scraped_articles_to_news_knowledge(
         articles:     List of article dicts from scraper.py / kemlu_scraper.py.
                       Same format as stored in data/scraped_articles.json.
         chunk_size:   Target characters per chunk (default 600).
-        skip_failed:  If True (default), skip articles with status='failed'.
-                      Set False to ingest partial/failed articles too.
+        skip_failed:  If True (default), skip articles with status='rejected'.
+                      Set False to ingest rejected articles too.
 
     Returns dict:
         {
@@ -321,12 +321,12 @@ def ingest_scraped_articles_to_news_knowledge(
         # Map to knowledge schema
         record = map_article_to_knowledge(raw_article)
 
-        # Skip failed articles if requested
-        if skip_failed and record["status"] == "failed":
+        # Skip rejected articles if requested
+        if skip_failed and record["status"] == "rejected":
             totals["skipped"] += 1
             totals["details"].append({
                 "url": record.get("source_url", ""),
-                "action": "skipped_failed",
+                "action": "skipped_rejected",
             })
             continue
 

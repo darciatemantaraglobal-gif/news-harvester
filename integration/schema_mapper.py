@@ -97,7 +97,7 @@ def map_article_to_knowledge(article: dict) -> dict:
             source_url      — original article URL
             summary         — short summary (existing or empty string)
             tags            — list of keyword tags
-            status          — "published" | "draft" | "failed"
+            status          — "ready" | "pending" | "rejected"  (AINA-compatible)
             cleaned_content — article body text (content field from scraper)
             created_at      — ISO 8601 UTC timestamp of mapping creation
 
@@ -128,19 +128,19 @@ def map_articles_to_knowledge(articles: list) -> list:
     """
     Batch-convert a list of scraped article dicts to knowledge records.
 
-    Filters out articles with status='failed' by default so only usable
-    content flows into downstream pipelines.  To include failed articles,
+    Filters out articles with status='rejected' so only usable content
+    flows into downstream pipelines.  To include rejected articles,
     use map_article_to_knowledge() directly and filter manually.
 
     Args:
         articles: list of article dicts from scraper.
 
     Returns:
-        list of knowledge record dicts (failed articles excluded).
+        list of knowledge record dicts (rejected articles excluded).
     """
     result = []
     for art in articles:
         rec = map_article_to_knowledge(art)
-        if rec["status"] != "failed":
+        if rec["status"] != "rejected":
             result.append(rec)
     return result
