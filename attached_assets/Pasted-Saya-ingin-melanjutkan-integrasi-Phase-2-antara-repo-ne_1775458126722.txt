@@ -1,0 +1,73 @@
+Saya ingin melanjutkan integrasi Phase 2 antara repo `news-harvester` dan repo AINA (`aina.web`) yang memakai Supabase yang sama.
+
+Konteks:
+- Phase 1 sudah menambahkan module additive untuk schema mapping dan chunking
+- Fungsi utama repo ini sebagai scraper berita harus tetap aman
+- Existing scraping flow harus tetap menjadi default
+- Tujuan Phase 2 adalah mulai MENULIS hasil scraping berita ke tabel baru Supabase:
+  - knowledge_sources
+  - knowledge_chunks
+
+PENTING:
+- Jangan merusak flow scraping berita yang sekarang
+- Jangan menghapus logic existing
+- Jangan membuat breaking changes
+- Semua perubahan harus additive atau optional
+- Existing news scraping behavior harus tetap default
+- Jika ada risiko merusak behavior lama, pertahankan implementation lama dan tambahkan jalur baru yang non-default / opt-in
+
+Tugas yang saya inginkan:
+
+1. Audit module Phase 1 yang sudah dibuat:
+   - integration/schema_mapper.py
+   - integration/chunker.py
+   Pastikan siap dipakai untuk pipeline write ke Supabase
+
+2. Tambahkan module/helper/storage adapter BARU untuk menulis ke tabel baru Supabase:
+   - knowledge_sources
+   - knowledge_chunks
+
+3. Implement flow baru untuk:
+   - mengambil artikel hasil scraping
+   - map ke schema knowledge_sources
+   - insert/upsert ke knowledge_sources
+   - chunk cleaned_content
+   - insert chunk ke knowledge_chunks
+   - menjaga relasi source_id dengan benar
+
+4. Gunakan Supabase project yang sama seperti existing repo
+   - manfaatkan environment variable yang sudah ada jika memungkinkan
+   - jangan ubah koneksi existing yang sudah dipakai flow lama jika tidak perlu
+
+5. Jalur baru ini jangan langsung menggantikan flow existing.
+   Buat salah satu pendekatan aman:
+   - mode opt-in via function terpisah
+   - flag/config terpisah
+   - command/helper terpisah
+   Yang penting: existing scrape lama tetap berjalan seperti biasa
+
+6. Jika memungkinkan, tambahkan fungsi high-level seperti:
+   - ingest_scraped_articles_to_news_knowledge(...)
+   atau nama lain yang jelas
+   Tapi jangan jadikan default pipeline
+
+7. Pastikan duplicate handling aman:
+   - jangan insert duplikat source sembarangan
+   - gunakan source_url / source id / hash jika perlu
+
+8. Pastikan chunk lama untuk source yang sama bisa diperbarui dengan aman jika source di-update
+
+9. Setelah selesai, berikan laporan dengan format:
+   - Ringkasan perubahan
+   - File yang ditambahkan/diubah
+   - Bagaimana flow existing tetap aman
+   - Bagaimana jalur write ke knowledge_sources/knowledge_chunks bekerja
+   - Apakah migration SQL sudah diasumsikan tersedia
+   - Apakah ada langkah manual yang perlu saya jalankan
+   - Contoh cara menjalankan jalur baru tanpa mengganggu flow lama
+
+PENTING:
+- Do not replace existing scraping flow
+- Do not change current endpoints/commands if they already work
+- Keep existing news scraping behavior as default
+- If any change risks breaking current behavior, stop and preserve the current implementation while only adding non-default supporting modules
