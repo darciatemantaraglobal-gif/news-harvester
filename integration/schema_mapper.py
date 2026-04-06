@@ -56,19 +56,24 @@ def _now_iso() -> str:
 
 def _map_scrape_status(scrape_status: str) -> str:
     """
-    Map internal scraper status to a knowledge-layer status vocabulary.
+    Map internal scraper status to AINA knowledge_sources status vocabulary.
+
+    Valid values accepted by AINA DB: pending, processing, ready, rejected
 
     Mapping:
-      success → published   (full content retrieved)
-      partial → draft       (content incomplete but usable)
-      failed  → failed      (unusable; kept for audit trail)
-      *       → draft       (safe default)
+      success → ready       (full content retrieved, siap dipakai)
+      partial → pending     (konten tidak lengkap, perlu review)
+      failed  → rejected    (tidak bisa dipakai)
+      *       → pending     (safe default)
     """
-    return {
-        "success": "published",
-        "partial": "draft",
-        "failed":  "failed",
-    }.get(str(scrape_status).lower(), "draft")
+    _MAP = {
+        "success": "ready",
+        "partial": "pending",
+        "failed":  "rejected",
+    }
+    mapped = _MAP.get(str(scrape_status).lower(), "pending")
+    print(f"[Mapper] Status: {scrape_status} → {mapped}")
+    return mapped
 
 
 # ─── Public API ──────────────────────────────────────────────────────────────
