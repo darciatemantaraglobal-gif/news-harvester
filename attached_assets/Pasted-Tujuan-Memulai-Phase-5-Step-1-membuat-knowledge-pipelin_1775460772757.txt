@@ -1,0 +1,120 @@
+Tujuan:
+Memulai Phase 5 Step 1: membuat knowledge pipeline news menjadi semi-otomatis dan mudah dimonitor, TANPA merusak flow scraping existing.
+
+PENTING:
+- Jangan ubah flow scraping utama yang sekarang sudah berjalan
+- Jangan hapus endpoint atau command existing
+- Semua perubahan harus additive-only
+- Existing behavior harus tetap aman dan tetap bisa dijalankan manual seperti sekarang
+
+==================================================
+STEP 1 — Tambahkan Scheduled Ingestion Mode
+
+Buat jalur otomatis yang bisa melakukan urutan ini:
+
+1. scrape berita
+2. hasil artikel diproses seperti sekarang
+3. map ke schema knowledge
+4. write ke knowledge_sources
+5. write ke knowledge_chunks
+
+PENTING:
+- jangan jadikan auto-run liar
+- gunakan mode yang aman:
+  - function terpisah
+  - scheduler terpisah
+  - atau APScheduler/Cron wrapper
+- existing manual flow tetap harus bisa dipakai
+
+==================================================
+STEP 2 — Buat High-Level Pipeline Function
+
+Tambahkan satu fungsi tingkat tinggi yang jelas, misalnya:
+run_scheduled_news_ingestion()
+
+Function ini harus:
+- menjalankan scrape
+- membaca hasil scrape
+- memanggil ingest_scraped_articles_to_news_knowledge()
+- menghasilkan ringkasan hasil run:
+  - total articles scraped
+  - inserted
+  - updated
+  - skipped
+  - rejected
+  - chunk count
+  - duration
+  - status success/fail
+
+==================================================
+STEP 3 — Tambahkan Logging yang Jelas
+
+Tambahkan log ringkas seperti:
+
+[Scheduler] start news ingestion
+[Scheduler] scraped=...
+[Scheduler] inserted=... updated=... skipped=...
+[Scheduler] chunks=...
+[Scheduler] done in Xs
+
+Jika gagal:
+[Scheduler] failed: ...
+
+==================================================
+STEP 4 — Tambahkan Basic Run History Storage (ringan)
+
+Jika aman dan sederhana, tambahkan salah satu:
+- file log JSON lokal
+- atau tabel Supabase ringan untuk ingestion_runs
+- atau helper yang menyimpan ringkasan run terakhir
+
+Minimal simpan:
+- started_at
+- finished_at
+- status
+- scraped_count
+- inserted_count
+- updated_count
+- skipped_count
+- rejected_count
+- chunk_count
+- error_message (nullable)
+
+Pilih implementasi yang paling ringan dan tidak merusak flow existing.
+
+==================================================
+STEP 5 — Tambahkan Scheduler yang Aman
+
+Tambahkan scheduler yang bisa diaktifkan lewat ENV, misalnya:
+ENABLE_SCHEDULED_INGESTION=true
+SCHEDULE_INTERVAL_MINUTES=360
+
+Aturan:
+- jika env tidak aktif → scheduler tidak jalan
+- jika aktif → scheduler jalan sesuai interval
+- jangan ubah scheduler existing kalau ada, cukup tambah jalur baru aman
+
+==================================================
+STEP 6 — Tambahkan Safety
+
+- Jangan jalankan 2 ingestion bersamaan
+- Tambahkan guard sederhana agar satu run harus selesai dulu sebelum run berikutnya mulai
+- Jika DB/schema belum siap, log error tapi jangan merusak scraper lama
+- Jika scrape gagal, tetap hasilkan summary failed
+
+==================================================
+STEP 7 — Laporan
+
+Setelah selesai, berikan laporan:
+- file yang ditambahkan/diubah
+- apakah flow lama tetap aman
+- bagaimana cara menjalankan mode otomatis
+- bagaimana cara mematikannya
+- bagaimana cara melihat hasil/history run
+- risiko yang masih ada
+
+PENTING:
+- Do not replace existing scraping flow
+- Keep manual scraping behavior intact
+- All changes must be additive-only
+- Prefer minimal safe scheduling over broad refactors
