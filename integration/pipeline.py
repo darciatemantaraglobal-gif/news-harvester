@@ -15,7 +15,13 @@
 #   SCHEDULE_INTERVAL_MINUTES=360            — run interval (default 6 hours)
 #   INGESTION_SCRAPE_URL=https://...         — fallback URL if scheduler cfg empty
 #
-# Run history is stored in data/ingestion_history.json (last 50 runs).
+# Run history:
+#   Primary   — data/ingestion_history.json (local, last 50 runs)
+#   Secondary — Supabase table harvester_runs (cross-service, opt-in)
+#               Written only if SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set.
+#               Requires 003_harvester_runs.sql migration to be run first.
+#               Failure to write to Supabase never affects the ingestion pipeline.
+#
 # Never auto-invoked at import time.
 
 import json
@@ -260,7 +266,53 @@ def run_scheduled_news_ingestion(
         _ingestion_lock.release()
 
     _save_run_history(summary)
+    _push_run_to_supabase(summary)
     return summary
+
+
+# ─── Supabase run-history sync (opt-in, cross-service) ───────────────────────
+
+def _push_run_to_supabase(summary: dict) -> None:
+    """
+    Write one ingestion run summary to Supabase table `harvester_runs`.
+
+    Completely opt-in:
+      - Only runs if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.
+      - Any error is logged as a WARNING and silently swallowed — the main
+        pipeline result is never affected by this call.
+      - Requires 003_harvester_runs.sql migration to be run in Supabase first.
+
+    Fields inserted (all from the `summary` dict):
+      started_at, finished_at, status, duration_sec, url,
+      scraped_count, inserted, updated, skipped, rejected,
+      chunk_count, error_message
+    """
+    url      = os.environ.get("SUPABASE_URL", "").strip()
+    svc_key  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    if not url or not svc_key:
+        return  # Not configured — skip silently
+
+    try:
+        from supabase import create_client
+        sb = create_client(url, svc_key)
+        payload = {
+            "started_at":    summary.get("started_at"),
+            "finished_at":   summary.get("finished_at"),
+            "status":        summary.get("status", "unknown"),
+            "duration_sec":  summary.get("duration_sec", 0),
+            "url":           summary.get("url", ""),
+            "scraped_count": summary.get("scraped_count", 0),
+            "inserted":      summary.get("inserted", 0),
+            "updated":       summary.get("updated", 0),
+            "skipped":       summary.get("skipped", 0),
+            "rejected":      summary.get("rejected", 0),
+            "chunk_count":   summary.get("chunk_count", 0),
+            "error_message": summary.get("error_message"),
+        }
+        sb.table("harvester_runs").insert(payload).execute()
+        logger.info("[Scheduler] Run summary pushed to Supabase harvester_runs")
+    except Exception as exc:
+        logger.warning(f"[Scheduler] Could not push run to Supabase (non-fatal): {exc}")
 
 
 # ─── Optional background scheduler ───────────────────────────────────────────

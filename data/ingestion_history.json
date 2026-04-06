@@ -26,5 +26,33 @@
     "rejected": 0,
     "chunk_count": 0,
     "error_message": "No scrape URL configured. Set INGESTION_SCRAPE_URL env var or configure a URL via the Scraper Scheduler settings."
+  },
+  {
+    "started_at": "2026-04-06T07:48:56Z",
+    "finished_at": "2026-04-06T07:48:56Z",
+    "status": "failed",
+    "duration_sec": 0.0,
+    "url": "",
+    "scraped_count": 0,
+    "inserted": 0,
+    "updated": 0,
+    "skipped": 0,
+    "rejected": 0,
+    "chunk_count": 0,
+    "error_message": "No scrape URL configured. Set INGESTION_SCRAPE_URL env var or configure a URL via the Scraper Scheduler settings."
+  },
+  {
+    "started_at": "2026-04-06T07:51:19Z",
+    "finished_at": "2026-04-06T07:51:19Z",
+    "status": "failed",
+    "duration_sec": 0.0,
+    "url": "",
+    "scraped_count": 0,
+    "inserted": 0,
+    "updated": 0,
+    "skipped": 0,
+    "rejected": 0,
+    "chunk_count": 0,
+    "error_message": "No scrape URL configured. Set INGESTION_SCRAPE_URL env var or configure a URL via the Scraper Scheduler settings."
   }
 ]
