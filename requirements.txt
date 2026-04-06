@@ -8,3 +8,4 @@ openai
 supabase
 gunicorn
 pdfplumber
+pymupdf

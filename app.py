@@ -1,6 +1,7 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata, logging, time
 import pdfplumber
+import fitz  # PyMuPDF
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
@@ -9,7 +10,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
-from ai_services import generate_ai_summary, check_openai_available
+from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page
 from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
@@ -805,82 +806,161 @@ def api_push_approved():
     })
 
 
+def _safe_pdf_slug(filename: str, suffix: str = "") -> str:
+    """Buat slug aman dari nama file PDF (bisa non-ASCII/Arab)."""
+    base = os.path.splitext(filename)[0]
+    # Try ASCII slug first
+    slug = generate_slug(base)
+    if not slug:
+        # Fallback: hex of filename + suffix
+        slug = re.sub(r"[^a-z0-9]", "-", base.lower())[:30].strip("-") or "kitab"
+    if suffix:
+        slug = f"{slug}-{suffix}"
+    return slug[:80]
+
+
 @app.route("/api/pdf/upload", methods=["POST"])
 def api_pdf_upload():
-    """Upload satu atau lebih PDF, ekstrak teks, simpan sebagai KB draft."""
+    """
+    Upload satu atau lebih PDF, ekstrak teks (+ opsional OCR untuk scan),
+    chunk per N halaman, simpan tiap chunk sebagai KB draft terpisah.
+    """
     files = request.files.getlist("files")
     if not files or all(f.filename == "" for f in files):
         return jsonify({"error": "Tidak ada file PDF yang diupload."}), 400
 
+    # Form params
+    category = request.form.get("category", "").strip()          # e.g. "Fiqh"
+    chunk_size = max(5, min(100, int(request.form.get("chunk_size", "20"))))
+    use_ocr = request.form.get("use_ocr", "false").lower() == "true"
+    ocr_available = check_openai_available()
+
     kb = _load_kb()
     now = _now_iso()
-    results = []
+    all_results = []
 
     for file in files:
         fname = file.filename or ""
         if not fname.lower().endswith(".pdf"):
-            results.append({"filename": fname, "status": "error", "error": "Bukan file PDF"})
+            all_results.append({"filename": fname, "status": "error", "error": "Bukan file PDF"})
             continue
+
         try:
             pdf_bytes = file.read()
-            pages_text = []
+
+            # ── Phase 1: Extract text per page (pdfplumber + optional OCR) ──
+            pages_text = []   # list of (page_num, text, is_scan)
+            scan_pages = 0
+            text_pages = 0
+
+            fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            total_pages = len(fitz_doc)
+
             with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                for page in pdf.pages:
-                    text = page.extract_text()
-                    if text and text.strip():
-                        pages_text.append(text.strip())
+                for i, page in enumerate(pdf.pages):
+                    raw_text = (page.extract_text() or "").strip()
+                    if raw_text and len(raw_text) > 20:
+                        pages_text.append((i + 1, raw_text, False))
+                        text_pages += 1
+                    else:
+                        # Scan page — try OCR if enabled
+                        if use_ocr and ocr_available:
+                            try:
+                                fitz_page = fitz_doc[i]
+                                mat = fitz.Matrix(2, 2)  # 2x zoom for clarity
+                                pix = fitz_page.get_pixmap(matrix=mat)
+                                img_bytes = pix.tobytes("png")
+                                ocr_text = ocr_arabic_page(img_bytes)
+                                if ocr_text and len(ocr_text) > 10:
+                                    pages_text.append((i + 1, ocr_text, True))
+                                else:
+                                    pages_text.append((i + 1, "", True))
+                            except Exception as ocr_err:
+                                logger.warning(f"[PDF OCR] Halaman {i+1}: {ocr_err}")
+                                pages_text.append((i + 1, "", True))
+                        else:
+                            pages_text.append((i + 1, "", True))
+                        scan_pages += 1
 
-            if not pages_text:
-                results.append({"filename": fname, "status": "error", "error": "PDF tidak dapat diekstrak (mungkin berisi gambar/scan saja)"})
-                continue
+            fitz_doc.close()
 
-            full_text = "\n\n".join(pages_text)
-            title = os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").strip()
-            slug = generate_slug(title)
-            tags = generate_tags(title + " " + full_text[:600])
-            summary = generate_summary(title, full_text)
-            article_id = f"pdf-{slug}-{int(time.time())}"
+            # ── Phase 2: Build display title from filename ──
+            base_title = os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").strip()
+            extra_tags = [category] if category else []
 
-            kb_article = {
-                "id": article_id,
-                "title": title,
-                "slug": slug,
-                "source_url": f"pdf://{fname}",
-                "published_date": now[:10],
-                "content": full_text,
-                "summary": summary,
-                "tags": tags,
-                "scrape_status": "success",
-                "approval_status": "pending",
-                "last_updated": now,
-                "notes": "",
-                "source_type": "pdf",
-            }
+            # ── Phase 3: Chunk pages into KB articles ──
+            chunks_created = 0
+            ts = int(time.time())
 
-            existing_idx = next((i for i, a in enumerate(kb) if a.get("id") == article_id), None)
-            if existing_idx is not None:
-                kb[existing_idx] = kb_article
-            else:
-                kb.append(kb_article)
+            for chunk_idx, start in enumerate(range(0, len(pages_text), chunk_size)):
+                chunk_pages = pages_text[start:start + chunk_size]
+                page_start = chunk_pages[0][0]
+                page_end = chunk_pages[-1][0]
 
-            results.append({
+                chunk_text = "\n\n".join(t for _, t, _ in chunk_pages if t).strip()
+                if not chunk_text:
+                    continue  # skip empty chunks (all-scan with no OCR)
+
+                if total_pages > chunk_size:
+                    chunk_title = f"{base_title} — Hal. {page_start}–{page_end}"
+                    slug_suffix = f"hal{page_start}-{page_end}-{ts}"
+                else:
+                    chunk_title = base_title
+                    slug_suffix = str(ts)
+
+                slug = _safe_pdf_slug(fname, slug_suffix)
+                tags = list(set(extra_tags + generate_tags(chunk_title, chunk_text[:600])))
+                summary = generate_summary(chunk_title, chunk_text)
+                article_id = f"pdf-{slug}"
+
+                kb_article = {
+                    "id": article_id,
+                    "title": chunk_title,
+                    "slug": slug,
+                    "source_url": f"pdf://{fname}",
+                    "published_date": now[:10],
+                    "content": chunk_text,
+                    "summary": summary,
+                    "tags": tags,
+                    "scrape_status": "success",
+                    "approval_status": "pending",
+                    "last_updated": now,
+                    "notes": f"Sumber: {fname}, Hal. {page_start}-{page_end}",
+                    "source_type": "pdf",
+                }
+
+                idx = next((j for j, a in enumerate(kb) if a.get("id") == article_id), None)
+                if idx is not None:
+                    kb[idx] = kb_article
+                else:
+                    kb.append(kb_article)
+
+                chunks_created += 1
+
+            all_results.append({
                 "filename": fname,
-                "status": "ok",
-                "id": article_id,
-                "title": title,
-                "pages": len(pages_text),
-                "chars": len(full_text),
+                "status": "ok" if chunks_created > 0 else "error",
+                "error": "Tidak ada teks yang bisa diekstrak dari PDF ini." if chunks_created == 0 else None,
+                "title": base_title,
+                "total_pages": total_pages,
+                "text_pages": text_pages,
+                "scan_pages": scan_pages,
+                "chunks": chunks_created,
             })
+
         except Exception as e:
-            results.append({"filename": fname, "status": "error", "error": str(e)[:300]})
+            logger.error(f"[PDF] Error processing {fname}: {e}")
+            all_results.append({"filename": fname, "status": "error", "error": str(e)[:300]})
 
     _save_kb(kb)
-    ok_count = sum(1 for r in results if r["status"] == "ok")
+    ok_count = sum(1 for r in all_results if r.get("status") == "ok")
+    total_chunks = sum(r.get("chunks", 0) for r in all_results)
     return jsonify({
         "status": "ok",
         "processed": ok_count,
         "total": len(files),
-        "results": results,
+        "total_chunks": total_chunks,
+        "results": all_results,
     })
 
 
