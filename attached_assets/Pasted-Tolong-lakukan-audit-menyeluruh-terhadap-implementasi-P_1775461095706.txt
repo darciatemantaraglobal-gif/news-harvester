@@ -1,0 +1,127 @@
+Tolong lakukan audit menyeluruh terhadap implementasi Phase 5 Step 1 pada repo ini.
+
+Tujuan audit:
+- Memastikan scheduled ingestion bekerja dengan aman
+- Memastikan flow scraping lama tetap utuh
+- Memastikan monitoring/run history dasar tersedia
+- Memastikan semua perubahan additive-only dan non-breaking
+
+Fokus audit:
+
+==================================================
+
+1. Validasi Struktur Perubahan
+
+- File apa saja yang ditambahkan?
+- File apa saja yang diubah?
+- Apakah ada file inti existing yang disentuh secara destructive?
+- Apakah perubahan bersifat additive-only?
+
+==================================================
+
+2. Validasi Scheduled Ingestion
+
+- Apakah fungsi high-level seperti run_scheduled_news_ingestion() benar-benar ada?
+- Apakah fungsi ini menjalankan urutan:
+  scrape → process → map → ingest → chunk → summary?
+- Apakah fungsi ini bisa berjalan tanpa mengganggu manual flow lama?
+
+==================================================
+
+3. Validasi Scheduler
+
+- Apakah scheduler benar-benar ada?
+- Apakah scheduler hanya aktif jika ENV diaktifkan?
+- ENV apa saja yang dipakai? (contoh: ENABLE_SCHEDULED_INGESTION, SCHEDULE_INTERVAL_MINUTES)
+- Jika ENV tidak aktif, apakah scheduler benar-benar tidak jalan?
+- Apakah ada risiko scheduler auto-run liar?
+
+==================================================
+
+4. Validasi Safety
+
+- Apakah ada guard untuk mencegah 2 ingestion berjalan bersamaan?
+- Jika scraping gagal, apakah tetap ada summary failed?
+- Jika DB/schema belum siap, apakah hanya log error tanpa merusak flow lama?
+- Jika ingest gagal di tengah, apakah status/log tetap tercatat?
+
+==================================================
+
+5. Validasi Run Summary / History
+
+- Apakah ada run summary yang jelas?
+- Field apa saja yang dicatat?
+  - started_at
+  - finished_at
+  - status
+  - scraped_count
+  - inserted_count
+  - updated_count
+  - skipped_count
+  - rejected_count
+  - chunk_count
+  - error_message
+- Disimpan di mana?
+  - file JSON?
+  - Supabase table?
+  - storage lain?
+- Apakah history ini bisa dibaca dengan stabil?
+
+==================================================
+
+6. Validasi Flow Existing
+
+Jawab jelas:
+- Apakah flow scraping manual lama masih utuh?
+- Apakah endpoint /api/scrape dan flow lama tetap bekerja seperti sebelumnya?
+- Apakah tidak ada perubahan pada endpoint/command lama?
+- Apakah fitur baru tidak menjadi default yang memaksa behavior lama berubah?
+
+==================================================
+
+7. Simulasi Before vs After
+
+Jelaskan secara singkat:
+- sebelum Phase 5 Step 1: bagaimana flow berjalan
+- setelah Phase 5 Step 1: flow manual + flow scheduled bagaimana
+Pastikan terlihat jelas bahwa manual flow tetap aman
+
+==================================================
+
+8. Risiko & Bug Potensial
+
+Cari kemungkinan:
+- double ingestion
+- scheduler jalan liar
+- run history tidak sinkron
+- error di scheduler mengganggu app utama
+- write ke DB berhasil tapi summary salah
+- summary berhasil tapi chunks gagal
+
+==================================================
+
+9. Kesimpulan
+
+Berikan verdict:
+- AMAN
+- PERLU FIX
+- BERISIKO
+
+Dan jelaskan alasannya secara tegas.
+
+==================================================
+
+10. Bonus Improvement
+
+Berikan saran ringan tanpa refactor besar:
+- retry
+- alerting
+- run lock
+- monitoring improvement
+- dry-run mode
+
+PENTING:
+- Jangan menambah fitur baru
+- Jangan menulis ulang code
+- Fokus hanya pada audit dan pelaporan
+- Jawaban harus jujur, spesifik, dan teknis secukupnya
