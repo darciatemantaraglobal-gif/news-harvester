@@ -10,7 +10,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
-from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page
+from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch
 from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
@@ -830,10 +830,13 @@ def api_pdf_upload():
         return jsonify({"error": "Tidak ada file PDF yang diupload."}), 400
 
     # Form params
-    category = request.form.get("category", "").strip()          # e.g. "Fiqh"
+    category = request.form.get("category", "").strip()
     chunk_size = max(5, min(100, int(request.form.get("chunk_size", "20"))))
     use_ocr = request.form.get("use_ocr", "false").lower() == "true"
+    # Max scan pages to OCR per file — caps cost (default 150, user-configurable)
+    max_ocr_pages = max(10, min(500, int(request.form.get("max_ocr_pages", "150"))))
     ocr_available = check_openai_available()
+    OCR_BATCH = 4  # Halaman per API call — 4x lebih sedikit calls
 
     kb = _load_kb()
     now = _now_iso()
@@ -848,9 +851,10 @@ def api_pdf_upload():
         try:
             pdf_bytes = file.read()
 
-            # ── Phase 1: Extract text per page (pdfplumber + optional OCR) ──
+            # ── Phase 1: Extract text per page ──
+            # First pass: pdfplumber for text, collect scan page indices
             pages_text = []   # list of (page_num, text, is_scan)
-            scan_pages = 0
+            scan_page_indices = []
             text_pages = 0
 
             fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -863,24 +867,40 @@ def api_pdf_upload():
                         pages_text.append((i + 1, raw_text, False))
                         text_pages += 1
                     else:
-                        # Scan page — try OCR if enabled
-                        if use_ocr and ocr_available:
-                            try:
-                                fitz_page = fitz_doc[i]
-                                mat = fitz.Matrix(2, 2)  # 2x zoom for clarity
-                                pix = fitz_page.get_pixmap(matrix=mat)
-                                img_bytes = pix.tobytes("png")
-                                ocr_text = ocr_arabic_page(img_bytes)
-                                if ocr_text and len(ocr_text) > 10:
-                                    pages_text.append((i + 1, ocr_text, True))
-                                else:
-                                    pages_text.append((i + 1, "", True))
-                            except Exception as ocr_err:
-                                logger.warning(f"[PDF OCR] Halaman {i+1}: {ocr_err}")
-                                pages_text.append((i + 1, "", True))
-                        else:
-                            pages_text.append((i + 1, "", True))
-                        scan_pages += 1
+                        pages_text.append((i + 1, "", True))  # placeholder
+                        scan_page_indices.append(i)
+
+            scan_pages = len(scan_page_indices)
+
+            # Second pass: batch OCR for scan pages (if enabled and under cap)
+            if use_ocr and ocr_available and scan_page_indices:
+                ocr_indices = scan_page_indices[:max_ocr_pages]
+                ocr_skipped = len(scan_page_indices) - len(ocr_indices)
+                if ocr_skipped > 0:
+                    logger.info(f"[PDF OCR] Cap: {ocr_skipped} halaman scan di-skip (limit {max_ocr_pages})")
+
+                # Render scan pages at 1.5x (cheaper/faster than 2x, still readable)
+                mat = fitz.Matrix(1.5, 1.5)
+                scan_imgs = {}  # page_idx → png bytes
+                for i in ocr_indices:
+                    pix = fitz_doc[i].get_pixmap(matrix=mat)
+                    scan_imgs[i] = pix.tobytes("png")
+
+                # Batch OCR (4 pages per API call)
+                idx_list = list(scan_imgs.keys())
+                for batch_start in range(0, len(idx_list), OCR_BATCH):
+                    batch_idx = idx_list[batch_start:batch_start + OCR_BATCH]
+                    batch_imgs = [scan_imgs[j] for j in batch_idx]
+                    try:
+                        ocr_texts = ocr_arabic_pages_batch(batch_imgs)
+                        for j, ocr_text in zip(batch_idx, ocr_texts):
+                            # Update the placeholder in pages_text
+                            for k, (pnum, _, is_scan) in enumerate(pages_text):
+                                if pnum == j + 1 and is_scan:
+                                    pages_text[k] = (pnum, ocr_text or "", True)
+                                    break
+                    except Exception as ocr_err:
+                        logger.warning(f"[PDF OCR] Batch error: {ocr_err}")
 
             fitz_doc.close()
 
@@ -937,6 +957,7 @@ def api_pdf_upload():
 
                 chunks_created += 1
 
+            ocr_pages_done = len(scan_page_indices[:max_ocr_pages]) if (use_ocr and ocr_available) else 0
             all_results.append({
                 "filename": fname,
                 "status": "ok" if chunks_created > 0 else "error",
@@ -945,6 +966,7 @@ def api_pdf_upload():
                 "total_pages": total_pages,
                 "text_pages": text_pages,
                 "scan_pages": scan_pages,
+                "ocr_pages_done": ocr_pages_done,
                 "chunks": chunks_created,
             })
 

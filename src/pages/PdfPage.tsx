@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   FileText, Upload, Loader2, ChevronLeft, CheckCircle2,
   AlertCircle, BookOpen, Newspaper, CheckSquare, X,
-  Sparkles, Info, ScanLine, Layers,
+  Sparkles, Info, ScanLine, Layers, DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +15,7 @@ interface UploadResult {
   total_pages?: number;
   text_pages?: number;
   scan_pages?: number;
+  ocr_pages_done?: number;
   chunks?: number;
   error?: string | null;
 }
@@ -24,16 +25,27 @@ const CATEGORIES = [
   "Sirah", "Nahwu / Sharaf", "Bahasa Arab", "Umum",
 ];
 
+// Estimasi biaya per halaman scan dengan gpt-4o-mini + detail:low
+// Image tokens (low): 85 × $0.15/1M = $0.0000128
+// Output tokens (~300 per hal): 300 × $0.60/1M = $0.00018
+const COST_PER_SCAN_PAGE_USD = 0.0002;
+
+function formatCost(pages: number): string {
+  const usd = pages * COST_PER_SCAN_PAGE_USD;
+  if (usd < 0.01) return `<$0.01`;
+  return `~$${usd.toFixed(2)}`;
+}
+
 export default function PdfPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<UploadResult[]>([]);
   const [dragOver, setDragOver] = useState(false);
 
-  // Options
   const [category, setCategory] = useState("");
   const [chunkSize, setChunkSize] = useState(20);
   const [useOcr, setUseOcr] = useState(false);
+  const [maxOcrPages, setMaxOcrPages] = useState(150);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +75,7 @@ export default function PdfPage() {
     fd.append("category", category);
     fd.append("chunk_size", String(chunkSize));
     fd.append("use_ocr", useOcr ? "true" : "false");
+    fd.append("max_ocr_pages", String(maxOcrPages));
 
     try {
       const res = await fetch(apiUrl("/api/pdf/upload"), { method: "POST", body: fd });
@@ -81,6 +94,8 @@ export default function PdfPage() {
 
   const okResults = results.filter(r => r.status === "ok");
   const totalChunks = okResults.reduce((sum, r) => sum + (r.chunks ?? 0), 0);
+  const totalOcrDone = okResults.reduce((sum, r) => sum + (r.ocr_pages_done ?? 0), 0);
+  const estimatedCost = formatCost(maxOcrPages * files.length);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f0f1f8] text-slate-900">
@@ -131,11 +146,11 @@ export default function PdfPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
                 <div className="flex items-start gap-2 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span><strong>PDF teks digital:</strong> ekstraksi langsung, akurat, cepat.</span>
+                  <span><strong>PDF teks digital:</strong> ekstraksi langsung, akurat, cepat. Tanpa biaya AI.</span>
                 </div>
                 <div className="flex items-start gap-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                   <ScanLine className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span><strong>PDF scan/gambar:</strong> aktifkan AI OCR untuk baca teks Arab.</span>
+                  <span><strong>PDF scan/gambar:</strong> aktifkan AI OCR. Biaya ~$0.0002/halaman — 100 hal ≈ $0.02.</span>
                 </div>
               </div>
             </div>
@@ -197,13 +212,64 @@ export default function PdfPage() {
                 </div>
                 {useOcr ? "OCR Aktif" : "OCR Nonaktif"}
               </button>
-              {useOcr && (
-                <p className="text-[10px] text-violet-600 flex items-center gap-1">
-                  <Info className="w-3 h-3" />Butuh OPENAI_API_KEY. Per-halaman, bisa lama.
+              {!useOcr && (
+                <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <Info className="w-3 h-3" />Gratis — hanya untuk PDF teks digital.
                 </p>
               )}
             </div>
           </div>
+
+          {/* OCR settings (only when OCR enabled) */}
+          {useOcr && (
+            <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-600" />
+                <span className="text-sm font-semibold text-violet-800">Pengaturan AI OCR</span>
+              </div>
+
+              {/* Max OCR pages slider */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-600">Maks. halaman scan di-OCR per file</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range" min={10} max={500} step={10}
+                    value={maxOcrPages}
+                    onChange={e => setMaxOcrPages(Number(e.target.value))}
+                    className="flex-1 accent-violet-600"
+                  />
+                  <span className="text-sm font-bold text-violet-700 w-16 text-right">{maxOcrPages} hal</span>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Halaman scan melebihi limit ini akan di-skip (tidak di-OCR).
+                  Berguna untuk membatasi biaya kitab tebal.
+                </p>
+              </div>
+
+              {/* Cost estimate */}
+              <div className="bg-white border border-violet-200 rounded-lg px-3 py-2.5 flex items-center gap-2.5">
+                <DollarSign className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="text-xs text-slate-600 space-y-0.5">
+                  <div className="font-semibold text-slate-700">Estimasi biaya OCR (per file)</div>
+                  <div>
+                    Maks <strong className="text-violet-700">{maxOcrPages} hal</strong> × $0.0002 ≈{" "}
+                    <strong className="text-emerald-600">{formatCost(maxOcrPages)}</strong> per file
+                    {files.length > 1 && (
+                      <span className="text-slate-400"> · {files.length} file = maks {estimatedCost}</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Menggunakan gpt-4o-mini + detail rendah (dioptimasi untuk hemat biaya)
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-[11px] text-violet-700">
+                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>Butuh <strong>OPENAI_API_KEY</strong>. Proses OCR 4 halaman per API call (batch) — lebih cepat dari sebelumnya.</span>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-slate-100" />
 
@@ -250,13 +316,13 @@ export default function PdfPage() {
                 <Button onClick={doUpload} disabled={uploading} className="w-full mt-2 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10">
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {uploading
-                    ? `Memproses${useOcr ? " + OCR Arab..." : "..."}`
-                    : `Proses ${files.length} PDF${category ? ` — ${category}` : ""}`}
+                    ? `Memproses${useOcr ? " + OCR Arab (batch)..." : "..."}`
+                    : `Proses ${files.length} PDF${category ? ` — ${category}` : ""}${useOcr ? ` + OCR` : ""}`}
                 </Button>
                 {uploading && useOcr && (
                   <p className="text-[11px] text-violet-600 text-center flex items-center justify-center gap-1.5">
                     <Sparkles className="w-3 h-3 animate-pulse" />
-                    OCR halaman scan via AI — proses lebih lama untuk ratusan halaman
+                    OCR Arab berjalan · 4 halaman per API call · estimasi biaya maks {estimatedCost}
                   </p>
                 )}
               </div>
@@ -283,7 +349,10 @@ export default function PdfPage() {
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
                   <strong>{totalChunks} KB Draft</strong> berhasil dibuat dari {okResults.length} PDF.
-                  Sekarang buka Review Dashboard untuk approve dan push ke Supabase.
+                  {totalOcrDone > 0 && (
+                    <> · <strong className="text-violet-700">{totalOcrDone} hal</strong> di-OCR
+                    · biaya ≈ {formatCost(totalOcrDone)}</>
+                  )}
                 </span>
               </div>
             )}
@@ -299,7 +368,7 @@ export default function PdfPage() {
                   </div>
 
                   {r.status === "ok" ? (
-                    <div className="pl-6 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 mt-1">
+                    <div className="pl-6 grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-1 mt-1">
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Total Hal.</p>
                         <p className="text-sm font-bold text-slate-700">{r.total_pages ?? "—"}</p>
@@ -313,6 +382,12 @@ export default function PdfPage() {
                         <p className={`text-sm font-bold ${(r.scan_pages ?? 0) > 0 ? "text-amber-500" : "text-slate-400"}`}>{r.scan_pages ?? 0}</p>
                       </div>
                       <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">OCR Done</p>
+                        <p className={`text-sm font-bold ${(r.ocr_pages_done ?? 0) > 0 ? "text-violet-600" : "text-slate-300"}`}>
+                          {(r.ocr_pages_done ?? 0) > 0 ? r.ocr_pages_done : "—"}
+                        </p>
+                      </div>
+                      <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">KB Draft</p>
                         <p className="text-sm font-bold text-indigo-600">{r.chunks ?? 0}</p>
                       </div>
@@ -321,6 +396,12 @@ export default function PdfPage() {
                     <p className="pl-6 text-[11px] text-red-600 mt-1">{r.error}</p>
                   )}
 
+                  {r.status === "ok" && (r.ocr_pages_done ?? 0) > 0 && (
+                    <div className="pl-6 mt-2 flex items-center gap-1.5 text-[11px] text-violet-600">
+                      <DollarSign className="w-3 h-3 shrink-0" />
+                      <span>Biaya OCR: {r.ocr_pages_done} hal × $0.0002 ≈ {formatCost(r.ocr_pages_done ?? 0)}</span>
+                    </div>
+                  )}
                   {r.status === "ok" && (r.scan_pages ?? 0) > 0 && !useOcr && (
                     <div className="pl-6 mt-2 flex items-start gap-1.5 text-[11px] text-amber-700">
                       <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
