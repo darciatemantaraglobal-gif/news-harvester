@@ -1,0 +1,61 @@
+Saya ingin menyiapkan fondasi integrasi dengan repo AINA (`aina.web`) yang memakai Supabase yang sama.
+
+PENTING:
+- Jangan menghapus atau mengubah fungsi utama repo ini sebagai scraper berita
+- Jangan merusak flow scraping berita yang sekarang sudah berjalan
+- Jangan membuat breaking changes
+- Existing news scraping behavior harus tetap menjadi default
+- Semua perubahan harus additive only (menambah module/helper/adapter baru), bukan rewrite atau replace logic lama
+
+Fokus tugas ini hanya tahap 1: persiapan output data yang lebih rapi.
+
+Tolong lakukan hal berikut:
+
+1. Audit flow scraping berita yang ada sekarang:
+   - scraper mana yang aktif
+   - alur ambil konten → cleaning → processing → storage/output
+   - file mana saja yang terlibat
+
+2. Pertahankan flow existing apa adanya.
+
+3. Tambahkan module/helper BARU untuk membentuk hasil scraping berita ke schema knowledge umum seperti ini:
+   - id
+   - title
+   - source_type = "news"
+   - source_name
+   - source_url
+   - summary
+   - tags
+   - status
+   - cleaned_content
+   - created_at
+
+4. Tambahkan juga helper/function BARU untuk membentuk knowledge chunks dari artikel berita ke format:
+   - source_id
+   - chunk_index
+   - chunk_text
+   - chunk_summary
+   - topic
+   - metadata_json
+
+5. Jika perlu, buat chunking sederhana untuk artikel berita, tetapi:
+   - jangan mengganti flow scraping lama
+   - jangan mengubah output existing yang sedang dipakai
+   - cukup tambahkan jalur output baru yang siap dipakai nanti
+
+6. Pisahkan logika baru sebersih mungkin, misalnya:
+   - formatter / mapper baru
+   - chunker baru
+   - storage adapter baru
+   tanpa mengganggu module existing
+
+7. Setelah selesai, berikan:
+   - daftar file yang diubah/ditambahkan
+   - before vs after singkat
+   - penjelasan bagian mana yang baru ditambahkan
+   - konfirmasi bahwa news scraping existing tetap default dan tidak diubah
+
+Aturan penting:
+- Do not replace existing scraping flow
+- Do not change current commands/endpoints if they already work
+- If any change risks breaking current behavior, stop and preserve the current implementation while only adding non-default supporting modules
