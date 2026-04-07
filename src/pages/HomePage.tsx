@@ -55,26 +55,27 @@ export default function HomePage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col flex-1 px-3 sm:px-6 pb-20 pt-6 sm:pt-10">
+      <div className="relative z-10 flex flex-col flex-1 px-3 sm:px-6 pb-16 pt-5 sm:pt-10">
 
         {/* ── Hero ── */}
-        <div className="flex flex-col items-center text-center mb-6 sm:mb-10">
-          {/* Logo — transparent box, glow only */}
-          <div className="relative mb-3 sm:mb-5">
-            <div className="absolute inset-0 scale-[2] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex flex-col items-center text-center mb-4 sm:mb-10">
+          {/* Logo */}
+          <div className="relative mb-2 sm:mb-5">
+            <div className="absolute inset-0 scale-[2.5] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
             <img
               src="/AIGYPT_logo.png"
               alt="AINA"
-              className="relative w-14 h-14 sm:w-20 sm:h-20 object-contain"
-              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 14px rgba(200,160,255,1))" }}
+              className="relative w-10 h-10 sm:w-20 sm:h-20 object-contain"
+              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 12px rgba(200,160,255,1))" }}
             />
           </div>
 
           {/* Title — Sunspire font */}
           <h1
-            className="text-[2.6rem] sm:text-6xl leading-none"
+            className="leading-none"
             style={{
               fontFamily: "'Sunspire', cursive",
+              fontSize: "clamp(1.6rem, 10vw, 3.75rem)",
               background: "linear-gradient(135deg, #ffffff 0%, #d8b4fe 55%, #a78bfa 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
@@ -83,85 +84,86 @@ export default function HomePage() {
           >
             AINA Scraper
           </h1>
-          <p className="mt-2 text-purple-400/70 text-xs sm:text-sm font-medium tracking-wide">
+          <p className="mt-1 sm:mt-2 text-purple-400/60 text-[10px] sm:text-sm font-medium tracking-wide">
             Internal Knowledge Scraping Tool
           </p>
 
           {/* Flow badge */}
-          <div className="mt-3 sm:mt-5 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 sm:px-4 py-1 sm:py-1.5">
-            <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-400" />
-            <span className="text-[10px] sm:text-[11px] text-violet-300 font-semibold tracking-wider uppercase">
+          <div className="mt-2 sm:mt-5 flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-2.5 sm:px-4 py-1">
+            <Zap className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-violet-400 shrink-0" />
+            <span className="text-[9px] sm:text-[11px] text-violet-300 font-semibold tracking-wider uppercase whitespace-nowrap">
               Pilih sumber · Review · Kirim ke Supabase
             </span>
           </div>
         </div>
 
-        {/* ── Step 1: Source cards ── */}
-        <div className="mb-4">
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <span className="text-[10px] font-bold text-violet-500 uppercase tracking-[0.15em]">Langkah 1</span>
+        {/* ── Step 1: Source cards — always 2 col ── */}
+        <div className="mb-3 sm:mb-4">
+          <div className="flex items-center gap-3 mb-2 px-0.5">
+            <span className="text-[9px] sm:text-[10px] font-bold text-violet-500 uppercase tracking-[0.15em]">Langkah 1</span>
             <div className="flex-1 h-px bg-gradient-to-r from-violet-800/60 to-transparent" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
 
             {/* Berita card */}
-            <Link to="/scraper" className="group relative rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
-              {/* gradient border */}
-              <div className="absolute inset-0 rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+            <Link to="/scraper" className="group relative rounded-xl sm:rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
+              <div className="absolute inset-0 rounded-xl sm:rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.6) 0%, rgba(139,92,246,0.3) 100%)" }} />
-              {/* card body */}
-              <div className="relative rounded-2xl p-4 sm:p-5 h-full flex flex-col"
+              <div className="relative rounded-xl sm:rounded-2xl p-3 sm:p-5 h-full flex flex-col"
                 style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
 
-                <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                  <div className="relative w-10 h-10 shrink-0">
-                    <div className="absolute inset-0 bg-blue-500/30 rounded-xl blur-md group-hover:bg-blue-500/50 transition-colors duration-300" />
-                    <div className="relative w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                      <Newspaper className="w-5 h-5 text-blue-300" strokeWidth={1.8} />
-                    </div>
+                <div className="relative w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3">
+                  <div className="absolute inset-0 bg-blue-500/30 rounded-lg sm:rounded-xl blur-md group-hover:bg-blue-500/50 transition-colors duration-300" />
+                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
+                    <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-blue-300" strokeWidth={1.8} />
                   </div>
-                  <h3 className="font-bold text-white text-sm sm:text-base leading-tight">Berita Kemlu / KBRI</h3>
                 </div>
 
-                <p className="text-purple-300/60 text-xs leading-relaxed flex-1">
+                <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Berita Kemlu</h3>
+                <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Berita Kemlu / KBRI</h3>
+                <p className="text-purple-300/55 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
                   Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
                 </p>
+                <p className="text-purple-300/55 text-[10px] leading-relaxed flex-1 sm:hidden">
+                  Portal berita resmi
+                </p>
 
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-                  <span className="text-[10px] font-bold text-blue-400/80 uppercase tracking-widest">Portal Resmi</span>
-                  <div className="flex items-center gap-1 text-xs font-semibold text-blue-400 group-hover:text-blue-300 transition-colors">
-                    Mulai <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-white/5">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-blue-400/70 uppercase tracking-widest hidden sm:block">Portal Resmi</span>
+                  <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-blue-400 group-hover:text-blue-300 transition-colors ml-auto">
+                    Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
               </div>
             </Link>
 
             {/* PDF card */}
-            <Link to="/pdf" className="group relative rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
-              <div className="absolute inset-0 rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+            <Link to="/pdf" className="group relative rounded-xl sm:rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
+              <div className="absolute inset-0 rounded-xl sm:rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(168,85,247,0.3) 100%)" }} />
-              <div className="relative rounded-2xl p-4 sm:p-5 h-full flex flex-col"
+              <div className="relative rounded-xl sm:rounded-2xl p-3 sm:p-5 h-full flex flex-col"
                 style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
 
-                <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                  <div className="relative w-10 h-10 shrink-0">
-                    <div className="absolute inset-0 bg-violet-500/30 rounded-xl blur-md group-hover:bg-violet-500/50 transition-colors duration-300" />
-                    <div className="relative w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
-                      <BookOpen className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
-                    </div>
+                <div className="relative w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3">
+                  <div className="absolute inset-0 bg-violet-500/30 rounded-lg sm:rounded-xl blur-md group-hover:bg-violet-500/50 transition-colors duration-300" />
+                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
                   </div>
-                  <h3 className="font-bold text-white text-sm sm:text-base leading-tight">Kitab PDF Arab</h3>
                 </div>
 
-                <p className="text-purple-300/60 text-xs leading-relaxed flex-1">
+                <h3 className="font-bold text-white text-xs sm:text-base leading-tight mb-1 sm:mb-2">Kitab PDF Arab</h3>
+                <p className="text-purple-300/55 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
                   Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.
                 </p>
+                <p className="text-purple-300/55 text-[10px] leading-relaxed flex-1 sm:hidden">
+                  OCR kitab Arab
+                </p>
 
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-                  <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">Kitab Arab · OCR</span>
-                  <div className="flex items-center gap-1 text-xs font-semibold text-violet-400 group-hover:text-violet-300 transition-colors">
-                    Upload <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-white/5">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-violet-400/70 uppercase tracking-widest hidden sm:block">Kitab Arab · OCR</span>
+                  <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-300 transition-colors ml-auto">
+                    Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
               </div>
@@ -172,18 +174,17 @@ export default function HomePage() {
 
         {/* ── Step 2: Review card ── */}
         <div>
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <span className="text-[10px] font-bold text-violet-500 uppercase tracking-[0.15em]">Langkah 2</span>
+          <div className="flex items-center gap-3 mb-2 px-0.5">
+            <span className="text-[9px] sm:text-[10px] font-bold text-violet-500 uppercase tracking-[0.15em]">Langkah 2</span>
             <div className="flex-1 h-px bg-gradient-to-r from-violet-800/60 to-transparent" />
           </div>
 
           <Link
             to="/review"
-            className="group relative rounded-2xl overflow-hidden block"
+            className="group relative rounded-xl sm:rounded-2xl overflow-hidden block"
             style={{ padding: "1px" }}
           >
-            {/* border glow */}
-            <div className={`absolute inset-0 rounded-2xl transition-opacity duration-300 ${hasPending ? "opacity-80 group-hover:opacity-100" : hasApproved ? "opacity-70 group-hover:opacity-100" : "opacity-30 group-hover:opacity-60"}`}
+            <div className={`absolute inset-0 rounded-xl sm:rounded-2xl transition-opacity duration-300 ${hasPending ? "opacity-80 group-hover:opacity-100" : hasApproved ? "opacity-70 group-hover:opacity-100" : "opacity-30 group-hover:opacity-60"}`}
               style={{ background: hasPending
                 ? "linear-gradient(135deg, rgba(245,158,11,0.6) 0%, rgba(217,119,6,0.3) 100%)"
                 : hasApproved
@@ -191,87 +192,81 @@ export default function HomePage() {
                 : "linear-gradient(135deg, rgba(99,102,241,0.4) 0%, rgba(139,92,246,0.2) 100%)"
               }} />
 
-            <div className="relative rounded-2xl p-5"
+            <div className="relative rounded-xl sm:rounded-2xl p-3 sm:p-5"
               style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
 
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  {/* icon */}
-                  <div className="relative w-12 h-12 shrink-0">
-                    <div className={`absolute inset-0 rounded-xl blur-lg transition-colors duration-300 ${hasPending ? "bg-amber-500/30" : hasApproved ? "bg-emerald-500/30" : "bg-indigo-500/20"}`} />
-                    <div className={`relative w-12 h-12 rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-500/20 border-amber-400/30" : hasApproved ? "bg-emerald-500/20 border-emerald-400/30" : "bg-indigo-500/10 border-indigo-400/20"}`}>
-                      <ClipboardCheck className={`w-6 h-6 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-indigo-400"}`} strokeWidth={1.8} />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 shrink-0">
+                    <div className={`absolute inset-0 rounded-lg sm:rounded-xl blur-lg transition-colors duration-300 ${hasPending ? "bg-amber-500/30" : hasApproved ? "bg-emerald-500/30" : "bg-indigo-500/20"}`} />
+                    <div className={`relative w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-500/20 border-amber-400/30" : hasApproved ? "bg-emerald-500/20 border-emerald-400/30" : "bg-indigo-500/10 border-indigo-400/20"}`}>
+                      <ClipboardCheck className={`w-4 h-4 sm:w-6 sm:h-6 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-indigo-400"}`} strokeWidth={1.8} />
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-white text-sm">KB Review Dashboard</p>
+                    <p className="font-bold text-white text-xs sm:text-sm">KB Review Dashboard</p>
 
                     {stats === null ? (
-                      <div className="flex items-center gap-1.5 mt-1.5">
+                      <div className="flex items-center gap-1.5 mt-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-                        <span className="text-[11px] text-purple-400">Memuat status...</span>
+                        <span className="text-[10px] text-purple-400">Memuat status...</span>
                       </div>
                     ) : stats.total === 0 ? (
-                      <p className="text-[11px] text-purple-400/70 mt-1">Belum ada KB Draft — mulai dari Langkah 1</p>
+                      <p className="text-[10px] text-purple-400/70 mt-0.5">Belum ada KB Draft</p>
                     ) : (
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-1.5 mt-1">
                         {stats.pending > 0 && (
-                          <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-full">
-                            <Clock className="w-3 h-3" />{stats.pending} pending
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 rounded-full">
+                            <Clock className="w-2.5 h-2.5" />{stats.pending} pending
                           </span>
                         )}
                         {stats.approved > 0 && (
-                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 className="w-3 h-3" />{stats.approved} siap push
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-2.5 h-2.5" />{stats.approved} siap push
                           </span>
                         )}
                         {stats.rejected > 0 && (
-                          <span className="flex items-center gap-1 text-[11px] font-semibold text-red-300 bg-red-500/15 border border-red-500/25 px-2 py-0.5 rounded-full">
-                            <AlertCircle className="w-3 h-3" />{stats.rejected} rejected
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/15 border border-red-500/25 px-1.5 py-0.5 rounded-full">
+                            <AlertCircle className="w-2.5 h-2.5" />{stats.rejected} rejected
                           </span>
                         )}
                         {stats.exported > 0 && (
-                          <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-300 bg-white/10 border border-white/10 px-2 py-0.5 rounded-full">
-                            <Send className="w-3 h-3" />{stats.exported} exported
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 bg-white/10 border border-white/10 px-1.5 py-0.5 rounded-full">
+                            <Send className="w-2.5 h-2.5" />{stats.exported} exported
                           </span>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-white/20 shrink-0 group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="w-4 h-4 text-white/20 shrink-0 group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
               </div>
 
               {/* CTA strip */}
               {hasPending && (
-                <div className="mt-4 pt-4 border-t border-amber-500/20 flex items-center justify-between">
-                  <p className="text-[11px] text-amber-300/80">
+                <div className="mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-amber-500/20 flex items-center justify-between">
+                  <p className="text-[10px] text-amber-300/80">
                     <strong className="text-amber-300">{stats!.pending}</strong> artikel menunggu review
                   </p>
-                  <span className="text-[11px] font-bold text-amber-400 group-hover:text-amber-300 flex items-center gap-0.5 transition-colors">
-                    Buka Review <ArrowRight className="w-3 h-3" />
+                  <span className="text-[10px] font-bold text-amber-400 group-hover:text-amber-300 flex items-center gap-0.5 transition-colors">
+                    Buka Review <ArrowRight className="w-2.5 h-2.5" />
                   </span>
                 </div>
               )}
               {!hasPending && hasApproved && (
-                <div className="mt-4 pt-4 border-t border-emerald-500/20 flex items-center justify-between">
-                  <p className="text-[11px] text-emerald-300/80">
-                    <strong className="text-emerald-300">{stats!.approved}</strong> artikel siap di-push ke Supabase
+                <div className="mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-emerald-500/20 flex items-center justify-between">
+                  <p className="text-[10px] text-emerald-300/80">
+                    <strong className="text-emerald-300">{stats!.approved}</strong> siap di-push ke Supabase
                   </p>
-                  <span className="text-[11px] font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-0.5 transition-colors">
-                    Push sekarang <ArrowRight className="w-3 h-3" />
+                  <span className="text-[10px] font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-0.5 transition-colors">
+                    Push <ArrowRight className="w-2.5 h-2.5" />
                   </span>
                 </div>
               )}
             </div>
           </Link>
         </div>
-
-        {/* ── Footer note ── */}
-        <p className="text-center text-[10px] text-purple-900/70 mt-6 font-medium tracking-wide uppercase">
-          AINA AI · Internal Tool · All content goes through approval
-        </p>
 
       </div>
 
