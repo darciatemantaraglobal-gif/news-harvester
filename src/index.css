@@ -26,6 +26,13 @@
 @tailwind components;
 @tailwind utilities;
 
+.h-screen {
+  height: 100dvh !important;
+}
+.min-h-screen {
+  min-height: 100dvh !important;
+}
+
 @keyframes glow-pulse {
   0%, 100% { transform: scale(1); opacity: 0.88; }
   50% { transform: scale(1.07); opacity: 1; }
@@ -105,8 +112,9 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  html, body {
+  html, body, #root {
     background-color: #000000;
+    min-height: 100dvh;
   }
   body {
     font-family: 'Sk-Modernist', sans-serif;
