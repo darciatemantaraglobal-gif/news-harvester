@@ -132,47 +132,49 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
 
-            {/* Berita card — solid + purple glow border */}
-            <Link to="/scraper" className="group animate-card-glow rounded-xl sm:rounded-2xl flex flex-col p-3 sm:p-5 transition-all duration-300 hover:scale-[1.02]"
-              style={{ background: "#0d0720", border: "1px solid rgba(139,92,246,0.65)" }}>
-
-              <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
-                <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
-              </div>
-
-              <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Berita Kemlu</h3>
-              <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Berita Kemlu / KBRI</h3>
-              <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
-                Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
-              </p>
-              <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">Portal berita resmi</p>
-
-              <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
-                <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Portal Resmi</span>
-                <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
-                  Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            {/* Berita card — solid + rotating border beam */}
+            <Link to="/scraper" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.02]"
+              style={{ background: "#0d0720" }}>
+              <div className="absolute animate-border-beam pointer-events-none"
+                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+              <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex flex-col p-3 sm:p-5 h-full" style={{ background: "#0d0720" }}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                  <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
+                </div>
+                <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Berita Kemlu</h3>
+                <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Berita Kemlu / KBRI</h3>
+                <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
+                  Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
+                </p>
+                <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">Portal berita resmi</p>
+                <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Portal Resmi</span>
+                  <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
+                    Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
               </div>
             </Link>
 
-            {/* PDF card — solid + purple glow border */}
-            <Link to="/pdf" className="group animate-card-glow rounded-xl sm:rounded-2xl flex flex-col p-3 sm:p-5 transition-all duration-300 hover:scale-[1.02]"
-              style={{ background: "#0d0720", border: "1px solid rgba(139,92,246,0.65)", animationDelay: "1.2s" }}>
-
-              <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
-                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
-              </div>
-
-              <h3 className="font-bold text-white text-xs sm:text-base leading-tight mb-1 sm:mb-2">Kitab PDF Arab</h3>
-              <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
-                Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.
-              </p>
-              <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">OCR kitab Arab</p>
-
-              <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
-                <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Kitab Arab · OCR</span>
-                <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
-                  Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            {/* PDF card — solid + rotating border beam (offset phase) */}
+            <Link to="/pdf" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.02]"
+              style={{ background: "#0d0720" }}>
+              <div className="absolute animate-border-beam-delay pointer-events-none"
+                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+              <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex flex-col p-3 sm:p-5 h-full" style={{ background: "#0d0720" }}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
+                </div>
+                <h3 className="font-bold text-white text-xs sm:text-base leading-tight mb-1 sm:mb-2">Kitab PDF Arab</h3>
+                <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
+                  Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.
+                </p>
+                <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">OCR kitab Arab</p>
+                <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Kitab Arab · OCR</span>
+                  <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
+                    Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
               </div>
             </Link>
@@ -189,18 +191,19 @@ export default function HomePage() {
 
           <Link
             to="/review"
-            className={`group rounded-xl sm:rounded-2xl block transition-all duration-300 hover:scale-[1.01] animate-card-glow`}
-            style={{
-              background: "#0d0720",
-              border: hasPending
-                ? "1px solid rgba(245,158,11,0.7)"
-                : hasApproved
-                ? "1px solid rgba(16,185,129,0.7)"
-                : "1px solid rgba(139,92,246,0.65)",
-              animationDelay: "0.6s",
-            }}
+            className="group relative overflow-hidden rounded-xl sm:rounded-2xl block transition-all duration-300 hover:scale-[1.01]"
+            style={{ background: "#0d0720" }}
           >
-            <div className="p-3 sm:p-5">
+            <div className="absolute animate-border-beam-slow pointer-events-none"
+              style={{
+                inset: "-50%", width: "200%", height: "200%",
+                background: hasPending
+                  ? "conic-gradient(transparent 260deg, rgba(217,119,6,0.6) 300deg, rgba(252,211,77,1) 345deg, transparent 360deg)"
+                  : hasApproved
+                  ? "conic-gradient(transparent 260deg, rgba(5,150,105,0.6) 300deg, rgba(110,231,183,1) 345deg, transparent 360deg)"
+                  : "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)",
+              }} />
+            <div className="relative m-px rounded-[11px] sm:rounded-[15px] p-3 sm:p-5" style={{ background: "#0d0720" }}>
 
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
