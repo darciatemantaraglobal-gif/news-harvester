@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import ReactMarkdown from "react-markdown";
 
 interface Article {
   id: string;
@@ -348,9 +349,25 @@ const ArticleDetail = () => {
               {!formatting && (
                 <div
                   data-testid="text-content"
-                  className={`text-slate-700 leading-[1.85] text-[15px] whitespace-pre-line max-w-prose transition-all ${isFormatted ? "ring-1 ring-violet-100 bg-violet-50/30 rounded-xl p-4 -mx-1" : ""}`}
+                  className={`max-w-prose transition-all ${isFormatted ? "ring-1 ring-violet-100 bg-violet-50/30 rounded-xl p-4 -mx-1" : ""}`}
                 >
-                  {displayContent || (
+                  {displayContent ? (
+                    isFormatted ? (
+                      <div className="prose prose-sm prose-slate max-w-none
+                        prose-headings:font-bold prose-headings:text-slate-800 prose-headings:mt-4 prose-headings:mb-2
+                        prose-h2:text-base prose-h3:text-sm
+                        prose-p:text-slate-700 prose-p:leading-[1.85] prose-p:my-2
+                        prose-li:text-slate-700 prose-li:leading-relaxed
+                        prose-ul:my-2 prose-ul:pl-4
+                        prose-strong:text-slate-800 prose-strong:font-semibold
+                        prose-blockquote:border-violet-300 prose-blockquote:text-slate-600 prose-blockquote:italic
+                      ">
+                        <ReactMarkdown>{displayContent}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-slate-700 leading-[1.85] text-[15px] whitespace-pre-line">{displayContent}</p>
+                    )
+                  ) : (
                     <span className="text-slate-400 italic">Konten tidak tersedia untuk artikel ini.</span>
                   )}
                 </div>

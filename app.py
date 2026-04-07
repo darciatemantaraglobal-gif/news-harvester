@@ -604,25 +604,36 @@ def api_format_article(article_id):
     try:
         client = get_openai_client()
         prompt = (
-            "Kamu adalah editor konten profesional. Tugasmu adalah membersihkan dan merapikan konten artikel berikut.\n\n"
-            f"Judul: {title}\n\n"
+            "Kamu adalah editor konten berita profesional. Tugasmu adalah mengekstrak dan menyajikan HANYA informasi penting dari artikel berikut dalam format Markdown yang rapi dan presisi.\n\n"
+            f"Judul artikel: {title}\n\n"
             f"Konten asli:\n{content[:6000]}\n\n"
-            "Instruksi:\n"
-            "1. Hapus teks yang tidak relevan: iklan, navigasi website, footer, cookie notice, dll\n"
-            "2. Hapus duplikasi kalimat/paragraf jika ada\n"
-            "3. Rapikan paragraf agar mudah dibaca dan mengalir dengan baik\n"
-            "4. Pertahankan SEMUA informasi faktual yang penting\n"
-            "5. Gunakan bahasa yang sama seperti artikel asli (jangan terjemahkan)\n"
-            "6. Pisahkan paragraf dengan satu baris kosong\n"
-            "7. JANGAN tambahkan judul, heading, atau kata pengantar\n"
-            "8. JANGAN tambahkan komentar atau penjelasan dari kamu\n\n"
-            "Tulis HANYA konten yang sudah dirapikan."
+            "INSTRUKSI KETAT:\n\n"
+            "**Yang HARUS dibuang (jangan masukkan sama sekali):**\n"
+            "- Iklan, promo, ajakan subscribe/follow\n"
+            "- Navigasi website, footer, cookie notice, disclaimer boilerplate\n"
+            "- Kalimat basa-basi, pembuka/penutup tidak informatif\n"
+            "- Informasi duplikat atau pengulangan\n"
+            "- Opini wartawan yang tidak didukung fakta\n"
+            "- Informasi yang tidak relevan dengan topik utama artikel\n\n"
+            "**Yang HARUS dipertahankan:**\n"
+            "- Fakta utama: apa, siapa, kapan, di mana, mengapa, bagaimana\n"
+            "- Angka, statistik, tanggal, nama resmi\n"
+            "- Kutipan langsung yang penting\n"
+            "- Konteks dan latar belakang yang relevan\n\n"
+            "**Format output (Markdown):**\n"
+            "- Gunakan `##` untuk sub-topik jika ada lebih dari satu topik\n"
+            "- Gunakan bullet points (`-`) untuk daftar fakta atau poin-poin\n"
+            "- Gunakan **bold** untuk nama, jabatan, angka, atau istilah kunci\n"
+            "- Gunakan paragraf prose untuk narasi yang mengalir\n"
+            "- Pisahkan bagian dengan satu baris kosong\n"
+            "- Gunakan bahasa yang sama dengan artikel asli (jangan terjemahkan)\n\n"
+            "PENTING: Tulis HANYA konten Markdown. Jangan tambahkan kata pengantar, penutup, atau komentar apapun dari kamu."
         )
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
-            temperature=0.2,
+            max_tokens=2500,
+            temperature=0.1,
         )
         formatted = response.choices[0].message.content.strip()
 
