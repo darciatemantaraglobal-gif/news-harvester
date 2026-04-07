@@ -5,7 +5,10 @@ import {
   Newspaper, CheckCircle2, XCircle, Clock, Eye, Send, Download,
   Loader2, ChevronLeft, RefreshCw, FileJson, CheckSquare,
   AlertCircle, Filter, BarChart3, FileText, Upload, X, ChevronDown,
+  Sparkles, Copy, Check, Save, RotateCcw,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { getToken } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +18,14 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 
 type ApprovalStatus = "pending" | "reviewed" | "approved" | "rejected" | "exported";
+type KbRapikanFormat = "berita" | "laporan" | "ringkasan" | "poin";
+
+const KB_FORMAT_OPTIONS: { value: KbRapikanFormat; label: string; desc: string }[] = [
+  { value: "berita",    label: "Berita",    desc: "Artikel berita terstruktur" },
+  { value: "laporan",   label: "Laporan",   desc: "Laporan formal + ringkasan eksekutif" },
+  { value: "ringkasan", label: "Ringkasan", desc: "3–5 poin inti saja" },
+  { value: "poin",      label: "Poin",      desc: "Pure bullet list" },
+];
 
 interface KbDraft {
   id: string;
@@ -92,6 +103,15 @@ export default function ReviewDashboard() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
+  // Rapikan AI state (per drawer session)
+  const [rapikanFormat, setRapikanFormat] = useState<KbRapikanFormat>("berita");
+  const [rapikanLoading, setRapikanLoading] = useState(false);
+  const [rapikanResult, setRapikanResult] = useState<string>("");
+  const [rapikanError, setRapikanError] = useState<string>("");
+  const [rapikanCopied, setRapikanCopied] = useState(false);
+  const [rapikanSaving, setRapikanSaving] = useState(false);
+  const [rapikanSaved, setRapikanSaved] = useState(false);
+
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
@@ -156,6 +176,54 @@ export default function ReviewDashboard() {
     setSavingId(null);
   };
 
+  const handleRapikanKb = async (article: KbDraft) => {
+    if (!article.content?.trim()) return;
+    setRapikanLoading(true);
+    setRapikanResult("");
+    setRapikanError("");
+    setRapikanSaved(false);
+    try {
+      const res = await fetch(apiUrl("/api/format-text"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ title: article.title, content: article.content, format: rapikanFormat }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memproses konten.");
+      setRapikanResult(data.formatted_content);
+    } catch (e: unknown) {
+      setRapikanError(e instanceof Error ? e.message : "Terjadi kesalahan.");
+    } finally {
+      setRapikanLoading(false);
+    }
+  };
+
+  const handleSaveRapikan = async (article: KbDraft) => {
+    if (!rapikanResult.trim()) return;
+    setRapikanSaving(true);
+    try {
+      const res = await fetch(apiUrl("/kb/update-status"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: article.id,
+          status: article.approval_status,
+          content: rapikanResult,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
+      setArticles(prev => prev.map(a => a.id === article.id ? { ...a, ...data.article } : a));
+      setRapikanSaved(true);
+      setRapikanResult("");
+      setTimeout(() => setRapikanSaved(false), 3000);
+    } catch (e: unknown) {
+      setRapikanError(e instanceof Error ? e.message : "Gagal menyimpan.");
+    } finally {
+      setRapikanSaving(false);
+    }
+  };
+
   const doBulkAction = async (action: string) => {
     if (selected.size === 0) return;
     setBulkLoading(true);
@@ -196,6 +264,20 @@ export default function ReviewDashboard() {
     }
     setPushLoading(false);
     setTimeout(() => setPushResult(null), 6000);
+  };
+
+  const openDetail = (id: string) => {
+    setDetailId(id);
+    setRapikanResult("");
+    setRapikanError("");
+    setRapikanSaved(false);
+    setRapikanSaving(false);
+  };
+
+  const closeDetail = () => {
+    setDetailId(null);
+    setRapikanResult("");
+    setRapikanError("");
   };
 
   const toggleSelect = (id: string) => {
@@ -469,7 +551,7 @@ export default function ReviewDashboard() {
                                   </p>
                                 </div>
                                 <button
-                                  onClick={() => setDetailId(article.id)}
+                                  onClick={() => openDetail(article.id)}
                                   title="Lihat Detail"
                                   className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
                                   <Eye className="w-3.5 h-3.5" />
@@ -700,7 +782,7 @@ export default function ReviewDashboard() {
                             </td>
                             <td className="px-2 py-3.5 w-10">
                               <button
-                                onClick={() => setDetailId(article.id)}
+                                onClick={() => openDetail(article.id)}
                                 title="Lihat Detail"
                                 className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-600 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
                                 <Eye className="w-3.5 h-3.5" />
@@ -808,7 +890,7 @@ export default function ReviewDashboard() {
             {/* Backdrop */}
             <div
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-              onClick={() => setDetailId(null)}
+              onClick={() => closeDetail()}
             />
             {/* Panel — full on mobile, right side on desktop */}
             <div className="fixed inset-y-0 right-0 z-50 flex flex-col w-full sm:w-[480px] lg:w-[540px]"
@@ -823,7 +905,7 @@ export default function ReviewDashboard() {
                   <h2 className="font-bold text-white text-sm leading-snug line-clamp-1">{a.title || "(Tanpa Judul)"}</h2>
                   <p className="font-mono text-[10px] text-indigo-400/70 truncate">{a.slug}</p>
                 </div>
-                <button onClick={() => setDetailId(null)}
+                <button onClick={() => closeDetail()}
                   className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all">
                   <X className="w-4 h-4" />
                 </button>
@@ -901,13 +983,139 @@ export default function ReviewDashboard() {
                 {/* Content */}
                 {a.content && (
                   <div>
-                    <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-1.5">Konten</p>
-                    <div className="rounded-xl px-3.5 py-3 text-[11px] sm:text-xs text-slate-300 leading-relaxed whitespace-pre-wrap"
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">Konten Asli</p>
+                      <span className="text-[9px] text-slate-600">{a.content.length.toLocaleString()} karakter</span>
+                    </div>
+                    <div className="rounded-xl px-3.5 py-3 text-[11px] sm:text-xs text-slate-300 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto"
                       style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", direction: "auto", fontFamily: "inherit" }}>
                       {a.content}
                     </div>
                   </div>
                 )}
+
+                {/* ── Rapikan AI ── */}
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(139,92,246,0.3)", background: "rgba(109,40,217,0.06)" }}>
+                  {/* Rapikan header */}
+                  <div className="flex items-center gap-2 px-3 py-2.5 border-b" style={{ borderColor: "rgba(139,92,246,0.2)", background: "rgba(109,40,217,0.12)" }}>
+                    <Sparkles className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                    <span className="text-[10px] font-bold text-violet-300 uppercase tracking-widest flex-1">Rapikan dengan AI</span>
+                    {rapikanSaved && (
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
+                        <CheckCircle2 className="w-3 h-3" />Tersimpan
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-3 space-y-3">
+                    {/* Format selector */}
+                    <div className="space-y-1.5">
+                      <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold">Format Output</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {KB_FORMAT_OPTIONS.map(opt => (
+                          <button key={opt.value}
+                            title={opt.desc}
+                            onClick={() => { setRapikanFormat(opt.value); setRapikanResult(""); setRapikanError(""); }}
+                            className="px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all"
+                            style={{
+                              background: rapikanFormat === opt.value ? "rgba(139,92,246,0.25)" : "rgba(255,255,255,0.04)",
+                              color: rapikanFormat === opt.value ? "#c4b5fd" : "#4b5563",
+                              border: rapikanFormat === opt.value ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.07)",
+                            }}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Rapikan button */}
+                    <button
+                      onClick={() => handleRapikanKb(a)}
+                      disabled={rapikanLoading || !a.content?.trim()}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        background: rapikanLoading || !a.content?.trim() ? "rgba(109,40,217,0.3)" : "linear-gradient(135deg, #6d28d9, #7c3aed)",
+                        boxShadow: rapikanLoading || !a.content?.trim() ? "none" : "0 0 14px rgba(139,92,246,0.35)",
+                      }}>
+                      {rapikanLoading
+                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sedang Merapikan...</>
+                        : <><Sparkles className="w-3.5 h-3.5" />Rapikan · {KB_FORMAT_OPTIONS.find(f => f.value === rapikanFormat)?.label}</>
+                      }
+                    </button>
+
+                    {/* Rapikan error */}
+                    {rapikanError && (
+                      <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-900/20 border border-red-800/30">
+                        <AlertCircle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-red-400">{rapikanError}</p>
+                      </div>
+                    )}
+
+                    {/* Rapikan result */}
+                    {rapikanResult && !rapikanLoading && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-bold">Hasil Rapikan AI</p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(rapikanResult).then(() => {
+                                  setRapikanCopied(true);
+                                  setTimeout(() => setRapikanCopied(false), 2000);
+                                });
+                              }}
+                              className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all"
+                              style={{
+                                background: rapikanCopied ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)",
+                                color: rapikanCopied ? "#34d399" : "#a78bfa",
+                                border: rapikanCopied ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(139,92,246,0.3)",
+                              }}>
+                              {rapikanCopied ? <><Check className="w-2.5 h-2.5" />Disalin</> : <><Copy className="w-2.5 h-2.5" />Salin</>}
+                            </button>
+                            <button
+                              onClick={() => { setRapikanResult(""); setRapikanError(""); }}
+                              title="Reset hasil"
+                              className="flex items-center justify-center w-5 h-5 rounded-full text-slate-600 hover:text-slate-300 hover:bg-white/10 transition-all">
+                              <RotateCcw className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Rendered markdown result */}
+                        <div className="rounded-xl px-3.5 py-3 max-h-64 overflow-y-auto"
+                          style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                          <div className="prose prose-sm prose-invert max-w-none
+                            prose-headings:font-bold prose-headings:text-slate-100 prose-headings:mt-3 prose-headings:mb-1.5
+                            prose-h2:text-xs prose-h3:text-[11px]
+                            prose-p:text-slate-300 prose-p:leading-relaxed prose-p:my-1.5 prose-p:text-xs
+                            prose-li:text-slate-300 prose-li:leading-relaxed prose-li:text-xs
+                            prose-ul:my-1.5 prose-ul:pl-4 prose-ol:my-1.5 prose-ol:pl-4
+                            prose-strong:text-white prose-strong:font-semibold">
+                            <ReactMarkdown>{rapikanResult}</ReactMarkdown>
+                          </div>
+                        </div>
+
+                        {/* Save button */}
+                        <button
+                          onClick={() => handleSaveRapikan(a)}
+                          disabled={rapikanSaving || rapikanSaved}
+                          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs text-white transition-all disabled:opacity-50"
+                          style={{
+                            background: rapikanSaved ? "rgba(16,185,129,0.2)" : "linear-gradient(135deg, #059669, #10b981)",
+                            border: rapikanSaved ? "1px solid rgba(16,185,129,0.4)" : "none",
+                            boxShadow: rapikanSaved ? "none" : "0 0 12px rgba(16,185,129,0.3)",
+                          }}>
+                          {rapikanSaving
+                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Menyimpan...</>
+                            : rapikanSaved
+                              ? <><CheckCircle2 className="w-3.5 h-3.5" />Tersimpan ke Draft</>
+                              : <><Save className="w-3.5 h-3.5" />Simpan sebagai Konten Draft</>
+                          }
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Notes */}
                 <div>
@@ -945,7 +1153,7 @@ export default function ReviewDashboard() {
                     );
                   })}
                 </div>
-                <button onClick={() => setDetailId(null)}
+                <button onClick={() => closeDetail()}
                   className="px-4 py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
                   Tutup
                 </button>

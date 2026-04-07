@@ -1768,11 +1768,13 @@ def kb_drafts():
 
 @app.route("/kb/update-status", methods=["POST"])
 def kb_update_status():
-    """Update status dan/atau notes satu artikel KB."""
+    """Update status, notes, content, dan/atau summary satu artikel KB."""
     data = request.get_json(force=True)
     article_id = (data.get("id") or "").strip()
     new_status = (data.get("status") or "").strip()
     notes = data.get("notes")
+    new_content = data.get("content")
+    new_summary = data.get("summary")
 
     if new_status not in VALID_STATUSES:
         return jsonify({"error": f"Status tidak valid: {new_status}. Pilih: {', '.join(VALID_STATUSES)}"}), 400
@@ -1786,6 +1788,10 @@ def kb_update_status():
     article["last_updated"] = _now_iso()
     if notes is not None:
         article["notes"] = str(notes)
+    if new_content is not None:
+        article["content"] = str(new_content)
+    if new_summary is not None:
+        article["summary"] = str(new_summary)
 
     _save_kb(kb)
 
