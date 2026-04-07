@@ -325,7 +325,7 @@ export default function ReviewDashboard() {
             </div>
 
             {/* sm+: tab bar */}
-            <div className="hidden sm:flex items-center gap-0.5 bg-white/10 rounded-xl p-1 border border-white/10 overflow-x-auto max-w-full">
+            <div className="hidden sm:flex items-center gap-0.5 bg-violet-950/40 rounded-xl p-1 border border-violet-700/30 overflow-x-auto max-w-full">
               <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5 shrink-0" />
               {STATUS_FILTERS.map(f => (
                 <button key={f.value}
@@ -402,7 +402,7 @@ export default function ReviewDashboard() {
                       { n: 3, label: "Auto Tag — beri tag topik otomatis" },
                       { n: 4, label: "Convert to KB Draft — konversi ke format KB AINA" },
                     ].map(s => (
-                      <div key={s.n} className="flex items-center gap-2.5 bg-white/4 border border-white/8 rounded-xl px-3 py-2">
+                      <div key={s.n} className="flex items-center gap-2.5 bg-violet-950/30 border border-violet-800/40 rounded-xl px-3 py-2">
                         <span className="w-5 h-5 rounded-full bg-violet-900/60 text-violet-300 text-[10px] font-bold flex items-center justify-center shrink-0">{s.n}</span>
                         <span className="text-xs text-slate-500">{s.label}</span>
                       </div>
@@ -420,7 +420,7 @@ export default function ReviewDashboard() {
                 {/* ── Mobile: card list ── */}
                 <div className="sm:hidden">
                   {/* Select-all bar */}
-                  <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-white/8 bg-white/3">
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-violet-800/40 bg-violet-950/30">
                     <Checkbox
                       checked={allSelected}
                       data-testid="checkbox-select-all"
@@ -544,7 +544,7 @@ export default function ReviewDashboard() {
                                 onBlur={() => saveNotes(article.id)}
                                 onKeyDown={e => e.key === "Enter" && saveNotes(article.id)}
                                 placeholder="Tambah catatan..."
-                                className="h-7 text-xs border-white/10 bg-white/4 text-slate-300 rounded-lg focus-visible:ring-violet-400/40 placeholder:text-slate-600"
+                                className="h-7 text-xs border-violet-800/40 bg-violet-950/30 text-slate-300 rounded-lg focus-visible:ring-violet-400/40 placeholder:text-slate-600"
                               />
                             </div>
                           </div>
@@ -558,7 +558,7 @@ export default function ReviewDashboard() {
                 <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-white/10 bg-white/5 text-[11px]">
+                      <tr className="border-b border-violet-800/40 bg-violet-950/20 text-[11px]">
                         <th className="px-3 sm:px-4 py-3 w-10">
                           <Checkbox
                             checked={allSelected}
@@ -583,7 +583,7 @@ export default function ReviewDashboard() {
                         return (
                           <tr key={article.id}
                             data-testid={`row-kb-${article.id}`}
-                            className={`border-b border-white/5 align-top transition-colors ${isSelected ? "bg-violet-900/30" : "hover:bg-white/5"}`}>
+                            className={`border-b border-violet-900/40 align-top transition-colors ${isSelected ? "bg-violet-900/30" : "hover:bg-violet-950/30"}`}>
                             <td className="px-3 sm:px-4 py-3.5 w-10">
                               <Checkbox
                                 data-testid={`checkbox-${article.id}`}
@@ -683,7 +683,7 @@ export default function ReviewDashboard() {
                                 onBlur={() => saveNotes(article.id)}
                                 onKeyDown={e => e.key === "Enter" && saveNotes(article.id)}
                                 placeholder="Tambah catatan..."
-                                className="h-7 text-xs border-white/15 bg-white/5 text-slate-200 rounded-lg focus-visible:ring-indigo-400 placeholder:text-slate-500"
+                                className="h-7 text-xs border-violet-700/40 bg-violet-950/30 text-slate-200 rounded-lg focus-visible:ring-violet-400 placeholder:text-slate-500"
                               />
                             </td>
                           </tr>
