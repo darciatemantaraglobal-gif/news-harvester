@@ -101,11 +101,14 @@ export default function PdfPage() {
   return (
     <div className="flex flex-col min-h-screen bg-black text-white relative">
 
-      {/* ── Wallpaper ── */}
-            {/* ── Theme gradient background ── */}
+      {/* ── Background (same theme as homepage) ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 10% 50%, rgba(109,40,217,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 90% 25%, rgba(79,20,180,0.09) 0%, transparent 55%)" }} />
-        <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <img src="/bg-home.jpg" alt="" className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.22, objectPosition: "center 82%", transform: "scale(1.38)", transformOrigin: "center bottom" }} />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 70% at 55% 40%, rgba(109,40,217,0.22) 0%, transparent 65%)" }} />
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <div className="absolute top-0 inset-x-0 h-28" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, transparent 100%)" }} />
+        <div className="absolute bottom-0 inset-x-0 h-1/2" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)" }} />
       </div>
 
       {/* ─── Content (above wallpaper) ─── */}
@@ -141,7 +144,9 @@ export default function PdfPage() {
 
         {/* ── Left col: Explainer ── */}
         <div className="lg:w-72 xl:w-80 shrink-0">
-        <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-5">
+        <div className="relative overflow-hidden rounded-2xl" style={{ background: "#0d0720" }}>
+          <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(109,40,217,0.5) 300deg, rgba(167,139,250,1) 345deg, transparent 360deg)" }} />
+          <div className="relative m-px rounded-[15px] p-4 lg:p-5" style={{ background: "#0d0720" }}>
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-900/40 flex items-center justify-center shrink-0">
               <BookOpen className="w-4.5 h-4.5 text-indigo-400" />
@@ -168,12 +173,15 @@ export default function PdfPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>{/* /m-px */}
+        </div>{/* /beam-outer */}
         </div>{/* /left col */}
 
         {/* ── Right col: Options + Upload + Results ── */}
         <div className="flex-1 min-w-0 space-y-4">
-        <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-6 space-y-5">
+        <div className="relative overflow-hidden rounded-2xl" style={{ background: "#0d0720" }}>
+          <div className="absolute animate-border-beam pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+          <div className="relative m-px rounded-[15px] p-4 lg:p-6 space-y-5" style={{ background: "#0d0720" }}>
 
           {/* Options row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -185,7 +193,7 @@ export default function PdfPage() {
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full text-sm border border-white/15 rounded-xl px-3 py-2 bg-[#0f0b1e] text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                className="w-full text-sm border border-white/15 rounded-xl px-3 py-2 bg-[#0d0720] text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
               >
                 <option value="">— Pilih kategori —</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -343,11 +351,12 @@ export default function PdfPage() {
               </div>
             )}
           </div>
+          </div>{/* /m-px inner */}
         </div>
 
         {/* Results */}
         {results.length > 0 && (
-          <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-6 space-y-3">
+          <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 p-4 lg:p-6 space-y-3 shadow-[0_0_24px_rgba(109,40,217,0.14)]">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-100">Hasil Pemrosesan</h3>
               {totalChunks > 0 && (

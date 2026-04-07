@@ -223,11 +223,14 @@ export default function ReviewDashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-black text-white relative">
 
-      {/* ── Wallpaper ── */}
-            {/* ── Theme gradient background ── */}
+      {/* ── Background (same theme as homepage) ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 10% 50%, rgba(109,40,217,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 90% 25%, rgba(79,20,180,0.09) 0%, transparent 55%)" }} />
-        <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <img src="/bg-home.jpg" alt="" className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.22, objectPosition: "center 82%", transform: "scale(1.38)", transformOrigin: "center bottom" }} />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 70% at 55% 40%, rgba(109,40,217,0.22) 0%, transparent 65%)" }} />
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <div className="absolute top-0 inset-x-0 h-28" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, transparent 100%)" }} />
+        <div className="absolute bottom-0 inset-x-0 h-1/2" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)" }} />
       </div>
 
       {/* ─── Main Content Area ─── */}
@@ -288,7 +291,7 @@ export default function ReviewDashboard() {
               { label: "Rejected", value: stats.rejected, icon: XCircle,      numColor: "text-red-400",     iconBg: "bg-red-900/40",     iconColor: "text-red-500",     top: "bg-red-400" },
               { label: "Exported", value: stats.exported, icon: Send,         numColor: "text-indigo-400",  iconBg: "bg-indigo-900/40",  iconColor: "text-indigo-500",  top: "bg-indigo-400" },
             ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top }) => (
-              <div key={label} className="snap-start shrink-0 w-[108px] sm:w-auto bg-[#0f0b1e] rounded-xl sm:rounded-2xl border border-violet-900/30 overflow-hidden">
+              <div key={label} className="snap-start shrink-0 w-[108px] sm:w-auto bg-[#0d0720] rounded-xl sm:rounded-2xl border border-violet-700/40 overflow-hidden">
                 <div className={`h-[3px] w-full ${top}`} />
                 {/* Mobile layout */}
                 <div className="sm:hidden flex items-center gap-2 px-2.5 py-2.5">
@@ -340,7 +343,7 @@ export default function ReviewDashboard() {
 
             {/* Bulk action bar */}
             {selected.size > 0 && (
-              <div className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 shadow-sm border border-violet-900/30">
+              <div className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 shadow-sm border border-violet-700/40">
                 <span className="text-xs font-semibold text-indigo-300 mr-0.5">
                   {selected.size} dipilih
                 </span>
@@ -366,7 +369,7 @@ export default function ReviewDashboard() {
           </div>
 
           {/* ── Table Card ── */}
-          <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden">
+          <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.14)] overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center py-20 text-slate-400 gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />Memuat artikel...
@@ -567,7 +570,7 @@ export default function ReviewDashboard() {
 
           {/* ── Download section ── */}
           {(stats.approved > 0 || stats.exported > 0) && (
-            <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4">
+            <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.14)] p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-indigo-900/40 rounded-lg flex items-center justify-center">
                   <FileJson className="w-3.5 h-3.5 text-indigo-400" />

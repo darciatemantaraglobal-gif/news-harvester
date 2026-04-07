@@ -71,8 +71,8 @@ export default function HomePage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col flex-1 pb-20 pt-5 sm:pt-10 px-3 sm:px-6">
-      <div className="w-full max-w-[380px] sm:max-w-none mx-auto flex flex-col flex-1">
+      <div className="relative z-10 flex flex-col flex-1 pb-20 px-3 sm:px-6 items-center justify-center">
+      <div className="w-full max-w-[380px] sm:max-w-xl mx-auto flex flex-col gap-0">
 
         {/* ── Hero ── */}
         <div className="flex flex-col items-center text-center mb-4 sm:mb-10">

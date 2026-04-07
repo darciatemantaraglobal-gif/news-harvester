@@ -767,11 +767,14 @@ const Index = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-black text-white relative">
 
-      {/* ── Wallpaper ── */}
-            {/* ── Theme gradient background ── */}
+      {/* ── Background (same theme as homepage) ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 10% 50%, rgba(109,40,217,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 90% 25%, rgba(79,20,180,0.09) 0%, transparent 55%)" }} />
-        <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <img src="/bg-home.jpg" alt="" className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.22, objectPosition: "center 82%", transform: "scale(1.38)", transformOrigin: "center bottom" }} />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 70% at 55% 40%, rgba(109,40,217,0.22) 0%, transparent 65%)" }} />
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <div className="absolute top-0 inset-x-0 h-28" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, transparent 100%)" }} />
+        <div className="absolute bottom-0 inset-x-0 h-1/2" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)" }} />
       </div>
 
       {/* ─── Main Content Area ─── */}
@@ -851,9 +854,11 @@ const Index = () => {
         <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── URL Input Card ── */}
-          <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-fade-in-up animation-delay-100">
+          <div className="relative overflow-hidden rounded-2xl animate-fade-in-up animation-delay-100" style={{ background: "#0d0720" }}>
+            <div className="absolute animate-border-beam pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+            <div className="relative m-px rounded-[15px]" style={{ background: "#0d0720" }}>
             {/* Animated gradient top bar */}
-            <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 gradient-flow" />
+            <div className="h-[3px] bg-gradient-to-r from-violet-500 via-purple-400 to-violet-500 gradient-flow" />
 
             <div className="p-3.5 sm:p-5 lg:p-7 space-y-3.5 sm:space-y-4 lg:space-y-5">
 
@@ -977,6 +982,7 @@ const Index = () => {
                 )}
               </div>
             </div>
+            </div>{/* /m-px inner */}
           </div>
 
           {/* ── Stats Row ── */}
@@ -989,7 +995,7 @@ const Index = () => {
               { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-400",     iconBg: "bg-red-900/40",      iconColor: "text-red-500",     top: "bg-gradient-to-r from-red-400 to-rose-500",         testid: "stat-failed",    delay: "animation-delay-400" },
               { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-400",  iconBg: "bg-violet-900/40",   iconColor: "text-violet-500",  top: "bg-gradient-to-r from-violet-400 to-purple-500",    testid: "stat-duplicate", delay: "animation-delay-500" },
             ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid, delay }) => (
-              <div key={label} className={`snap-start shrink-0 w-[116px] sm:w-auto bg-[#0f0b1e] rounded-xl sm:rounded-2xl border border-violet-900/30 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
+              <div key={label} className={`snap-start shrink-0 w-[116px] sm:w-auto bg-[#0d0720] rounded-xl sm:rounded-2xl border border-violet-700/40 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
                 {/* Coloured top accent */}
                 <div className={`h-[3px] w-full ${top}`} />
 
@@ -1080,7 +1086,7 @@ const Index = () => {
             <div className="lg:col-span-2 space-y-4 lg:space-y-5">
 
               {/* Results Card */}
-              <div ref={resultsRef} className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-fade-in-up animation-delay-200">
+              <div ref={resultsRef} className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.12)] overflow-hidden animate-fade-in-up animation-delay-200">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-indigo-900/40 rounded-lg flex items-center justify-center">
@@ -1405,7 +1411,7 @@ const Index = () => {
               </div>
 
               {/* KB Pipeline Card */}
-              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-fade-in-up animation-delay-300">
+              <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.12)] overflow-hidden animate-fade-in-up animation-delay-300">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-indigo-900/40 rounded-lg flex items-center justify-center">
@@ -1541,7 +1547,7 @@ const Index = () => {
                                   value={kbCutoff}
                                   onChange={e => setKbCutoff(e.target.value)}
                                   disabled={kbLoading || isRunning}
-                                  className="text-xs border border-white/15 rounded-lg px-2 py-1 bg-[#0f0b1e] text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
+                                  className="text-xs border border-white/15 rounded-lg px-2 py-1 bg-[#0d0720] text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
                                   <option value="all">Semua waktu</option>
                                   <option value="7">7 hari terakhir</option>
                                   <option value="30">30 hari terakhir</option>
@@ -1734,7 +1740,7 @@ const Index = () => {
             <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
 
               {/* Log Panel */}
-              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-200">
+              <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.12)] overflow-hidden animate-slide-in-right animation-delay-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
@@ -1859,7 +1865,7 @@ const Index = () => {
               </div>
 
               {/* Scheduler Card */}
-              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-300">
+              <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.12)] overflow-hidden animate-slide-in-right animation-delay-300">
                 <button
                   onClick={() => setSchedulerOpen(o => !o)}
                   className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/10 hover:bg-white/5 transition-colors"
@@ -2013,7 +2019,7 @@ const Index = () => {
               </div>
 
               {/* Riwayat Pipeline Card */}
-              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-350">
+              <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.12)] overflow-hidden animate-slide-in-right animation-delay-350">
                 <button
                   onClick={() => { setHistoryOpen(o => !o); if (!historyOpen) fetchIngestionHistory(); }}
                   className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/10 hover:bg-white/5 transition-colors"
@@ -2120,7 +2126,7 @@ const Index = () => {
               </div>
 
               {/* CSS Selector Card */}
-              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-400">
+              <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 shadow-[0_0_24px_rgba(109,40,217,0.12)] overflow-hidden animate-slide-in-right animation-delay-400">
                 <button
                   className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/10 hover:bg-white/5 transition-colors"
                   onClick={() => setSettingsOpen(v => !v)}
