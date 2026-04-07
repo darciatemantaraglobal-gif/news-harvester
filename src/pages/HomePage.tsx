@@ -48,7 +48,7 @@ export default function HomePage() {
           src="/bg-home.jpg"
           alt=""
           className="absolute inset-0 w-full h-full object-cover animate-glow-pulse"
-          style={{ opacity: 0.9, objectPosition: "center 70%", transform: "scale(1.18)", transformOrigin: "center center" }}
+          style={{ opacity: 0.9, objectPosition: "center 82%", transform: "scale(1.38)", transformOrigin: "center bottom" }}
         />
         {/* Extra animated overlay glow for depth */}
         <div
@@ -71,7 +71,8 @@ export default function HomePage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col flex-1 px-3 sm:px-6 pb-20 pt-5 sm:pt-10">
+      <div className="relative z-10 flex flex-col flex-1 pb-20 pt-5 sm:pt-10 px-3 sm:px-6">
+      <div className="w-full max-w-[380px] sm:max-w-none mx-auto flex flex-col flex-1">
 
         {/* ── Hero ── */}
         <div className="flex flex-col items-center text-center mb-4 sm:mb-10">
@@ -275,6 +276,7 @@ export default function HomePage() {
           </Link>
         </div>
 
+      </div>{/* end max-w centering wrapper */}
       </div>
 
       {/* ── Bottom Nav — elegant floating pill ── */}
