@@ -43,11 +43,11 @@ export default function LoginPage() {
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
-        {/* Wallpaper images — slow Ken Burns drift */}
+        {/* Wallpaper images — dramatic Ken Burns */}
         <img src="/bg-home.jpg" alt="" className="absolute inset-0 w-full h-full object-cover sm:hidden"
-          style={{ opacity: 0.32, objectPosition: "center 82%", transformOrigin: "center bottom", animation: "login-bg-drift-mobile 18s ease-in-out infinite" }} />
+          style={{ opacity: 0.45, objectPosition: "center 82%", transformOrigin: "center bottom", animation: "login-bg-drift-mobile 8s ease-in-out infinite" }} />
         <img src="/bg-desktop.jpg" alt="" className="absolute inset-0 w-full h-full object-cover hidden sm:block"
-          style={{ opacity: 0.32, transformOrigin: "center center", animation: "login-bg-drift 20s ease-in-out infinite" }} />
+          style={{ opacity: 0.45, transformOrigin: "center center", animation: "login-bg-drift 9s ease-in-out infinite" }} />
         {/* Animated aurora overlay */}
         <div className="absolute inset-0" style={{ animation: "login-aurora 8s ease-in-out infinite", background: "radial-gradient(ellipse 80% 70% at 50% 40%, rgba(109,40,217,0.32) 0%, transparent 65%)" }} />
         {/* Floating orb 1 */}
@@ -65,15 +65,18 @@ export default function LoginPage() {
       {/* Animation keyframes */}
       <style>{`
         @keyframes login-bg-drift {
-          0%   { transform: scale(1.05) translate(0, 0); }
-          33%  { transform: scale(1.12) translate(-1.5%, 1%); }
-          66%  { transform: scale(1.08) translate(1.5%, -1%); }
-          100% { transform: scale(1.05) translate(0, 0); }
+          0%   { transform: scale(1.15) translate(0%, 0%); }
+          25%  { transform: scale(1.28) translate(-6%, 4%); }
+          50%  { transform: scale(1.22) translate(6%, -5%); }
+          75%  { transform: scale(1.3)  translate(-4%, -4%); }
+          100% { transform: scale(1.15) translate(0%, 0%); }
         }
         @keyframes login-bg-drift-mobile {
-          0%   { transform: scale(1.38) translate(0, 0); }
-          50%  { transform: scale(1.46) translate(-2%, 1.5%); }
-          100% { transform: scale(1.38) translate(0, 0); }
+          0%   { transform: scale(1.45) translate(0%, 0%); }
+          25%  { transform: scale(1.6)  translate(-5%, 4%); }
+          50%  { transform: scale(1.52) translate(5%, -5%); }
+          75%  { transform: scale(1.62) translate(-3%, -3%); }
+          100% { transform: scale(1.45) translate(0%, 0%); }
         }
         @keyframes login-aurora {
           0%   { opacity: 0.85; transform: scale(1) translate(0, 0); }
