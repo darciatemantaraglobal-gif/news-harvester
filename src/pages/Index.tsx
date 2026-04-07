@@ -924,24 +924,34 @@ const Index = () => {
                 </div>
 
                 {/* Scrape button */}
-                <button
-                  data-testid="button-start-scrape"
-                  onClick={startScrape}
-                  disabled={isRunning}
-                  className={`relative h-10 sm:h-auto lg:h-14 px-5 sm:px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 lg:gap-2.5 flex items-center justify-center shrink-0
-                    transition-all duration-200 overflow-hidden
-                    ${isRunning
-                      ? "bg-gradient-to-r from-indigo-500 to-violet-500 opacity-80 cursor-not-allowed"
-                      : "bg-gradient-to-r from-indigo-600 to-violet-500 hover:from-indigo-700 hover:to-violet-600 hover:scale-[1.02] shadow-md shadow-indigo-300/50 hover:shadow-lg hover:shadow-indigo-300/60 active:scale-95"
-                    }`}>
-                  {/* Animated shimmer when running */}
-                  {isRunning && (
-                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
-                  )}
-                  {isRunning
-                    ? <><Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin relative z-10" /><span className="relative z-10">Scraping...</span></>
-                    : <><Zap className="w-4 h-4 lg:w-5 lg:h-5" />Mulai Scraping</>}
-                </button>
+                <div className="relative shrink-0">
+                  {/* Purple glow bloom behind the button */}
+                  <div className="absolute inset-0 -z-10 rounded-2xl pointer-events-none"
+                    style={{
+                      background: "radial-gradient(ellipse 120% 160% at 50% 50%, rgba(139,92,246,0.65) 0%, rgba(109,40,217,0.35) 40%, transparent 70%)",
+                      filter: "blur(14px)",
+                      transform: "scale(1.5)",
+                    }} />
+                  <button
+                    data-testid="button-start-scrape"
+                    onClick={startScrape}
+                    disabled={isRunning}
+                    className={`relative h-10 sm:h-auto lg:h-14 px-5 sm:px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 lg:gap-2.5 flex items-center justify-center
+                      transition-all duration-200 overflow-hidden
+                      ${isRunning
+                        ? "bg-gradient-to-r from-violet-600 to-purple-600 opacity-80 cursor-not-allowed"
+                        : "bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 hover:scale-[1.03] active:scale-95"
+                      }`}
+                    style={isRunning ? {} : { boxShadow: "0 0 18px rgba(139,92,246,0.7), 0 0 40px rgba(109,40,217,0.45), 0 4px 16px rgba(0,0,0,0.5)" }}>
+                    {/* Animated shimmer when running */}
+                    {isRunning && (
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
+                    )}
+                    {isRunning
+                      ? <><Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin relative z-10" /><span className="relative z-10">Scraping...</span></>
+                      : <><Zap className="w-4 h-4 lg:w-5 lg:h-5" />Mulai Scraping</>}
+                  </button>
+                </div>
               </div>
 
               {/* Mode description */}
