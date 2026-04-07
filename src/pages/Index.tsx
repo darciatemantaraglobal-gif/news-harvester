@@ -768,8 +768,11 @@ const Index = () => {
     <div className="flex h-screen overflow-hidden bg-black text-white relative">
 
       {/* ── Wallpaper ── */}
-      <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-        style={{ opacity: 0.18, objectPosition: "center 70%", transform: "scale(1.18)", transformOrigin: "center center" }} />
+            {/* ── Theme gradient background ── */}
+      <div className="absolute inset-0 pointer-events-none select-none">
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 10% 50%, rgba(109,40,217,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 90% 25%, rgba(79,20,180,0.09) 0%, transparent 55%)" }} />
+        <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+      </div>
 
       {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative z-10">
@@ -877,7 +880,7 @@ const Index = () => {
                     placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed font-mono tracking-tight
                     ${urlError
                       ? "border-red-300 bg-red-900/20 ring-2 ring-red-500/30 text-red-300"
-                      : "border-white/15 bg-white/8 text-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:bg-white/10"
+                      : "border-white/15 bg-[#1a1530] text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:bg-[#1f1a38]"
                     }`}
                 />
                 {url && !isRunning && (
@@ -1188,7 +1191,7 @@ const Index = () => {
                       </svg>
                       <Input data-testid="filter-title" value={titleFilter}
                         onChange={e => setTitleFilter(e.target.value)}
-                        placeholder="Cari judul..." className="pl-8 h-8 text-xs border-white/15 w-full bg-white rounded-full" />
+                        placeholder="Cari judul..." className="pl-8 h-8 text-xs border-white/15 w-full bg-white/8 text-slate-200 placeholder:text-slate-500 rounded-full" />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs border-white/15 bg-white/8 text-white rounded-full">
@@ -1441,7 +1444,7 @@ const Index = () => {
 
                 {articles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-900/30 to-violet-900/30 flex items-center justify-center">
                       <BookOpen className="w-6 h-6 text-indigo-300" />
                     </div>
                     <div className="text-center space-y-1">
@@ -1538,7 +1541,7 @@ const Index = () => {
                                   value={kbCutoff}
                                   onChange={e => setKbCutoff(e.target.value)}
                                   disabled={kbLoading || isRunning}
-                                  className="text-xs border border-white/15 rounded-lg px-2 py-1 bg-white text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
+                                  className="text-xs border border-white/15 rounded-lg px-2 py-1 bg-[#0f0b1e] text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
                                   <option value="all">Semua waktu</option>
                                   <option value="7">7 hari terakhir</option>
                                   <option value="30">30 hari terakhir</option>
@@ -1574,7 +1577,7 @@ const Index = () => {
                             <div className="overflow-x-auto max-h-72 overflow-y-auto">
                               <table className="w-full text-xs">
                                 <thead className="sticky top-0 z-10">
-                                  <tr className="bg-white border-b border-white/10 text-slate-400">
+                                  <tr className="bg-white/5 border-b border-white/10 text-slate-400">
                                     <th className="text-left px-4 py-2.5 font-semibold w-7">#</th>
                                     <th className="text-left px-4 py-2.5 font-semibold">Judul</th>
                                     <th className="text-left px-4 py-2.5 font-semibold w-36">Slug</th>
@@ -1694,7 +1697,7 @@ const Index = () => {
                               <div className="overflow-x-auto max-h-56 overflow-y-auto">
                                 <table className="w-full text-xs">
                                   <thead>
-                                    <tr className="border-b bg-white text-slate-400">
+                                    <tr className="border-b bg-white/5 text-slate-400">
                                       <th className="text-left px-4 py-2 font-semibold">Judul</th>
                                       <th className="text-left px-4 py-2 font-semibold w-32">Kategori</th>
                                       <th className="text-left px-4 py-2 font-semibold w-24">Status AINA</th>
@@ -1728,7 +1731,7 @@ const Index = () => {
             </div>
 
             {/* ═══ Right Sidebar (1 col) ═══ */}
-            <div className="space-y-4">
+            <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
 
               {/* Log Panel */}
               <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-200">
@@ -1757,7 +1760,7 @@ const Index = () => {
                       <div className="w-20">
                         {progress.phase === "scraping"
                           ? <Progress value={pct} className="h-1.5" />
-                          : <div className="relative h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                          : <div className="relative h-1.5 rounded-full bg-white/10 overflow-hidden">
                               <div className="absolute top-0 left-0 h-full w-1/2 bg-indigo-400 rounded-full"
                                 style={{ animation: "indeterminate 1.4s ease-in-out infinite" }} />
                             </div>
@@ -1777,7 +1780,7 @@ const Index = () => {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-emerald-800">Scraping selesai!</p>
+                        <p className="text-sm font-bold text-emerald-300">Scraping selesai!</p>
                         <p className="text-xs text-emerald-400">
                           {progress.success} artikel berhasil
                           {progress.duplicate > 0 && ` · ${progress.duplicate} duplikat dilewati`}
@@ -1792,7 +1795,7 @@ const Index = () => {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-amber-800">Selesai dengan peringatan</p>
+                        <p className="text-sm font-bold text-amber-300">Selesai dengan peringatan</p>
                         <p className="text-xs text-amber-300">
                           {progress.success} berhasil · {progress.partial > 0 && `${progress.partial} partial · `}{progress.failed > 0 && `${progress.failed} gagal · `}{progress.duplicate > 0 && `${progress.duplicate} duplikat`}
                         </p>
@@ -1800,7 +1803,7 @@ const Index = () => {
                     </div>
                   )
                 ) : isRunning ? (
-                  <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-900/20 border-b border-indigo-100">
+                  <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-900/20 border-b border-indigo-700/30">
                     <Loader2 className="w-4 h-4 text-indigo-500 animate-spin flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-indigo-300">

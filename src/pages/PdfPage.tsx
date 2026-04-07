@@ -102,8 +102,11 @@ export default function PdfPage() {
     <div className="flex flex-col min-h-screen bg-black text-white relative">
 
       {/* ── Wallpaper ── */}
-      <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
-        style={{ opacity: 0.18, objectPosition: "center 70%", transform: "scale(1.18)", transformOrigin: "center center" }} />
+            {/* ── Theme gradient background ── */}
+      <div className="absolute inset-0 pointer-events-none select-none">
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 10% 50%, rgba(109,40,217,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 90% 25%, rgba(79,20,180,0.09) 0%, transparent 55%)" }} />
+        <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+      </div>
 
       {/* ─── Content (above wallpaper) ─── */}
       <div className="relative z-10 flex flex-col flex-1">
@@ -133,9 +136,11 @@ export default function PdfPage() {
       </div>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 p-2.5 sm:p-4 lg:p-6 pb-24 space-y-4">
+      <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-24">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-5 max-w-5xl mx-auto">
 
-        {/* Explainer */}
+        {/* ── Left col: Explainer ── */}
+        <div className="lg:w-72 xl:w-80 shrink-0">
         <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-5">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-900/40 flex items-center justify-center shrink-0">
@@ -151,7 +156,7 @@ export default function PdfPage() {
                   </span>
                 ))}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+              <div className="grid grid-cols-1 gap-2 mt-3">
                 <div className="flex items-start gap-2 text-[11px] text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 rounded-lg px-3 py-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span><strong>PDF teks digital:</strong> ekstraksi langsung, akurat, cepat. Tanpa biaya AI.</span>
@@ -164,8 +169,10 @@ export default function PdfPage() {
             </div>
           </div>
         </div>
+        </div>{/* /left col */}
 
-        {/* Options + Upload */}
+        {/* ── Right col: Options + Upload + Results ── */}
+        <div className="flex-1 min-w-0 space-y-4">
         <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-6 space-y-5">
 
           {/* Options row */}
@@ -178,7 +185,7 @@ export default function PdfPage() {
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full text-sm border border-white/15 rounded-xl px-3 py-2 bg-white text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full text-sm border border-white/15 rounded-xl px-3 py-2 bg-[#0f0b1e] text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
               >
                 <option value="">— Pilih kategori —</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -421,6 +428,8 @@ export default function PdfPage() {
             </div>
           </div>
         )}
+        </div>{/* /right col */}
+        </div>{/* /flex desktop */}
       </div>
 
       {/* ─── Bottom Nav ─── */}

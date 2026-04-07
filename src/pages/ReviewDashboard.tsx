@@ -224,8 +224,11 @@ export default function ReviewDashboard() {
     <div className="flex h-screen overflow-hidden bg-black text-white relative">
 
       {/* ── Wallpaper ── */}
-      <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-        style={{ opacity: 0.18, objectPosition: "center 70%", transform: "scale(1.18)", transformOrigin: "center center" }} />
+            {/* ── Theme gradient background ── */}
+      <div className="absolute inset-0 pointer-events-none select-none">
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 60% at 10% 50%, rgba(109,40,217,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 90% 25%, rgba(79,20,180,0.09) 0%, transparent 55%)" }} />
+        <div className="absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
+      </div>
 
       {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative z-10">
@@ -272,7 +275,8 @@ export default function ReviewDashboard() {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 min-w-0">
+        <div className="max-w-screen-xl mx-auto space-y-3 sm:space-y-4 lg:space-y-5">
 
           {/* ── Stats Row ── */}
           <div className="flex sm:grid sm:grid-cols-6 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
@@ -608,7 +612,8 @@ export default function ReviewDashboard() {
               </div>
             </div>
           )}
-        </div>
+        </div>{/* /max-w */}
+        </div>{/* /scrollable */}
       </div>
 
       {/* ── Bottom Nav ── */}
