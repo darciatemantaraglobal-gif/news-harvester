@@ -75,6 +75,7 @@ def _check_auth():
     if token not in valid:
         return jsonify({"error": "Unauthorized"}), 401
     g.current_user, g.is_admin = valid[token]
+    _update_last_seen(g.current_user)
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -84,11 +85,13 @@ def login():
     if not _ADMIN_PASSWORD:
         return jsonify({"error": "Auth not configured. Set ADMIN_PASSWORD secret."}), 500
     if username == _ADMIN_USERNAME and password == _ADMIN_PASSWORD:
+        _record_login(username)
         return jsonify({"token": _SESSION_SECRET, "is_admin": True, "username": username})
     users = _load_users()
     pw_hash = _hash_password(password)
     for user in users:
         if user["username"] == username and user["password_hash"] == pw_hash:
+            _record_login(username)
             return jsonify({"token": _make_user_token(username), "is_admin": False, "username": username})
     return jsonify({"error": "Username atau password salah."}), 401
 
@@ -128,6 +131,104 @@ def delete_user(username):
     return jsonify({"ok": True})
 
 
+@app.route("/api/users/<username>/reset-password", methods=["POST"])
+def reset_user_password(username):
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.get_json(silent=True) or {}
+    new_password = (data.get("password") or "").strip()
+    if not new_password:
+        return jsonify({"error": "Password baru wajib diisi."}), 400
+    users = _load_users()
+    target = next((u for u in users if u["username"] == username), None)
+    if not target:
+        return jsonify({"error": "User tidak ditemukan."}), 404
+    target["password_hash"] = _hash_password(new_password)
+    _save_users(users)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/users/activity", methods=["GET"])
+def get_users_activity():
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden"}), 403
+    from datetime import datetime, timezone
+    import time as _time
+
+    _load_activity()
+    users_list = _load_users()
+
+    push_log = []
+    if os.path.exists(PUSH_LOG_FILE):
+        try:
+            with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
+                push_log = json.load(f)
+        except Exception:
+            push_log = []
+
+    push_by_user: dict = {}
+    for entry in push_log:
+        u = entry.get("username", "unknown")
+        if u not in push_by_user:
+            push_by_user[u] = {"count": 0, "total_articles": 0, "last_push": None, "last_source": None}
+        push_by_user[u]["count"] += 1
+        push_by_user[u]["total_articles"] += entry.get("count", 0)
+        ts = entry.get("timestamp")
+        if ts and (push_by_user[u]["last_push"] is None or ts > push_by_user[u]["last_push"]):
+            push_by_user[u]["last_push"] = ts
+            push_by_user[u]["last_source"] = entry.get("source")
+
+    def _online_status(last_seen: str | None) -> str:
+        if not last_seen:
+            return "offline"
+        try:
+            dt = datetime.fromisoformat(last_seen.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            diff = (_time.time() - dt.timestamp())
+            if diff < 300:
+                return "online"
+            if diff < 1800:
+                return "away"
+            return "offline"
+        except Exception:
+            return "offline"
+
+    result = []
+
+    admin_act = _activity_cache.get(_ADMIN_USERNAME, {})
+    admin_push = push_by_user.get(_ADMIN_USERNAME, {})
+    result.append({
+        "username": _ADMIN_USERNAME,
+        "is_admin": True,
+        "last_login": admin_act.get("last_login"),
+        "last_seen": admin_act.get("last_seen"),
+        "status": _online_status(admin_act.get("last_seen")),
+        "push_count": admin_push.get("count", 0),
+        "push_articles": admin_push.get("total_articles", 0),
+        "last_push": admin_push.get("last_push"),
+        "last_source": admin_push.get("last_source"),
+    })
+
+    for u in users_list:
+        uname = u["username"]
+        act = _activity_cache.get(uname, {})
+        push = push_by_user.get(uname, {})
+        result.append({
+            "username": uname,
+            "is_admin": False,
+            "last_login": act.get("last_login"),
+            "last_seen": act.get("last_seen"),
+            "status": _online_status(act.get("last_seen")),
+            "push_count": push.get("count", 0),
+            "push_articles": push.get("total_articles", 0),
+            "last_push": push.get("last_push"),
+            "last_source": push.get("last_source"),
+        })
+
+    return jsonify(result)
+
+
 @app.after_request
 def add_no_cache_headers(response):
     """Pastikan API responses tidak di-cache oleh browser."""
@@ -144,8 +245,51 @@ SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 SCHEDULER_FILE = os.path.join(CONFIG_DIR, "scheduler_settings.json")
 LAST_JOB_FILE = os.path.join(DATA_DIR, "last_job.json")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
+USER_ACTIVITY_FILE = os.path.join(DATA_DIR, "user_activity.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(CONFIG_DIR, exist_ok=True)
+
+_activity_cache: dict = {}
+_activity_dirty: dict = {}
+
+def _load_activity() -> dict:
+    global _activity_cache
+    try:
+        if os.path.exists(USER_ACTIVITY_FILE):
+            with open(USER_ACTIVITY_FILE, "r", encoding="utf-8") as f:
+                _activity_cache = json.load(f)
+    except Exception:
+        _activity_cache = {}
+    return _activity_cache
+
+def _save_activity() -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(USER_ACTIVITY_FILE, "w", encoding="utf-8") as f:
+        json.dump(_activity_cache, f, indent=2)
+
+def _update_last_seen(username: str) -> None:
+    import time as _time
+    now_ts = _time.time()
+    prev = _activity_dirty.get(username, 0)
+    if now_ts - prev < 30:
+        return
+    _activity_dirty[username] = now_ts
+    if not _activity_cache:
+        _load_activity()
+    if username not in _activity_cache:
+        _activity_cache[username] = {}
+    _activity_cache[username]["last_seen"] = _now_iso()
+    _save_activity()
+
+def _record_login(username: str) -> None:
+    if not _activity_cache:
+        _load_activity()
+    if username not in _activity_cache:
+        _activity_cache[username] = {}
+    _activity_cache[username]["last_login"] = _now_iso()
+    _save_activity()
+
+_load_activity()
 
 DEFAULT_SCHEDULER = {
     "enabled": False,
