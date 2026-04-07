@@ -26,6 +26,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.75; transform: scale(1) rotate(0deg); }
+  33% { opacity: 1; transform: scale(1.04) rotate(3deg); }
+  66% { opacity: 0.85; transform: scale(0.97) rotate(-2deg); }
+}
+
+@keyframes glow-drift {
+  0%, 100% { opacity: 0.55; transform: translateY(0px) scale(1); }
+  50% { opacity: 0.9; transform: translateY(-18px) scale(1.06); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 6s ease-in-out infinite;
+}
+
+.animate-glow-drift {
+  animation: glow-drift 8s ease-in-out infinite;
+}
+
 @keyframes indeterminate {
   0%   { transform: translateX(-100%); }
   50%  { transform: translateX(100%); }

@@ -39,19 +39,32 @@ export default function HomePage() {
   const hasApproved = (stats?.approved ?? 0) > 0;
 
   return (
-    <div className="min-h-screen bg-[#05010f] relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
 
       {/* ── Background layer ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
-        {/* Dot grid */}
-        <div className="absolute inset-0 opacity-[0.12]" style={{
-          backgroundImage: `radial-gradient(circle at 1.5px 1.5px, rgba(167,139,250,0.8) 1.5px, transparent 0)`,
+        {/* Background image — purple glowing arc */}
+        <img
+          src="/bg-home.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center animate-glow-pulse"
+          style={{ mixBlendMode: "screen", opacity: 0.85 }}
+        />
+        {/* Extra animated overlay glow for depth */}
+        <div
+          className="absolute inset-0 animate-glow-drift"
+          style={{
+            background: "radial-gradient(ellipse 70% 60% at 60% 45%, rgba(109,40,217,0.35) 0%, rgba(79,20,180,0.15) 50%, transparent 80%)",
+          }}
+        />
+        {/* Subtle dot grid on top */}
+        <div className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: `radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.9) 1.5px, transparent 0)`,
           backgroundSize: "36px 36px",
         }} />
-        {/* Glow orbs */}
-        <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-violet-700/20 rounded-full blur-3xl" />
-        <div className="absolute top-[30%] left-[-100px] w-[300px] h-[300px] bg-indigo-800/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-[10%] right-[-60px] w-[280px] h-[280px] bg-purple-700/15 rounded-full blur-3xl" />
+        {/* Dark vignette at bottom so cards stay readable */}
+        <div className="absolute bottom-0 inset-x-0 h-1/2"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)" }} />
       </div>
 
       {/* ── Content ── */}
@@ -70,20 +83,27 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Title — Sunspire font */}
-          <h1
-            className="leading-none"
+          {/* Title — Sunspire font (split words to avoid space-char rendering as box) */}
+          <div
+            className="flex items-baseline gap-[0.25em] leading-none"
             style={{
               fontFamily: "'Sunspire', cursive",
               fontSize: "clamp(1.6rem, 10vw, 3.75rem)",
+            }}
+          >
+            <span style={{
               background: "linear-gradient(135deg, #ffffff 0%, #d8b4fe 55%, #a78bfa 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               letterSpacing: "0.02em",
-            }}
-          >
-            AINA Scraper
-          </h1>
+            }}>AINA</span>
+            <span style={{
+              background: "linear-gradient(135deg, #e9d5ff 0%, #c084fc 50%, #a855f7 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              letterSpacing: "0.02em",
+            }}>Scraper</span>
+          </div>
           <p className="mt-1 sm:mt-2 text-purple-400/60 text-[10px] sm:text-sm font-medium tracking-wide">
             Internal Knowledge Scraping Tool
           </p>
