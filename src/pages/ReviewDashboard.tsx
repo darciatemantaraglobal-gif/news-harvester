@@ -217,7 +217,7 @@ export default function ReviewDashboard() {
   const someSelected = selected.size > 0 && selected.size < articles.length;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-black text-white relative">
+    <div className="flex overflow-hidden bg-black text-white relative" style={{ height: '100dvh' }}>
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">

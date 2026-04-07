@@ -765,7 +765,7 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-black text-white relative">
+    <div className="flex overflow-hidden bg-black text-white relative" style={{ height: '100dvh' }}>
 
       {/* ── Background (same theme as homepage) ── */}
       <div className="absolute inset-0 pointer-events-none select-none">

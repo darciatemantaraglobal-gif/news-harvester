@@ -48,7 +48,7 @@ export default function HomePage() {
   const hasApproved = (stats?.approved ?? 0) > 0;
 
   return (
-    <div className="min-h-screen sm:h-screen bg-black relative overflow-hidden flex flex-col">
+    <div className="bg-black relative overflow-hidden flex flex-col" style={{ minHeight: '100dvh' }}>
 
       {/* ── Background layer ── */}
       <div className="absolute inset-0 pointer-events-none select-none">

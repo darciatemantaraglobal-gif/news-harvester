@@ -39,7 +39,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen bg-black relative overflow-hidden">
+    <div className="bg-black relative overflow-hidden" style={{ height: '100dvh' }}>
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">

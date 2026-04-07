@@ -82,7 +82,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen sm:h-screen bg-black text-white relative sm:overflow-hidden">
+    <div className="flex flex-col bg-black text-white relative sm:overflow-hidden" style={{ minHeight: '100dvh' }}>
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
