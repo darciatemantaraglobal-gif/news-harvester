@@ -798,6 +798,8 @@ def api_push_paste():
     article = {"title": title, "content": content, "tags": tags, "summary": ""}
     try:
         result = push_kb_articles([article])
+        if result.get("inserted", 0) > 0:
+            _record_push(username=g.current_user, source="paste", count=result["inserted"], titles=[title])
         return jsonify({
             "status": "ok",
             "inserted": result["inserted"],
@@ -913,6 +915,28 @@ def api_ingestion_history():
 KB_FILE = os.path.join(DATA_DIR, "kb_articles.json")
 KB_APPROVED_FILE = os.path.join(DATA_DIR, "kb_approved.json")
 KB_EXPORTED_FILE = os.path.join(DATA_DIR, "kb_exported.json")
+PUSH_LOG_FILE = os.path.join(DATA_DIR, "push_log.json")
+
+
+def _record_push(username: str, source: str, count: int, titles: list):
+    """Catat aktivitas push ke Supabase ke push_log.json."""
+    try:
+        log = []
+        if os.path.exists(PUSH_LOG_FILE):
+            with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
+                log = json.load(f)
+        log.append({
+            "id": f"push-{int(time.time()*1000)}",
+            "timestamp": _now_iso(),
+            "username": username,
+            "source": source,
+            "count": count,
+            "titles": titles[:10],
+        })
+        with open(PUSH_LOG_FILE, "w", encoding="utf-8") as f:
+            json.dump(log, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"[PUSH-LOG] Gagal mencatat push log: {e}")
 
 VALID_STATUSES = {"pending", "reviewed", "approved", "rejected", "exported"}
 BULK_ACTION_MAP = {
@@ -1089,6 +1113,13 @@ def api_push_supabase():
         return jsonify({"error": "KB kosong."}), 400
     try:
         result = push_kb_articles(kb_articles)
+        if result.get("inserted", 0) > 0:
+            _record_push(
+                username=g.current_user,
+                source="review-all",
+                count=result["inserted"],
+                titles=[a.get("title", "") for a in kb_articles[:10]],
+            )
         return jsonify({
             "status": "ok",
             "inserted": result["inserted"],
@@ -1115,6 +1146,12 @@ def api_push_approved():
 
     # Mark successfully-pushed articles as exported in the main KB file
     if result.get("inserted", 0) > 0:
+        _record_push(
+            username=g.current_user,
+            source="review-approved",
+            count=result["inserted"],
+            titles=[a.get("title", "") for a in approved[:10]],
+        )
         pushed_ids = {a["id"] for a in approved}
         kb = _load_kb()
         now = _now_iso()
@@ -1135,6 +1172,28 @@ def api_push_approved():
         "skipped": result.get("skipped", 0),
         "errors": result.get("errors", []),
     })
+
+
+@app.route("/api/push-log", methods=["GET"])
+def api_push_log():
+    """Laporan history push ke Supabase. Hanya admin."""
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden — hanya admin"}), 403
+    log = []
+    if os.path.exists(PUSH_LOG_FILE):
+        with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
+            log = json.load(f)
+    return jsonify({"log": list(reversed(log)), "total": len(log)})
+
+
+@app.route("/api/push-log/clear", methods=["POST"])
+def api_push_log_clear():
+    """Hapus seluruh push log. Hanya admin."""
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden — hanya admin"}), 403
+    with open(PUSH_LOG_FILE, "w", encoding="utf-8") as f:
+        json.dump([], f)
+    return jsonify({"ok": True})
 
 
 def _safe_pdf_slug(filename: str, suffix: str = "") -> str:
@@ -1315,6 +1374,56 @@ def api_pdf_upload():
         "total_chunks": total_chunks,
         "results": all_results,
     })
+
+
+@app.route("/api/pdf/rapikan-file", methods=["POST"])
+def api_pdf_rapikan_file():
+    """Perbaiki semua chunk KB dari satu file PDF dengan AI (bersihkan teks OCR, format ulang)."""
+    from ai_services import get_openai_client, check_openai_available
+    if not check_openai_available():
+        return jsonify({"error": "OpenAI API key tidak ditemukan."}), 503
+    data = request.get_json(force=True) or {}
+    filename = data.get("filename", "").strip()
+    if not filename:
+        return jsonify({"error": "Nama file diperlukan."}), 400
+    kb = _load_kb()
+    target = [a for a in kb if a.get("source_url", "").startswith(f"pdf://{filename}")]
+    if not target:
+        return jsonify({"error": f"Tidak ada KB chunk ditemukan untuk file: {filename}"}), 404
+    client = get_openai_client()
+    updated = 0
+    for article in target:
+        raw_content = (article.get("content") or "").strip()
+        if not raw_content:
+            continue
+        try:
+            prompt = (
+                "Kamu adalah editor teks Arab/Indonesia profesional. Perbaiki dan rapikan teks berikut yang merupakan hasil ekstraksi dari PDF kitab.\n\n"
+                "INSTRUKSI:\n"
+                "- Perbaiki kesalahan OCR: karakter aneh, spasi yang salah, baris terputus\n"
+                "- Pertahankan semua konten asli — JANGAN hapus atau tambah informasi\n"
+                "- Rapikan struktur paragraf dan spasi\n"
+                "- Pertahankan bahasa asli (Arab, Indonesia, atau campuran)\n"
+                "- Jika ada teks Arab: pastikan urutan kata Arab tetap RTL\n"
+                "- Output: HANYA teks yang sudah diperbaiki, tanpa komentar apapun\n\n"
+                f"Teks:\n{raw_content[:4000]}"
+            )
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=2000,
+                temperature=0.05,
+            )
+            fixed = resp.choices[0].message.content.strip()
+            if fixed:
+                article["content"] = fixed
+                article["last_updated"] = _now_iso()
+                updated += 1
+        except Exception as e:
+            logger.warning(f"[PDF-RAPIKAN] Gagal chunk {article.get('id')}: {e}")
+    if updated > 0:
+        _save_kb(kb)
+    return jsonify({"status": "ok", "updated": updated, "total": len(target)})
 
 
 @app.route("/api/ai-summary", methods=["POST"])

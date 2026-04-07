@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiUrl } from "@/lib/api";
 import {
   Newspaper, BookOpen, ArrowRight, ClipboardCheck,
-  CheckCircle2, Clock, Send, AlertCircle, Zap, Users, LogOut, ClipboardPaste,
+  CheckCircle2, Clock, Send, AlertCircle, Zap, Users, LogOut, ClipboardPaste, BarChart2,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { clearToken, getIsAdmin, getUsername } from "@/lib/auth";
@@ -99,11 +99,18 @@ export default function HomePage() {
           </span>
           <div className="flex items-center gap-1.5">
             {isAdmin && (
-              <Link to="/users">
-                <button className="flex items-center gap-1 text-[10px] font-bold text-violet-400 hover:text-violet-200 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 px-2.5 py-1 rounded-full transition-all">
-                  <Users className="w-3 h-3" /><span className="hidden sm:inline">Kelola Akun</span><span className="sm:hidden">Akun</span>
-                </button>
-              </Link>
+              <>
+                <Link to="/users">
+                  <button className="flex items-center gap-1 text-[10px] font-bold text-violet-400 hover:text-violet-200 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 px-2.5 py-1 rounded-full transition-all">
+                    <Users className="w-3 h-3" /><span className="hidden sm:inline">Kelola Akun</span><span className="sm:hidden">Akun</span>
+                  </button>
+                </Link>
+                <Link to="/push-log">
+                  <button className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 hover:text-emerald-200 bg-emerald-900/30 hover:bg-emerald-800/40 border border-emerald-700/40 px-2.5 py-1 rounded-full transition-all">
+                    <BarChart2 className="w-3 h-3" /><span className="hidden sm:inline">Laporan Push</span><span className="sm:hidden">Log</span>
+                  </button>
+                </Link>
+              </>
             )}
             <button onClick={handleLogout}
               className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-full transition-all">
@@ -346,11 +353,18 @@ export default function HomePage() {
           </span>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <Link to="/users">
-                <button className="flex items-center gap-1.5 text-xs font-bold text-violet-400 hover:text-violet-200 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 px-3 py-1.5 rounded-full transition-all">
-                  <Users className="w-3.5 h-3.5" />Kelola Akun
-                </button>
-              </Link>
+              <>
+                <Link to="/users">
+                  <button className="flex items-center gap-1.5 text-xs font-bold text-violet-400 hover:text-violet-200 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 px-3 py-1.5 rounded-full transition-all">
+                    <Users className="w-3.5 h-3.5" />Kelola Akun
+                  </button>
+                </Link>
+                <Link to="/push-log">
+                  <button className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-200 bg-emerald-900/30 hover:bg-emerald-800/40 border border-emerald-700/40 px-3 py-1.5 rounded-full transition-all">
+                    <BarChart2 className="w-3.5 h-3.5" />Laporan Push
+                  </button>
+                </Link>
+              </>
             )}
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-full transition-all">
               <LogOut className="w-3.5 h-3.5" />Keluar

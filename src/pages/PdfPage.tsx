@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   FileText, Upload, Loader2, ChevronLeft, CheckCircle2,
   AlertCircle, BookOpen, CheckSquare, X,
-  Sparkles, Info, ScanLine, Layers, DollarSign, ChevronDown,
+  Sparkles, Info, ScanLine, Layers, DollarSign, ChevronDown, Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
@@ -39,6 +39,7 @@ export default function PdfPage() {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<UploadResult[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [rapikanState, setRapikanState] = useState<Record<string, { loading: boolean; done: boolean; error: string; updated?: number }>>({});
 
   const [category, setCategory] = useState("");
   const [chunkSize, setChunkSize] = useState(20);
@@ -63,6 +64,23 @@ export default function PdfPage() {
     setDragOver(false);
     addFiles(e.dataTransfer.files);
   }, []);
+
+  const handleRapikanFile = async (filename: string) => {
+    setRapikanState(prev => ({ ...prev, [filename]: { loading: true, done: false, error: "" } }));
+    try {
+      const res = await fetch(apiUrl("/api/pdf/rapikan-file"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal");
+      setRapikanState(prev => ({ ...prev, [filename]: { loading: false, done: true, error: "", updated: data.updated } }));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Terjadi kesalahan";
+      setRapikanState(prev => ({ ...prev, [filename]: { loading: false, done: false, error: msg } }));
+    }
+  };
 
   const doUpload = async () => {
     if (files.length === 0) return;
@@ -495,6 +513,32 @@ export default function PdfPage() {
                               <span>{r.scan_pages} halaman scan tidak diekstrak. Aktifkan AI OCR untuk membaca halaman scan.</span>
                             </div>
                           )}
+
+                          {r.status === "ok" && (r.chunks ?? 0) > 0 && (() => {
+                            const rs = rapikanState[r.filename];
+                            return (
+                              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                <button
+                                  onClick={() => handleRapikanFile(r.filename)}
+                                  disabled={rs?.loading || rs?.done}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all disabled:opacity-50
+                                    text-violet-300 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 disabled:cursor-not-allowed">
+                                  {rs?.loading
+                                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                                    : rs?.done
+                                      ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                      : <Wand2 className="w-3 h-3" />
+                                  }
+                                  {rs?.loading ? "Memperbaiki..." : rs?.done ? `Selesai (${rs.updated} chunk)` : "Perbaiki dengan AI"}
+                                </button>
+                                {rs?.error && (
+                                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />{rs.error}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
