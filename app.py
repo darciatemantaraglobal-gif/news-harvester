@@ -581,6 +581,65 @@ def api_article(article_id):
     return jsonify(article)
 
 
+@app.route("/api/article/<article_id>/format", methods=["POST"])
+def api_format_article(article_id):
+    """Rapikan konten artikel menggunakan AI."""
+    from ai_services import get_openai_client, check_openai_available
+    if not check_openai_available():
+        return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur ini membutuhkan OPENAI_API_KEY."}), 503
+
+    articles = _load_articles()
+    article = next((a for a in articles if a["id"] == article_id), None)
+    if not article:
+        return jsonify({"error": "Artikel tidak ditemukan"}), 404
+
+    data = request.get_json(force=True) or {}
+    save = data.get("save", False)
+
+    title = article.get("title", "")
+    content = article.get("content", "")
+    if not content:
+        return jsonify({"error": "Artikel tidak memiliki konten."}), 400
+
+    try:
+        client = get_openai_client()
+        prompt = (
+            "Kamu adalah editor konten profesional. Tugasmu adalah membersihkan dan merapikan konten artikel berikut.\n\n"
+            f"Judul: {title}\n\n"
+            f"Konten asli:\n{content[:6000]}\n\n"
+            "Instruksi:\n"
+            "1. Hapus teks yang tidak relevan: iklan, navigasi website, footer, cookie notice, dll\n"
+            "2. Hapus duplikasi kalimat/paragraf jika ada\n"
+            "3. Rapikan paragraf agar mudah dibaca dan mengalir dengan baik\n"
+            "4. Pertahankan SEMUA informasi faktual yang penting\n"
+            "5. Gunakan bahasa yang sama seperti artikel asli (jangan terjemahkan)\n"
+            "6. Pisahkan paragraf dengan satu baris kosong\n"
+            "7. JANGAN tambahkan judul, heading, atau kata pengantar\n"
+            "8. JANGAN tambahkan komentar atau penjelasan dari kamu\n\n"
+            "Tulis HANYA konten yang sudah dirapikan."
+        )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2000,
+            temperature=0.2,
+        )
+        formatted = response.choices[0].message.content.strip()
+
+        if save:
+            for a in articles:
+                if a["id"] == article_id:
+                    a["content"] = formatted
+                    a["formatted_by_ai"] = True
+                    break
+            _save_articles(articles)
+
+        return jsonify({"status": "ok", "formatted_content": formatted})
+    except Exception as e:
+        logger.error(f"[FORMAT] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/articles/bulk-delete", methods=["POST"])
 def api_articles_bulk_delete():
     """Hapus artikel terpilih berdasarkan daftar ID."""
