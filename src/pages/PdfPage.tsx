@@ -99,7 +99,7 @@ export default function PdfPage() {
   const estimatedCost = formatCost(maxOcrPages * files.length);
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-slate-900 relative">
+    <div className="flex flex-col min-h-screen bg-black text-white relative">
 
       {/* ── Wallpaper ── */}
       <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
@@ -116,7 +116,7 @@ export default function PdfPage() {
               <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Beranda</span>
             </Button>
           </Link>
-          <div className="w-px h-4 lg:h-6 bg-white/30 shrink-0 hidden sm:block" />
+          <div className="w-px h-4 lg:h-6 bg-white/15 shrink-0 hidden sm:block" />
           <div className="min-w-0">
             <p className="font-bold text-white text-sm lg:text-xl tracking-tight">PDF Kitab → KB Draft</p>
             <p className="hidden sm:block text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Upload kitab PDF, ekstrak teks Arab, chunk per bab</p>
@@ -124,7 +124,7 @@ export default function PdfPage() {
         </div>
         {okResults.length > 0 && (
           <Link to="/review">
-            <Button size="sm" className="gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white h-8 lg:h-10 px-3 lg:px-4 text-xs lg:text-sm rounded-full">
+            <Button size="sm" className="gap-1.5 bg-emerald-900/200 hover:bg-emerald-400 text-white h-8 lg:h-10 px-3 lg:px-4 text-xs lg:text-sm rounded-full">
               <CheckSquare className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Review KB ({totalChunks})</span>
             </Button>
@@ -136,27 +136,27 @@ export default function PdfPage() {
       <div className="flex-1 p-2.5 sm:p-4 lg:p-6 pb-24 space-y-4">
 
         {/* Explainer */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 p-4 lg:p-5">
+        <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-5">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-              <BookOpen className="w-4.5 h-4.5 text-indigo-600" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-900/40 flex items-center justify-center shrink-0">
+              <BookOpen className="w-4.5 h-4.5 text-indigo-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-slate-800 text-sm">Cara kerja</h2>
+              <h2 className="font-bold text-slate-100 text-sm">Cara kerja</h2>
               <div className="flex flex-wrap items-center gap-2 mt-2 text-[11px]">
                 {["Upload PDF", "Ekstrak Teks", "Chunk per N Hal.", "KB Draft", "Review → Supabase"].map((s, i, arr) => (
                   <span key={s} className="flex items-center gap-1.5">
-                    <span className="text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full font-medium">{s}</span>
-                    {i < arr.length - 1 && <span className="text-slate-300 text-xs">→</span>}
+                    <span className="text-slate-500 bg-white/10 border border-white/10 px-2 py-0.5 rounded-full font-medium">{s}</span>
+                    {i < arr.length - 1 && <span className="text-slate-500 text-xs">→</span>}
                   </span>
                 ))}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                <div className="flex items-start gap-2 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                <div className="flex items-start gap-2 text-[11px] text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 rounded-lg px-3 py-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span><strong>PDF teks digital:</strong> ekstraksi langsung, akurat, cepat. Tanpa biaya AI.</span>
                 </div>
-                <div className="flex items-start gap-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                <div className="flex items-start gap-2 text-[11px] text-amber-300 bg-amber-900/20 border border-amber-700/30 rounded-lg px-3 py-2">
                   <ScanLine className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span><strong>PDF scan/gambar:</strong> aktifkan AI OCR. Biaya ~$0.0002/halaman — 100 hal ≈ $0.02.</span>
                 </div>
@@ -166,19 +166,19 @@ export default function PdfPage() {
         </div>
 
         {/* Options + Upload */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 p-4 lg:p-6 space-y-5">
+        <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-6 space-y-5">
 
           {/* Options row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Category */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-indigo-400" />Kategori Kitab
               </label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full text-sm border border-white/15 rounded-xl px-3 py-2 bg-white text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
               >
                 <option value="">— Pilih kategori —</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -187,7 +187,7 @@ export default function PdfPage() {
 
             {/* Chunk size */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-indigo-400" />Halaman per KB Draft
               </label>
               <div className="flex items-center gap-2">
@@ -197,14 +197,14 @@ export default function PdfPage() {
                   onChange={e => setChunkSize(Number(e.target.value))}
                   className="flex-1 accent-indigo-600"
                 />
-                <span className="text-sm font-bold text-indigo-600 w-10 text-center">{chunkSize}</span>
+                <span className="text-sm font-bold text-indigo-400 w-10 text-center">{chunkSize}</span>
               </div>
               <p className="text-[10px] text-slate-400">Tiap {chunkSize} halaman = 1 artikel KB</p>
             </div>
 
             {/* OCR toggle */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-violet-400" />AI OCR untuk Scan
               </label>
               <button
@@ -212,10 +212,10 @@ export default function PdfPage() {
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
                   useOcr
                     ? "bg-violet-600 text-white border-violet-600"
-                    : "bg-white text-slate-500 border-slate-200 hover:border-violet-300"
+                    : "bg-white/5 text-slate-500 border-white/15 hover:border-violet-500"
                 }`}
               >
-                <div className={`w-8 h-4 rounded-full transition-colors relative ${useOcr ? "bg-white/30" : "bg-slate-200"}`}>
+                <div className={`w-8 h-4 rounded-full transition-colors relative ${useOcr ? "bg-white/15" : "bg-slate-200"}`}>
                   <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${useOcr ? "left-4 bg-white" : "left-0.5 bg-white"}`} />
                 </div>
                 {useOcr ? "OCR Aktif" : "OCR Nonaktif"}
@@ -230,15 +230,15 @@ export default function PdfPage() {
 
           {/* OCR settings (only when OCR enabled) */}
           {useOcr && (
-            <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-4">
+            <div className="bg-violet-900/20 border border-violet-700/30 rounded-xl p-4 space-y-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-600" />
-                <span className="text-sm font-semibold text-violet-800">Pengaturan AI OCR</span>
+                <Sparkles className="w-4 h-4 text-violet-400" />
+                <span className="text-sm font-semibold text-violet-200">Pengaturan AI OCR</span>
               </div>
 
               {/* Max OCR pages slider */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600">Maks. halaman scan di-OCR per file</label>
+                <label className="text-xs font-semibold text-slate-500">Maks. halaman scan di-OCR per file</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range" min={10} max={500} step={10}
@@ -246,7 +246,7 @@ export default function PdfPage() {
                     onChange={e => setMaxOcrPages(Number(e.target.value))}
                     className="flex-1 accent-violet-600"
                   />
-                  <span className="text-sm font-bold text-violet-700 w-16 text-right">{maxOcrPages} hal</span>
+                  <span className="text-sm font-bold text-violet-300 w-16 text-right">{maxOcrPages} hal</span>
                 </div>
                 <p className="text-[10px] text-slate-500">
                   Halaman scan melebihi limit ini akan di-skip (tidak di-OCR).
@@ -255,13 +255,13 @@ export default function PdfPage() {
               </div>
 
               {/* Cost estimate */}
-              <div className="bg-white border border-violet-200 rounded-lg px-3 py-2.5 flex items-center gap-2.5">
-                <DollarSign className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="text-xs text-slate-600 space-y-0.5">
-                  <div className="font-semibold text-slate-700">Estimasi biaya OCR (per file)</div>
+              <div className="bg-white/8 border border-violet-700/30 rounded-lg px-3 py-2.5 flex items-center gap-2.5">
+                <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="text-xs text-slate-500 space-y-0.5">
+                  <div className="font-semibold text-slate-200">Estimasi biaya OCR (per file)</div>
                   <div>
-                    Maks <strong className="text-violet-700">{maxOcrPages} hal</strong> × $0.0002 ≈{" "}
-                    <strong className="text-emerald-600">{formatCost(maxOcrPages)}</strong> per file
+                    Maks <strong className="text-violet-300">{maxOcrPages} hal</strong> × $0.0002 ≈{" "}
+                    <strong className="text-emerald-400">{formatCost(maxOcrPages)}</strong> per file
                     {files.length > 1 && (
                       <span className="text-slate-400"> · {files.length} file = maks {estimatedCost}</span>
                     )}
@@ -272,18 +272,18 @@ export default function PdfPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 text-[11px] text-violet-700">
+              <div className="flex items-start gap-2 text-[11px] text-violet-300">
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>Butuh <strong>OPENAI_API_KEY</strong>. Proses OCR 4 halaman per API call (batch) — lebih cepat dari sebelumnya.</span>
               </div>
             </div>
           )}
 
-          <div className="border-t border-slate-100" />
+          <div className="border-t border-white/10" />
 
           {/* Drop Zone */}
           <div>
-            <h3 className="text-sm font-bold text-slate-800 mb-3">Upload File PDF</h3>
+            <h3 className="text-sm font-bold text-slate-100 mb-3">Upload File PDF</h3>
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
@@ -291,15 +291,15 @@ export default function PdfPage() {
               onClick={() => inputRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-all ${
                 dragOver
-                  ? "border-indigo-400 bg-indigo-50"
-                  : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50/70"
+                  ? "border-indigo-400 bg-indigo-900/20"
+                  : "border-white/15 hover:border-indigo-500 hover:bg-white/5"
               }`}
             >
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${dragOver ? "bg-indigo-100" : "bg-slate-100"}`}>
-                <Upload className={`w-5 h-5 transition-colors ${dragOver ? "text-indigo-600" : "text-slate-400"}`} />
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${dragOver ? "bg-indigo-900/40" : "bg-white/10"}`}>
+                <Upload className={`w-5 h-5 transition-colors ${dragOver ? "text-indigo-400" : "text-slate-400"}`} />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-slate-700 text-sm">Drag & drop file PDF di sini</p>
+                <p className="font-semibold text-slate-200 text-sm">Drag & drop file PDF di sini</p>
                 <p className="text-xs text-slate-400 mt-0.5">atau klik untuk pilih · bisa multi-file sekaligus</p>
               </div>
               <input ref={inputRef} type="file" accept=".pdf" multiple className="hidden" onChange={e => addFiles(e.target.files)} />
@@ -310,13 +310,13 @@ export default function PdfPage() {
               <div className="mt-4 space-y-2">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{files.length} file dipilih</p>
                 {files.map(f => (
-                  <div key={f.name} className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+                  <div key={f.name} className="flex items-center gap-2.5 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5">
                     <FileText className="w-4 h-4 text-red-400 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-700 truncate">{f.name}</p>
+                      <p className="text-xs font-medium text-slate-200 truncate">{f.name}</p>
                       <p className="text-[10px] text-slate-400">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
-                    <button onClick={e => { e.stopPropagation(); removeFile(f.name); }} className="text-slate-300 hover:text-red-400 transition-colors">
+                    <button onClick={e => { e.stopPropagation(); removeFile(f.name); }} className="text-slate-500 hover:text-red-400 transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -328,7 +328,7 @@ export default function PdfPage() {
                     : `Proses ${files.length} PDF${category ? ` — ${category}` : ""}${useOcr ? ` + OCR` : ""}`}
                 </Button>
                 {uploading && useOcr && (
-                  <p className="text-[11px] text-violet-600 text-center flex items-center justify-center gap-1.5">
+                  <p className="text-[11px] text-violet-400 text-center flex items-center justify-center gap-1.5">
                     <Sparkles className="w-3 h-3 animate-pulse" />
                     OCR Arab berjalan · 4 halaman per API call · estimasi biaya maks {estimatedCost}
                   </p>
@@ -340,9 +340,9 @@ export default function PdfPage() {
 
         {/* Results */}
         {results.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 p-4 lg:p-6 space-y-3">
+          <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4 lg:p-6 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800">Hasil Pemrosesan</h3>
+              <h3 className="text-sm font-bold text-slate-100">Hasil Pemrosesan</h3>
               {totalChunks > 0 && (
                 <Link to="/review">
                   <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs rounded-xl">
@@ -353,12 +353,12 @@ export default function PdfPage() {
             </div>
 
             {totalChunks > 0 && (
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center gap-2 text-sm text-emerald-700">
+              <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-xl p-3 flex items-center gap-2 text-sm text-emerald-300">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
                   <strong>{totalChunks} KB Draft</strong> berhasil dibuat dari {okResults.length} PDF.
                   {totalOcrDone > 0 && (
-                    <> · <strong className="text-violet-700">{totalOcrDone} hal</strong> di-OCR
+                    <> · <strong className="text-violet-300">{totalOcrDone} hal</strong> di-OCR
                     · biaya ≈ {formatCost(totalOcrDone)}</>
                   )}
                 </span>
@@ -367,23 +367,23 @@ export default function PdfPage() {
 
             <div className="space-y-2">
               {results.map((r, i) => (
-                <div key={i} className={`rounded-xl border px-4 py-3 ${r.status === "ok" ? "bg-slate-50 border-slate-200" : "bg-red-50/50 border-red-100"}`}>
+                <div key={i} className={`rounded-xl border px-4 py-3 ${r.status === "ok" ? "bg-white/5 border-white/15" : "bg-red-900/20 border-red-700/30"}`}>
                   <div className="flex items-center gap-2 mb-1">
                     {r.status === "ok"
                       ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       : <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />}
-                    <p className="text-xs font-semibold text-slate-700 truncate flex-1">{r.filename}</p>
+                    <p className="text-xs font-semibold text-slate-200 truncate flex-1">{r.filename}</p>
                   </div>
 
                   {r.status === "ok" ? (
                     <div className="pl-6 grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-1 mt-1">
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Total Hal.</p>
-                        <p className="text-sm font-bold text-slate-700">{r.total_pages ?? "—"}</p>
+                        <p className="text-sm font-bold text-slate-200">{r.total_pages ?? "—"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Teks</p>
-                        <p className="text-sm font-bold text-emerald-600">{r.text_pages ?? 0}</p>
+                        <p className="text-sm font-bold text-emerald-400">{r.text_pages ?? 0}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Scan</p>
@@ -391,27 +391,27 @@ export default function PdfPage() {
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">OCR Done</p>
-                        <p className={`text-sm font-bold ${(r.ocr_pages_done ?? 0) > 0 ? "text-violet-600" : "text-slate-300"}`}>
+                        <p className={`text-sm font-bold ${(r.ocr_pages_done ?? 0) > 0 ? "text-violet-400" : "text-slate-500"}`}>
                           {(r.ocr_pages_done ?? 0) > 0 ? r.ocr_pages_done : "—"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">KB Draft</p>
-                        <p className="text-sm font-bold text-indigo-600">{r.chunks ?? 0}</p>
+                        <p className="text-sm font-bold text-indigo-400">{r.chunks ?? 0}</p>
                       </div>
                     </div>
                   ) : (
-                    <p className="pl-6 text-[11px] text-red-600 mt-1">{r.error}</p>
+                    <p className="pl-6 text-[11px] text-red-400 mt-1">{r.error}</p>
                   )}
 
                   {r.status === "ok" && (r.ocr_pages_done ?? 0) > 0 && (
-                    <div className="pl-6 mt-2 flex items-center gap-1.5 text-[11px] text-violet-600">
+                    <div className="pl-6 mt-2 flex items-center gap-1.5 text-[11px] text-violet-400">
                       <DollarSign className="w-3 h-3 shrink-0" />
                       <span>Biaya OCR: {r.ocr_pages_done} hal × $0.0002 ≈ {formatCost(r.ocr_pages_done ?? 0)}</span>
                     </div>
                   )}
                   {r.status === "ok" && (r.scan_pages ?? 0) > 0 && !useOcr && (
-                    <div className="pl-6 mt-2 flex items-start gap-1.5 text-[11px] text-amber-700">
+                    <div className="pl-6 mt-2 flex items-start gap-1.5 text-[11px] text-amber-300">
                       <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                       <span>{r.scan_pages} halaman scan tidak diekstrak. Aktifkan AI OCR untuk membaca halaman scan.</span>
                     </div>

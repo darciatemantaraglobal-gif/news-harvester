@@ -21,13 +21,13 @@ function getSourceMeta(url: string): {
   try {
     const domain = new URL(url).hostname.toLowerCase();
     if (domain.includes("kemlu.go.id") || domain.includes("kbri") || domain.includes("kemenlu")) {
-      return { category: "Official", categoryColor: "bg-blue-100 text-blue-700", trust: "High", trustColor: "bg-emerald-100 text-emerald-700" };
+      return { category: "Official", categoryColor: "bg-blue-900/40 text-blue-300", trust: "High", trustColor: "bg-emerald-900/30 text-emerald-400" };
     }
     if (domain.includes("pcinu") || domain.includes("ppi-") || domain.includes("ppimesir") || domain.includes("indonesia")) {
-      return { category: "Community", categoryColor: "bg-violet-100 text-violet-700", trust: "Medium", trustColor: "bg-amber-100 text-amber-700" };
+      return { category: "Community", categoryColor: "bg-violet-900/40 text-violet-300", trust: "Medium", trustColor: "bg-amber-900/40 text-amber-300" };
     }
   } catch {}
-  return { category: "Article", categoryColor: "bg-slate-100 text-slate-500", trust: "Default", trustColor: "bg-slate-100 text-slate-500" };
+  return { category: "Article", categoryColor: "bg-white/10 text-slate-500", trust: "Default", trustColor: "bg-white/10 text-slate-500" };
 }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,10 +153,10 @@ const SCRAPE_RANGES = [
 
 const APPROVAL_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
-  reviewed: "bg-blue-100 text-blue-700",
-  approved: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-red-100 text-red-700",
-  exported: "bg-indigo-100 text-indigo-700",
+  reviewed: "bg-blue-900/40 text-blue-300",
+  approved: "bg-emerald-900/30 text-emerald-400",
+  rejected: "bg-red-900/40 text-red-300",
+  exported: "bg-indigo-900/30 text-indigo-400",
 };
 
 const SELECTOR_FIELDS: { key: keyof ScraperSettings; label: string; hint: string }[] = [
@@ -170,32 +170,32 @@ const SELECTOR_FIELDS: { key: keyof ScraperSettings; label: string; hint: string
 function StatusBadge({ status }: { status: Article["status"] }) {
   if (status === "success")
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />Berhasil
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300 bg-emerald-900/20 border border-emerald-700/40 px-2 py-0.5 rounded-full whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-900/200 shrink-0" />Berhasil
       </span>
     );
   if (status === "partial")
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />Partial
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 bg-amber-900/20 border border-amber-700/40 px-2 py-0.5 rounded-full whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-900/200 shrink-0" />Partial
       </span>
     );
   if (status === "duplicate")
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 bg-white/10 border border-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />Duplikat
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />Gagal
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-300 bg-red-900/20 border border-red-700/40 px-2 py-0.5 rounded-full whitespace-nowrap">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-900/200 shrink-0" />Gagal
     </span>
   );
 }
 
 function StepBadge({ n, done }: { n: number; done?: boolean }) {
   return done ? (
-    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shrink-0 shadow-sm">
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-900/200 text-white shrink-0 shadow-sm">
       <CheckCircle2 className="w-4 h-4" />
     </span>
   ) : (
@@ -211,7 +211,7 @@ function logColor(line: string): string {
   if (l.includes("🔄") || l.includes("duplikat") || l.includes("duplicate") || l.includes("skip")) return "text-slate-400";
   if (l.includes("📦") || l.includes("export") || l.includes("selesai") || l.includes("done")) return "text-indigo-400";
   if (l.includes("🔍") || l.includes("menemukan") || l.includes("found")) return "text-sky-400";
-  return "text-slate-300";
+  return "text-slate-500";
 }
 
 const Index = () => {
@@ -765,7 +765,7 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-black text-slate-900 relative">
+    <div className="flex h-screen overflow-hidden bg-black text-white relative">
 
       {/* ── Wallpaper ── */}
       <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
@@ -782,7 +782,7 @@ const Index = () => {
                 <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Beranda</span>
               </Button>
             </Link>
-            <div className="w-px h-4 lg:h-6 bg-white/30 shrink-0 hidden sm:block" />
+            <div className="w-px h-4 lg:h-6 bg-white/15 shrink-0 hidden sm:block" />
             <img
               src="/AIGYPT_logo.png"
               alt="AINA"
@@ -795,7 +795,7 @@ const Index = () => {
             </div>
           </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-            <div className="hidden lg:flex items-center gap-1.5 bg-white/15 rounded-full px-4 py-2 text-sm text-white backdrop-blur-sm">
+            <div className="hidden lg:flex items-center gap-1.5 bg-white/10 rounded-full px-4 py-2 text-sm text-white backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
@@ -848,7 +848,7 @@ const Index = () => {
         <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── URL Input Card ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-100">
+          <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-fade-in-up animation-delay-100">
             {/* Animated gradient top bar */}
             <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 gradient-flow" />
 
@@ -856,7 +856,7 @@ const Index = () => {
 
               {/* Section label */}
               <div className="flex items-center gap-2 lg:gap-3">
-                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-indigo-100 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-indigo-900/40 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
                   <Globe className="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px] text-indigo-500" />
                 </div>
                 <span className="text-[10px] sm:text-[11px] lg:text-sm font-bold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</span>
@@ -874,16 +874,16 @@ const Index = () => {
                   onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
                   disabled={isRunning}
                   className={`w-full h-11 sm:h-12 lg:h-14 pl-10 lg:pl-12 pr-9 rounded-xl lg:rounded-2xl text-sm lg:text-base border outline-none transition-all duration-200
-                    placeholder:text-slate-300 disabled:opacity-60 disabled:cursor-not-allowed font-mono tracking-tight
+                    placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed font-mono tracking-tight
                     ${urlError
-                      ? "border-red-300 bg-red-50/40 ring-2 ring-red-200/60 text-red-800"
-                      : "border-slate-200 bg-slate-50/80 text-slate-800 focus:ring-2 focus:ring-indigo-300/60 focus:border-indigo-400 focus:bg-white"
+                      ? "border-red-300 bg-red-900/20 ring-2 ring-red-500/30 text-red-300"
+                      : "border-white/15 bg-white/8 text-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:bg-white/10"
                     }`}
                 />
                 {url && !isRunning && (
                   <button
                     onClick={() => { setUrl(""); setUrlError(""); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors duration-150 rounded-full p-0.5 hover:bg-slate-100">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-500 transition-colors duration-150 rounded-full p-0.5 hover:bg-white/10">
                     <X className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                   </button>
                 )}
@@ -897,7 +897,7 @@ const Index = () => {
               {/* Mode pills + Scrape button */}
               <div className="flex flex-col sm:flex-row gap-2.5 lg:gap-3">
                 {/* Mode segmented pills */}
-                <div className="flex items-center bg-slate-100 rounded-xl lg:rounded-2xl p-1 lg:p-1.5 gap-0.5 flex-1">
+                <div className="flex items-center bg-white/10 rounded-xl lg:rounded-2xl p-1 lg:p-1.5 gap-0.5 flex-1">
                   {MODES.map(m => (
                     <button
                       key={m.value}
@@ -907,8 +907,8 @@ const Index = () => {
                       title={m.desc}
                       className={`flex-1 text-xs lg:text-sm font-semibold px-2 lg:px-3 py-2 lg:py-2.5 rounded-lg lg:rounded-xl transition-all duration-150 truncate
                         ${mode === m.value
-                          ? "bg-white text-indigo-700 shadow-sm"
-                          : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/60"
+                          ? "bg-violet-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-white/15"
                         }`}>
                       {m.label}
                     </button>
@@ -943,7 +943,7 @@ const Index = () => {
               </p>
 
               {/* Rentang as pill chips */}
-              <div className="flex flex-wrap items-center gap-2 lg:gap-3 pt-3 lg:pt-4 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-2 lg:gap-3 pt-3 lg:pt-4 border-t border-white/10">
                 <span className="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
                 <div className="flex flex-wrap gap-1.5 lg:gap-2">
                   {SCRAPE_RANGES.map(r => (
@@ -954,8 +954,8 @@ const Index = () => {
                       disabled={isRunning}
                       className={`text-[11px] sm:text-xs lg:text-sm px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full font-semibold transition-all duration-150
                         ${scrapeRange === r.value
-                          ? "bg-slate-900 text-white shadow-sm"
-                          : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                          ? "bg-violet-600 text-white shadow-sm"
+                          : "bg-white/10 text-slate-500 hover:bg-white/15 hover:text-slate-200"
                         }`}>
                       {r.label}
                     </button>
@@ -965,11 +965,11 @@ const Index = () => {
                   <div className="flex items-center gap-1.5 mt-1 w-full sm:w-auto sm:mt-0">
                     <Input data-testid="input-custom-start" type="date" value={customStart}
                       onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
-                      className="w-36 h-7 text-xs bg-slate-50 border-slate-200 rounded-lg" />
+                      className="w-36 h-7 text-xs bg-white/5 border-white/15 rounded-lg" />
                     <span className="text-slate-400 text-xs shrink-0">–</span>
                     <Input data-testid="input-custom-end" type="date" value={customEnd}
                       onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
-                      className="w-36 h-7 text-xs bg-slate-50 border-slate-200 rounded-lg" />
+                      className="w-36 h-7 text-xs bg-white/5 border-white/15 rounded-lg" />
                   </div>
                 )}
               </div>
@@ -980,13 +980,13 @@ const Index = () => {
           {/* Mobile: horizontal scroll · sm+: 5-col grid */}
           <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
             {[
-              { label: "Total",    value: statTotal, icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",    iconColor: "text-slate-500",   top: "bg-gradient-to-r from-slate-300 to-slate-400",       testid: "stat-total",     delay: "animation-delay-150" },
-              { label: "Berhasil", value: statSucc,  icon: CheckCircle2, numColor: "text-emerald-600", iconBg: "bg-emerald-100",  iconColor: "text-emerald-600", top: "bg-gradient-to-r from-emerald-400 to-teal-400",     testid: "stat-success",   delay: "animation-delay-200" },
-              { label: "Partial",  value: statPart,  icon: AlertCircle,  numColor: "text-amber-600",   iconBg: "bg-amber-100",    iconColor: "text-amber-500",   top: "bg-gradient-to-r from-amber-400 to-orange-400",     testid: "stat-partial",   delay: "animation-delay-300" },
-              { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",      iconColor: "text-red-500",     top: "bg-gradient-to-r from-red-400 to-rose-500",         testid: "stat-failed",    delay: "animation-delay-400" },
-              { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-600",  iconBg: "bg-violet-100",   iconColor: "text-violet-500",  top: "bg-gradient-to-r from-violet-400 to-purple-500",    testid: "stat-duplicate", delay: "animation-delay-500" },
+              { label: "Total",    value: statTotal, icon: BarChart3,    numColor: "text-slate-100",   iconBg: "bg-white/10",    iconColor: "text-slate-500",   top: "bg-gradient-to-r from-slate-300 to-slate-400",       testid: "stat-total",     delay: "animation-delay-150" },
+              { label: "Berhasil", value: statSucc,  icon: CheckCircle2, numColor: "text-emerald-400", iconBg: "bg-emerald-900/40",  iconColor: "text-emerald-400", top: "bg-gradient-to-r from-emerald-400 to-teal-400",     testid: "stat-success",   delay: "animation-delay-200" },
+              { label: "Partial",  value: statPart,  icon: AlertCircle,  numColor: "text-amber-400",   iconBg: "bg-amber-900/40",    iconColor: "text-amber-500",   top: "bg-gradient-to-r from-amber-400 to-orange-400",     testid: "stat-partial",   delay: "animation-delay-300" },
+              { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-400",     iconBg: "bg-red-900/40",      iconColor: "text-red-500",     top: "bg-gradient-to-r from-red-400 to-rose-500",         testid: "stat-failed",    delay: "animation-delay-400" },
+              { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-400",  iconBg: "bg-violet-900/40",   iconColor: "text-violet-500",  top: "bg-gradient-to-r from-violet-400 to-purple-500",    testid: "stat-duplicate", delay: "animation-delay-500" },
             ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid, delay }) => (
-              <div key={label} className={`snap-start shrink-0 w-[116px] sm:w-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
+              <div key={label} className={`snap-start shrink-0 w-[116px] sm:w-auto bg-[#0f0b1e] rounded-xl sm:rounded-2xl border border-violet-900/30 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
                 {/* Coloured top accent */}
                 <div className={`h-[3px] w-full ${top}`} />
 
@@ -1017,28 +1017,28 @@ const Index = () => {
 
           {/* ── Pipeline Nudge Banner ── */}
           {!isRunning && eligibleArticles.length > 0 && kbDraft.length === 0 && (
-            <div className="flex flex-col gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5 animate-fade-in-up">
+            <div className="flex flex-col gap-3 bg-indigo-900/20 border border-indigo-700/30 rounded-2xl px-4 py-3.5 animate-fade-in-up">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 bg-indigo-900/200 rounded-xl flex items-center justify-center shrink-0">
                   <Activity className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-indigo-900">
+                  <p className="text-sm font-semibold text-indigo-200">
                     {eligibleArticles.length} artikel siap — ikuti pipeline KB di bawah
                   </p>
-                  <p className="text-xs text-indigo-600 mt-0.5">Jalankan setiap langkah secara berurutan</p>
+                  <p className="text-xs text-indigo-400 mt-0.5">Jalankan setiap langkah secara berurutan</p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
-                  { n: 1, label: "Scraping", done: true,       color: "bg-emerald-500 text-white" },
-                  { n: 2, label: "Summary",  done: summaryDone, color: "bg-indigo-500 text-white" },
-                  { n: 3, label: "Auto Tag", done: tagDone,     color: "bg-violet-500 text-white" },
-                  { n: 4, label: "Convert KB", done: kbDone,   color: "bg-amber-500 text-white" },
+                  { n: 1, label: "Scraping", done: true,       color: "bg-emerald-900/200 text-white" },
+                  { n: 2, label: "Summary",  done: summaryDone, color: "bg-indigo-900/200 text-white" },
+                  { n: 3, label: "Auto Tag", done: tagDone,     color: "bg-violet-900/200 text-white" },
+                  { n: 4, label: "Convert KB", done: kbDone,   color: "bg-amber-900/200 text-white" },
                   { n: 5, label: "Push Supabase", done: false,  color: "bg-slate-400 text-white" },
                 ].map(({ n, label, done, color }, idx, arr) => (
                   <span key={n} className="flex items-center gap-1">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${done ? color : "bg-white border border-indigo-200 text-indigo-400"}`}>
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${done ? color : "bg-white/8 border border-indigo-700/30 text-indigo-300"}`}>
                       <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-extrabold">
                         {done ? "✓" : n}
                       </span>
@@ -1052,13 +1052,13 @@ const Index = () => {
           )}
 
           {!isRunning && kbDraft.length > 0 && (
-            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3.5 animate-fade-in-up">
-              <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 bg-emerald-900/20 border border-emerald-700/30 rounded-2xl px-4 py-3.5 animate-fade-in-up">
+              <div className="w-8 h-8 bg-emerald-900/200 rounded-xl flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-emerald-900">KB Draft siap — {kbDraft.length} artikel</p>
-                <p className="text-xs text-emerald-700 mt-0.5">
+                <p className="text-sm font-semibold text-emerald-200">KB Draft siap — {kbDraft.length} artikel</p>
+                <p className="text-xs text-emerald-300 mt-0.5">
                   Buka Review Dashboard untuk approval workflow, atau jalankan AI Summary sebelum dikirim ke Supabase.
                 </p>
               </div>
@@ -1077,64 +1077,64 @@ const Index = () => {
             <div className="lg:col-span-2 space-y-4 lg:space-y-5">
 
               {/* Results Card */}
-              <div ref={resultsRef} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-200">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div ref={resultsRef} className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-fade-in-up animation-delay-200">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
+                    <div className="w-7 h-7 bg-indigo-900/40 rounded-lg flex items-center justify-center">
+                      <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
                     </div>
-                    <h2 className="text-sm font-bold text-slate-800">Hasil Scraping</h2>
+                    <h2 className="text-sm font-bold text-slate-100">Hasil Scraping</h2>
                     {/* Live article counter — updates every 2s during scrape */}
                     {articles.length > 0 && (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
                         isRunning
-                          ? "text-indigo-600 bg-indigo-100 animate-pulse"
-                          : "text-indigo-500 bg-indigo-50"
+                          ? "text-indigo-400 bg-indigo-900/40 animate-pulse"
+                          : "text-indigo-500 bg-indigo-900/20"
                       }`}>
                         {hasActiveFilter ? `${filteredArticles.length} / ${articles.length}` : articles.length}
                       </span>
                     )}
                     {isRunning && articles.length === 0 && progress.phase === "scraping" && (
-                      <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
+                      <span className="text-xs text-indigo-500 bg-indigo-900/20 px-2 py-0.5 rounded-full font-medium animate-pulse">
                         {progress.success} artikel
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5">
                     {articles.length > 0 && (
-                      <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
+                      <div className="flex items-center bg-white/10 rounded-lg p-0.5 gap-0.5">
                         <button onClick={() => setViewMode("table")}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "table" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "table" ? "bg-violet-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-500"}`}>
                           <LayoutList className="w-3.5 h-3.5" />Tabel
                         </button>
                         <button onClick={() => setViewMode("markdown")}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-violet-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-500"}`}>
                           <FileCode2 className="w-3.5 h-3.5" />Markdown
                         </button>
                       </div>
                     )}
                     {articles.length > 0 && (
                       <Button variant="ghost" size="sm" onClick={fetchArticles}
-                        className="gap-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 text-xs px-2 rounded-lg">
+                        className="gap-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-900/20 h-7 text-xs px-2 rounded-lg">
                         <RefreshCw className="w-3 h-3" />
                       </Button>
                     )}
                     {articles.length > 0 && !clearAllConfirm && (
                       <Button variant="ghost" size="sm" onClick={() => setClearAllConfirm(true)}
                         disabled={isRunning || deleteLoading}
-                        className="gap-1 text-red-400 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2 rounded-lg">
+                        className="gap-1 text-red-400 hover:text-red-400 hover:bg-red-900/20 h-7 text-xs px-2 rounded-lg">
                         <Trash2 className="w-3 h-3" />Hapus Semua
                       </Button>
                     )}
                     {clearAllConfirm && (
-                      <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1">
-                        <span className="text-xs text-red-700 font-medium whitespace-nowrap">Yakin hapus semua?</span>
+                      <div className="flex items-center gap-1.5 bg-red-900/20 border border-red-700/30 rounded-lg px-2.5 py-1">
+                        <span className="text-xs text-red-300 font-medium whitespace-nowrap">Yakin hapus semua?</span>
                         <button onClick={clearAllArticles} disabled={deleteLoading}
                           className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded-md">
                           {deleteLoading ? "..." : "Ya"}
                         </button>
                         <button onClick={() => setClearAllConfirm(false)}
-                          className="text-xs text-slate-500 hover:text-slate-700 px-1.5 py-0.5 rounded-md hover:bg-slate-100">
+                          className="text-xs text-slate-500 hover:text-slate-200 px-1.5 py-0.5 rounded-md hover:bg-white/10">
                           Batal
                         </button>
                       </div>
@@ -1146,23 +1146,23 @@ const Index = () => {
                 {isRunning && (
                   <div className={`flex items-center gap-3 px-5 py-2.5 border-b ${
                     progress.phase === "listing"
-                      ? "bg-blue-50 border-blue-100"
-                      : "bg-indigo-50 border-indigo-100"
+                      ? "bg-blue-900/20 border-blue-700/30"
+                      : "bg-indigo-900/20 border-indigo-700/30"
                   }`}>
                     <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-indigo-500" />
                     <div className="flex-1 min-w-0">
                       {progress.phase === "listing" ? (
-                        <p className="text-xs font-semibold text-blue-700">
+                        <p className="text-xs font-semibold text-blue-300">
                           Mengumpulkan daftar artikel dari halaman...
                         </p>
                       ) : (
                         <div className="flex items-center gap-3">
-                          <p className="text-xs font-semibold text-indigo-700 shrink-0">
+                          <p className="text-xs font-semibold text-indigo-300 shrink-0">
                             Scraping {progress.current} / {progress.total}
                           </p>
-                          <div className="flex-1 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-indigo-900/40 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                              className="h-full bg-indigo-900/200 rounded-full transition-all duration-500"
                               style={{ width: `${progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%` }}
                             />
                           </div>
@@ -1181,17 +1181,17 @@ const Index = () => {
                 )}
 
                 {articles.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                  <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-white/10 bg-white/5">
                     <div className="relative flex-1 min-w-[120px]">
                       <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                       <Input data-testid="filter-title" value={titleFilter}
                         onChange={e => setTitleFilter(e.target.value)}
-                        placeholder="Cari judul..." className="pl-8 h-8 text-xs border-slate-200 w-full bg-white rounded-full" />
+                        placeholder="Cari judul..." className="pl-8 h-8 text-xs border-white/15 w-full bg-white rounded-full" />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs border-slate-200 bg-white rounded-full">
+                      <SelectTrigger data-testid="filter-status" className="w-32 h-8 text-xs border-white/15 bg-white/8 text-white rounded-full">
                         <SelectValue placeholder="Semua" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1204,14 +1204,14 @@ const Index = () => {
                     </Select>
                     <Input data-testid="filter-date-from" type="date" value={dateFrom}
                       onChange={e => setDateFrom(e.target.value)}
-                      className="hidden md:block w-32 h-8 text-xs border-slate-200 bg-white" />
-                    <span className="hidden md:block text-slate-300 text-xs">→</span>
+                      className="hidden md:block w-32 h-8 text-xs border-white/15 bg-white/8 text-white" />
+                    <span className="hidden md:block text-slate-500 text-xs">→</span>
                     <Input data-testid="filter-date-to" type="date" value={dateTo}
                       onChange={e => setDateTo(e.target.value)}
-                      className="hidden md:block w-32 h-8 text-xs border-slate-200 bg-white" />
+                      className="hidden md:block w-32 h-8 text-xs border-white/15 bg-white/8 text-white" />
                     {hasActiveFilter && (
                       <Button variant="ghost" size="sm" onClick={clearFilters}
-                        className="h-8 text-xs text-red-500 hover:bg-red-50 px-2 gap-1">
+                        className="h-8 text-xs text-red-500 hover:bg-red-900/20 px-2 gap-1">
                         ✕ Hapus
                       </Button>
                     )}
@@ -1220,8 +1220,8 @@ const Index = () => {
 
                 {/* Bulk action bar */}
                 {selectedArticles.size > 0 && (
-                  <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-100">
-                    <span className="text-xs font-semibold text-red-700">{selectedArticles.size} artikel dipilih</span>
+                  <div className="flex items-center gap-2 px-5 py-2.5 bg-red-900/20 border-b border-red-700/30">
+                    <span className="text-xs font-semibold text-red-300">{selectedArticles.size} artikel dipilih</span>
                     <Button size="sm" disabled={deleteLoading}
                       onClick={deleteSelectedArticles}
                       className="gap-1.5 text-white bg-red-600 hover:bg-red-700 h-7 text-xs px-3 rounded-lg">
@@ -1229,7 +1229,7 @@ const Index = () => {
                       Hapus Terpilih
                     </Button>
                     <button onClick={() => setSelectedArticles(new Set())}
-                      className="text-xs text-slate-400 hover:text-slate-600 underline">
+                      className="text-xs text-slate-400 hover:text-slate-200 underline">
                       Batal pilih
                     </button>
                   </div>
@@ -1237,37 +1237,37 @@ const Index = () => {
 
                 {loadingArticles ? (
                   <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-                    <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-indigo-400 animate-spin" />
+                    <div className="w-8 h-8 rounded-full border-2 border-white/15 border-t-indigo-400 animate-spin" />
                     <p className="text-sm text-slate-500">Memuat artikel...</p>
                   </div>
                 ) : articles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-50 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-900/30 to-slate-800/30 flex items-center justify-center">
                       <Newspaper className="w-6 h-6 text-indigo-300" />
                     </div>
                     <div className="text-center space-y-1">
-                      <p className="text-sm font-semibold text-slate-700">Belum ada artikel</p>
-                      <p className="text-xs text-slate-400 max-w-xs">Masukkan URL halaman berita di atas, pilih mode, lalu klik <strong className="text-slate-600">Mulai Scraping</strong></p>
+                      <p className="text-sm font-semibold text-slate-200">Belum ada artikel</p>
+                      <p className="text-xs text-slate-400 max-w-xs">Masukkan URL halaman berita di atas, pilih mode, lalu klik <strong className="text-slate-500">Mulai Scraping</strong></p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-white/8 border border-white/15 rounded-full px-3.5 py-1.5">
                       <Zap className="w-3 h-3 text-indigo-400" />Scraping → Stats → KB Pipeline
                     </div>
                   </div>
                 ) : filteredArticles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 text-slate-300" />
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-slate-500" />
                     </div>
                     <div className="text-center space-y-1">
-                      <p className="text-sm font-semibold text-slate-700">Tidak ada hasil yang cocok</p>
+                      <p className="text-sm font-semibold text-slate-200">Tidak ada hasil yang cocok</p>
                       <p className="text-xs text-slate-400">{articles.length} artikel tersimpan, tapi tidak ada yang cocok filter aktif.</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs gap-1.5 h-8 border-slate-200 text-slate-500">
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs gap-1.5 h-8 border-white/15 text-slate-400">
                       Hapus Semua Filter
                     </Button>
                   </div>
                 ) : viewMode === "markdown" ? (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-white/10">
                     {filteredArticles.map((article, i) => {
                       const md = [
                         `# ${article.title || "(Tanpa Judul)"}`,
@@ -1284,24 +1284,24 @@ const Index = () => {
                       ].filter(l => l !== null).join("\n");
                       return (
                         <div key={article.id} data-testid={`row-article-${article.id}`}
-                          className="px-5 py-5 hover:bg-slate-50/60 transition-colors group">
+                          className="px-5 py-5 hover:bg-white/5 transition-colors group">
                           <div className="flex items-start justify-between gap-3 mb-3">
-                            <span className="text-[10px] text-slate-300 tabular-nums font-mono mt-1 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="text-[10px] text-slate-500 tabular-nums font-mono mt-1 shrink-0">{String(i + 1).padStart(2, "0")}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <StatusBadge status={article.status} />
                               <Button data-testid={`button-detail-${article.id}`} size="sm" variant="outline"
                                 onClick={() => navigate(`/article/${article.id}`)}
-                                className="h-7 text-xs px-2 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
+                                className="h-7 text-xs px-2 border-white/15 text-slate-400 hover:text-indigo-300 hover:border-indigo-500 hover:bg-indigo-900/20 gap-1 transition-colors">
                                 <Eye className="w-3 h-3" />Detail
                               </Button>
                               <a href={article.url} target="_blank" rel="noopener noreferrer"
                                 data-testid={`link-source-${article.id}`}
-                                className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors">
+                                className="flex items-center justify-center w-7 h-7 rounded-md border border-white/15 text-slate-500 hover:text-indigo-300 hover:border-indigo-500 hover:bg-indigo-900/20 transition-colors">
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             </div>
                           </div>
-                          <div className="prose prose-sm max-w-none prose-headings:text-slate-800 prose-a:text-indigo-600 prose-p:text-slate-600 prose-p:text-sm">
+                          <div className="prose prose-sm max-w-none prose-headings:text-white prose-a:text-indigo-400 prose-p:text-slate-500 prose-p:text-sm">
                             <ReactMarkdown>{md}</ReactMarkdown>
                           </div>
                         </div>
@@ -1312,7 +1312,7 @@ const Index = () => {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/60">
+                        <tr className="border-b border-white/10 bg-white/5">
                           <th className="px-4 py-3 w-10">
                             <Checkbox
                               checked={filteredArticles.length > 0 && selectedArticles.size === filteredArticles.length}
@@ -1333,17 +1333,17 @@ const Index = () => {
                           const rowDelay = i < 8 ? `animation-delay-${[75, 100, 150, 200, 300, 400, 500, 600][i]}` : "";
                           return (
                           <tr key={article.id} data-testid={`row-article-${article.id}`}
-                            className={`border-b border-slate-50 transition-colors align-top animate-fade-in-up ${rowDelay} ${isSelected ? "bg-red-50/40" : i % 2 === 1 ? "bg-slate-50/30 hover:bg-indigo-50/20" : "hover:bg-indigo-50/20"}`}>
+                            className={`border-b border-white/5 transition-colors align-top animate-fade-in-up ${rowDelay} ${isSelected ? "bg-red-900/20" : i % 2 === 1 ? "bg-white/3 hover:bg-violet-900/10" : "hover:bg-violet-900/10"}`}>
                             <td className="px-4 py-4 w-10">
                               <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectArticle(article.id)} />
                             </td>
-                            <td className="hidden sm:table-cell px-3 py-4 text-slate-300 text-xs tabular-nums font-mono">{i + 1}</td>
+                            <td className="hidden sm:table-cell px-3 py-4 text-slate-500 text-xs tabular-nums font-mono">{i + 1}</td>
                             <td className="px-4 py-4 max-w-0">
-                              <p className="font-medium text-slate-800 text-sm leading-snug truncate">{article.title || "(Tanpa Judul)"}</p>
+                              <p className="font-medium text-slate-100 text-sm leading-snug truncate">{article.title || "(Tanpa Judul)"}</p>
                               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed line-clamp-1">
                                 {article.content
                                   ? article.content.slice(0, 120) + (article.content.length > 120 ? "…" : "")
-                                  : <span className="italic text-slate-300">—</span>}
+                                  : <span className="italic text-slate-500">—</span>}
                               </p>
                               {article.url && (() => {
                                 const meta = getSourceMeta(article.url);
@@ -1359,7 +1359,7 @@ const Index = () => {
                                 );
                               })()}
                               {article.status === "partial" && (
-                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug">
+                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-300 bg-amber-900/20 border border-amber-700/30 rounded-md px-2 py-1 leading-snug">
                                   <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
                                   <span>
                                     {article.error_reason
@@ -1370,7 +1370,7 @@ const Index = () => {
                                 </div>
                               )}
                               {article.status === "failed" && article.error_reason && (
-                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 leading-snug">
+                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-red-400 bg-red-900/20 border border-red-700/30 rounded-md px-2 py-1 leading-snug">
                                   <XCircle className="w-3 h-3 shrink-0 mt-px" />
                                   <span>{ERROR_REASON_LABELS[article.error_reason] || article.error_reason} — Artikel tidak dapat dikonversi ke KB.</span>
                                 </div>
@@ -1382,12 +1382,12 @@ const Index = () => {
                               <div className="flex items-center gap-1.5">
                                 <Button data-testid={`button-detail-${article.id}`} size="sm" variant="outline"
                                   onClick={() => navigate(`/article/${article.id}`)}
-                                  className="h-7 text-xs px-2 border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 gap-1 transition-colors">
+                                  className="h-7 text-xs px-2 border-white/15 text-slate-400 hover:text-indigo-300 hover:border-indigo-500 hover:bg-indigo-900/20 gap-1 transition-colors">
                                   <Eye className="w-3 h-3" /><span className="hidden sm:inline">Detail</span>
                                 </Button>
                                 <a href={article.url} target="_blank" rel="noopener noreferrer"
                                   data-testid={`link-source-${article.id}`}
-                                  className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors">
+                                  className="flex items-center justify-center w-7 h-7 rounded-md border border-white/15 text-slate-500 hover:text-indigo-300 hover:border-indigo-500 hover:bg-indigo-900/20 transition-colors">
                                   <ExternalLink className="w-3 h-3" />
                                 </a>
                               </div>
@@ -1402,15 +1402,15 @@ const Index = () => {
               </div>
 
               {/* KB Pipeline Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-300">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-fade-in-up animation-delay-300">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                    <div className="w-7 h-7 bg-indigo-900/40 rounded-lg flex items-center justify-center">
+                      <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
                     </div>
-                    <h2 className="text-sm font-bold text-slate-800">KB Pipeline</h2>
+                    <h2 className="text-sm font-bold text-slate-100">KB Pipeline</h2>
                     {eligibleArticles.length > 0 && (
-                      <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                      <span className="text-xs text-emerald-400 bg-emerald-900/20 px-2 py-0.5 rounded-full font-medium">
                         {eligibleArticles.length} eligible
                       </span>
                     )}
@@ -1419,19 +1419,19 @@ const Index = () => {
                     <div className="flex items-center gap-2">
                       <a href={apiUrl("/export/kb-markdown")} download>
                         <Button variant="ghost" size="sm"
-                          className="h-7 text-xs gap-1.5 text-violet-600 hover:bg-violet-50 rounded-lg">
+                          className="h-7 text-xs gap-1.5 text-violet-400 hover:bg-violet-900/20 rounded-lg">
                           <Download className="w-3 h-3" />Download .md
                         </Button>
                       </a>
                       <a href={apiUrl("/export/kb")} download>
                         <Button data-testid="button-download-kb" variant="ghost" size="sm"
-                          className="h-7 text-xs gap-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
+                          className="h-7 text-xs gap-1.5 text-emerald-400 hover:bg-emerald-900/20 rounded-lg">
                           <Download className="w-3 h-3" />Export JSON
                         </Button>
                       </a>
                       <Link to="/review">
                         <Button variant="ghost" size="sm"
-                          className="h-7 text-xs gap-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                          className="h-7 text-xs gap-1.5 text-indigo-400 hover:bg-indigo-900/20 rounded-lg">
                           <CheckSquare className="w-3 h-3" />Review
                         </Button>
                       </Link>
@@ -1445,14 +1445,14 @@ const Index = () => {
                       <BookOpen className="w-6 h-6 text-indigo-300" />
                     </div>
                     <div className="text-center space-y-1">
-                      <p className="text-sm font-semibold text-slate-700">Pipeline belum tersedia</p>
+                      <p className="text-sm font-semibold text-slate-200">Pipeline belum tersedia</p>
                       <p className="text-xs text-slate-400">Lakukan scraping terlebih dahulu untuk mengaktifkan KB Pipeline</p>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] flex-wrap justify-center">
                       {["Scraping", "Summary", "Auto Tag", "KB Draft", "Review"].map((s, i, arr) => (
                         <span key={s} className="flex items-center gap-2">
-                          <span className="text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-medium">{s}</span>
-                          {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-slate-300" />}
+                          <span className="text-slate-500 bg-white/10 border border-white/15 px-2.5 py-1 rounded-full font-medium">{s}</span>
+                          {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-slate-500" />}
                         </span>
                       ))}
                     </div>
@@ -1460,7 +1460,7 @@ const Index = () => {
                 ) : (
                   <div className="p-5">
                     <Tabs defaultValue="kb-draft">
-                      <TabsList className="mb-5 bg-slate-100 border border-slate-200 h-9">
+                      <TabsList className="mb-5 bg-white/10 border border-white/15 h-9">
                         <TabsTrigger value="kb-draft" className="gap-1.5 text-xs h-7">
                           <ClipboardList className="w-3.5 h-3.5" />KB Draft
                         </TabsTrigger>
@@ -1475,11 +1475,11 @@ const Index = () => {
                       <TabsContent value="kb-draft" className="mt-0">
                         <div className="space-y-3">
                           {/* Step 1 */}
-                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "bg-emerald-50/40" : "bg-slate-50/60"}`}>
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${summaryDone ? "bg-emerald-900/20/40" : "bg-white/5"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={1} done={summaryDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <h3 className="font-semibold text-sm text-slate-800">Generate Summary</h3>
+                                <h3 className="font-semibold text-sm text-slate-100">Generate Summary</h3>
                                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Buat ringkasan singkat untuk setiap artikel success/partial.</p>
                               </div>
                             </div>
@@ -1491,17 +1491,17 @@ const Index = () => {
                                 {summaryLoading ? "Generating..." : summaryDone ? "Re-generate" : "Generate Summary"}
                               </Button>
                               {summaryDone && summaryResult && (
-                                <span className="text-xs text-emerald-600 font-medium">{summaryResult.updated} artikel diberi summary.</span>
+                                <span className="text-xs text-emerald-400 font-medium">{summaryResult.updated} artikel diberi summary.</span>
                               )}
                               {summaryError && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{summaryError}</span>}
                             </div>
                           </div>
                           {/* Step 2 */}
-                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "bg-emerald-50/40" : "bg-slate-50/60"}`}>
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${tagDone ? "bg-emerald-900/20/40" : "bg-white/5"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={2} done={tagDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <h3 className="font-semibold text-sm text-slate-800">Auto Tagging</h3>
+                                <h3 className="font-semibold text-sm text-slate-100">Auto Tagging</h3>
                                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Tag otomatis topik, lokasi, dan entitas dari setiap artikel.</p>
                               </div>
                             </div>
@@ -1512,22 +1512,22 @@ const Index = () => {
                                 {tagLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : tagDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Tag className="w-3.5 h-3.5" />}
                                 {tagLoading ? "Tagging..." : tagDone ? "Re-tag" : "Auto Tag"}
                               </Button>
-                              {tagDone && <span className="text-xs text-emerald-600 font-medium">Semua artikel berhasil di-tag.</span>}
+                              {tagDone && <span className="text-xs text-emerald-400 font-medium">Semua artikel berhasil di-tag.</span>}
                               {tagError && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{tagError}</span>}
                             </div>
                           </div>
                           {/* Step 3 */}
-                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "bg-emerald-50/40" : "bg-slate-50/60"}`}>
+                          <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "bg-emerald-900/20/40" : "bg-white/5"}`}>
                             <div className="flex items-start gap-3">
                               <StepBadge n={3} done={kbDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <h3 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                                <h3 className="font-semibold text-sm text-slate-100 flex items-center gap-2">
                                   Convert to KB Draft
-                                  {kbDone && <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">{kbDraft.length} artikel</span>}
+                                  {kbDone && <span className="text-[10px] font-medium text-emerald-400 bg-emerald-900/20 border border-emerald-700/40 px-2 py-0.5 rounded-full">{kbDraft.length} artikel</span>}
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                                   Konversi artikel success/partial ke format KB draft AINA. Status awal:{" "}
-                                  <span className="font-mono text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-px rounded-full text-[10px] font-medium">pending</span>.
+                                  <span className="font-mono text-amber-300 bg-amber-900/20 border border-amber-700/40 px-1.5 py-px rounded-full text-[10px] font-medium">pending</span>.
                                 </p>
                               </div>
                             </div>
@@ -1538,7 +1538,7 @@ const Index = () => {
                                   value={kbCutoff}
                                   onChange={e => setKbCutoff(e.target.value)}
                                   disabled={kbLoading || isRunning}
-                                  className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
+                                  className="text-xs border border-white/15 rounded-lg px-2 py-1 bg-white text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">
                                   <option value="all">Semua waktu</option>
                                   <option value="7">7 hari terakhir</option>
                                   <option value="30">30 hari terakhir</option>
@@ -1553,7 +1553,7 @@ const Index = () => {
                                 {kbLoading ? "Mengkonversi..." : kbDone ? "Re-convert" : "Convert to KB Draft"}
                               </Button>
                               <Button variant="ghost" size="sm" onClick={fetchKbDraft} disabled={kbDraftLoading}
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-slate-500">
                                 <RefreshCw className={`w-3.5 h-3.5 ${kbDraftLoading ? "animate-spin" : ""}`} />
                               </Button>
                             </div>
@@ -1565,8 +1565,8 @@ const Index = () => {
                         </div>
 
                         {kbDraft.length > 0 && (
-                          <div className="rounded-xl border border-slate-200 overflow-hidden mt-4">
-                            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                          <div className="rounded-xl border border-white/15 overflow-hidden mt-4">
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border-b border-white/15">
                               <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
                               <span className="text-xs font-semibold text-slate-500">Preview KB Draft</span>
                               <span className="text-xs text-slate-400">({kbDraft.length} artikel)</span>
@@ -1574,7 +1574,7 @@ const Index = () => {
                             <div className="overflow-x-auto max-h-72 overflow-y-auto">
                               <table className="w-full text-xs">
                                 <thead className="sticky top-0 z-10">
-                                  <tr className="bg-white border-b border-slate-100 text-slate-400">
+                                  <tr className="bg-white border-b border-white/10 text-slate-400">
                                     <th className="text-left px-4 py-2.5 font-semibold w-7">#</th>
                                     <th className="text-left px-4 py-2.5 font-semibold">Judul</th>
                                     <th className="text-left px-4 py-2.5 font-semibold w-36">Slug</th>
@@ -1586,30 +1586,30 @@ const Index = () => {
                                 <tbody>
                                   {kbDraft.map((kb, i) => (
                                     <tr key={kb.id || i} data-testid={`row-kb-${kb.id || i}`}
-                                      className={`border-b border-slate-50 hover:bg-indigo-50/30 transition-colors align-top ${i % 2 === 1 ? "bg-slate-50/40" : ""}`}>
-                                      <td className="px-4 py-2.5 text-slate-300 tabular-nums">{i + 1}</td>
+                                      className={`border-b border-white/5 hover:bg-indigo-900/20/30 transition-colors align-top ${i % 2 === 1 ? "bg-white/5" : ""}`}>
+                                      <td className="px-4 py-2.5 text-slate-500 tabular-nums">{i + 1}</td>
                                       <td className="px-4 py-2.5">
-                                        <p className="font-medium text-slate-800 line-clamp-2 leading-snug">{kb.title || "(Tanpa Judul)"}</p>
+                                        <p className="font-medium text-slate-100 line-clamp-2 leading-snug">{kb.title || "(Tanpa Judul)"}</p>
                                         {kb.published_date && <p className="text-slate-400 mt-0.5">{kb.published_date}</p>}
                                       </td>
                                       <td className="px-4 py-2.5">
-                                        <span data-testid={`slug-${i}`} className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded break-all">{kb.slug}</span>
+                                        <span data-testid={`slug-${i}`} className="font-mono text-indigo-400 bg-indigo-900/20 px-1.5 py-0.5 rounded break-all">{kb.slug}</span>
                                       </td>
                                       <td className="px-4 py-2.5">
                                         <p data-testid={`summary-${i}`} className="text-slate-500 line-clamp-3 leading-relaxed">
-                                          {kb.summary || <span className="italic text-slate-300">—</span>}
+                                          {kb.summary || <span className="italic text-slate-500">—</span>}
                                         </p>
                                       </td>
                                       <td className="px-4 py-2.5">
                                         <div data-testid={`tags-${i}`} className="flex flex-wrap gap-1">
                                           {(kb.tags || []).map(t => (
-                                            <span key={t} className="bg-indigo-50 text-indigo-600 px-1.5 py-px rounded font-medium">{t}</span>
+                                            <span key={t} className="bg-indigo-900/20 text-indigo-400 px-1.5 py-px rounded font-medium">{t}</span>
                                           ))}
                                         </div>
                                       </td>
                                       <td className="px-4 py-2.5">
                                         <span data-testid={`approval-${i}`}
-                                          className={`inline-block px-2 py-0.5 rounded font-semibold capitalize ${APPROVAL_COLORS[kb.approval_status] || "bg-slate-100 text-slate-500"}`}>
+                                          className={`inline-block px-2 py-0.5 rounded font-semibold capitalize ${APPROVAL_COLORS[kb.approval_status] || "bg-white/10 text-slate-500"}`}>
                                           {kb.approval_status}
                                         </span>
                                       </td>
@@ -1623,18 +1623,18 @@ const Index = () => {
                       </TabsContent>
 
                       <TabsContent value="ai" className="mt-0">
-                        <div className="border border-slate-200 rounded-xl p-5 space-y-4">
+                        <div className="border border-white/15 rounded-xl p-5 space-y-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-                              <Sparkles className="w-4 h-4 text-violet-600" />
+                            <div className="w-9 h-9 rounded-xl bg-violet-900/40 flex items-center justify-center shrink-0">
+                              <Sparkles className="w-4 h-4 text-violet-400" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-sm text-slate-800">AI Summary — GPT-4o-mini</h3>
+                              <h3 className="font-semibold text-sm text-slate-100">AI Summary — GPT-4o-mini</h3>
                               <p className="text-xs text-slate-500">Upgrade ringkasan dengan AI untuk semua artikel di KB Draft</p>
                             </div>
                           </div>
                           {kbDraft.length === 0 ? (
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
+                            <div className="bg-amber-900/20 border border-amber-700/40 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-300">
                               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                               Jalankan "Convert to KB Draft" terlebih dahulu.
                             </div>
@@ -1647,25 +1647,25 @@ const Index = () => {
                             </Button>
                           )}
                           {aiError && <p data-testid="text-ai-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{aiError}</p>}
-                          {aiDone && <p data-testid="text-ai-success" className="text-emerald-600 text-sm flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" />AI summary berhasil disimpan.</p>}
+                          {aiDone && <p data-testid="text-ai-success" className="text-emerald-400 text-sm flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" />AI summary berhasil disimpan.</p>}
                         </div>
                       </TabsContent>
 
                       <TabsContent value="supabase" className="mt-0">
-                        <div className="border border-slate-200 rounded-xl p-5 space-y-4">
+                        <div className="border border-white/15 rounded-xl p-5 space-y-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                              <Database className="w-4 h-4 text-emerald-600" />
+                            <div className="w-9 h-9 rounded-xl bg-emerald-900/40 flex items-center justify-center shrink-0">
+                              <Database className="w-4 h-4 text-emerald-400" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-sm text-slate-800">Push ke Supabase AINA</h3>
+                              <h3 className="font-semibold text-sm text-slate-100">Push ke Supabase AINA</h3>
                               <p className="text-xs text-slate-500">
-                                Insert semua KB articles ke tabel <span className="font-mono bg-slate-100 px-1 rounded">knowledge_base</span> AINA dengan <span className="font-mono bg-slate-100 px-1 rounded">status: pending</span> untuk review admin.
+                                Insert semua KB articles ke tabel <span className="font-mono bg-white/10 px-1 rounded">knowledge_base</span> AINA dengan <span className="font-mono bg-white/10 px-1 rounded">status: pending</span> untuk review admin.
                               </p>
                             </div>
                           </div>
                           {kbDraft.length === 0 ? (
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-700">
+                            <div className="bg-amber-900/20 border border-amber-700/40 rounded-lg px-4 py-3 flex items-center gap-2 text-xs text-amber-300">
                               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                               Jalankan "Convert to KB Draft" terlebih dahulu.
                             </div>
@@ -1678,7 +1678,7 @@ const Index = () => {
                                 {pushLoading ? "Pushing..." : pushDone ? `${pushCount} artikel di-push!` : "Push to Supabase"}
                               </Button>
                               <Button data-testid="button-fetch-db" onClick={fetchDbArticles}
-                                disabled={dbLoading} variant="outline" className="gap-2 border-slate-200">
+                                disabled={dbLoading} variant="outline" className="gap-2 border-white/15">
                                 {dbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                                 {dbLoading ? "Mengambil..." : "Lihat Data"}
                               </Button>
@@ -1687,8 +1687,8 @@ const Index = () => {
                           {pushError && <p data-testid="text-push-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{pushError}</p>}
                           {dbError && <p data-testid="text-db-error" className="text-red-500 text-sm flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{dbError}</p>}
                           {dbArticles.length > 0 && (
-                            <div className="rounded-xl border border-slate-200 overflow-hidden">
-                              <div className="bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500 border-b">
+                            <div className="rounded-xl border border-white/15 overflow-hidden">
+                              <div className="bg-white/5 px-4 py-2 text-xs font-semibold text-slate-500 border-b">
                                 {dbArticles.length} artikel di Supabase
                               </div>
                               <div className="overflow-x-auto max-h-56 overflow-y-auto">
@@ -1702,14 +1702,14 @@ const Index = () => {
                                   </thead>
                                   <tbody>
                                     {dbArticles.map((a, i) => (
-                                      <tr key={i} className="border-b hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-2 text-slate-800 font-medium">{a.title || "(Tanpa Judul)"}</td>
+                                      <tr key={i} className="border-b hover:bg-white/5 transition-colors">
+                                        <td className="px-4 py-2 text-slate-100 font-medium">{a.title || "(Tanpa Judul)"}</td>
                                         <td className="px-4 py-2 text-slate-500">{a.category || "—"}</td>
                                         <td className="px-4 py-2">
                                           <span className={`px-1.5 py-px rounded font-medium ${
-                                            a.status === "approved" ? "bg-emerald-50 text-emerald-700" :
-                                            a.status === "rejected" ? "bg-red-50 text-red-600" :
-                                            "bg-amber-50 text-amber-700"
+                                            a.status === "approved" ? "bg-emerald-900/20 text-emerald-300" :
+                                            a.status === "rejected" ? "bg-red-900/20 text-red-400" :
+                                            "bg-amber-900/20 text-amber-300"
                                           }`}>{a.status || "pending"}</span>
                                         </td>
                                       </tr>
@@ -1731,19 +1731,19 @@ const Index = () => {
             <div className="space-y-4">
 
               {/* Log Panel */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-200">
+              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-200">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
                       <Terminal className="w-3.5 h-3.5 text-slate-500" />
                     </div>
-                    <span className="text-sm font-bold text-slate-800">Log Proses</span>
+                    <span className="text-sm font-bold text-slate-100">Log Proses</span>
                     {isRunning && (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
                         <span className="relative flex h-1.5 w-1.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-900/200" />
                         </span>
                         Live
                       </span>
@@ -1752,7 +1752,7 @@ const Index = () => {
                   {(progress.phase === "listing" || progress.phase === "scraping") && (
                     <div className="flex items-center gap-2">
                       {progress.phase === "scraping" && (
-                        <span className="text-xs font-bold text-indigo-600 tabular-nums">{pct}%</span>
+                        <span className="text-xs font-bold text-indigo-400 tabular-nums">{pct}%</span>
                       )}
                       <div className="w-20">
                         {progress.phase === "scraping"
@@ -1770,40 +1770,40 @@ const Index = () => {
                 {/* Status banner — prominent indicator */}
                 {progress.phase === "done" ? (
                   progress.failed === 0 && progress.partial === 0 ? (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border-b border-emerald-100">
-                      <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-900/20 border-b border-emerald-700/30">
+                      <div className="w-7 h-7 rounded-full bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-emerald-800">Scraping selesai!</p>
-                        <p className="text-xs text-emerald-600">
+                        <p className="text-xs text-emerald-400">
                           {progress.success} artikel berhasil
                           {progress.duplicate > 0 && ` · ${progress.duplicate} duplikat dilewati`}
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border-b border-amber-100">
-                      <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <div className="flex items-center gap-3 px-4 py-3 bg-amber-900/20 border-b border-amber-700/30">
+                      <div className="w-7 h-7 rounded-full bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-amber-800">Selesai dengan peringatan</p>
-                        <p className="text-xs text-amber-700">
+                        <p className="text-xs text-amber-300">
                           {progress.success} berhasil · {progress.partial > 0 && `${progress.partial} partial · `}{progress.failed > 0 && `${progress.failed} gagal · `}{progress.duplicate > 0 && `${progress.duplicate} duplikat`}
                         </p>
                       </div>
                     </div>
                   )
                 ) : isRunning ? (
-                  <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-50 border-b border-indigo-100">
+                  <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-900/20 border-b border-indigo-100">
                     <Loader2 className="w-4 h-4 text-indigo-500 animate-spin flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-indigo-700">
+                      <p className="text-xs font-semibold text-indigo-300">
                         {progress.phase === "listing"
                           ? "Mengumpulkan daftar artikel..."
                           : `Scraping artikel ${progress.current} / ${progress.total}`}
@@ -1832,22 +1832,22 @@ const Index = () => {
                   className="bg-[#1e2433] px-4 py-3 h-52 overflow-y-auto font-mono">
                   {progress.logs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
-                      <Terminal className="w-6 h-6 text-slate-700" />
-                      <p className="text-slate-600 text-xs leading-relaxed">
+                      <Terminal className="w-6 h-6 text-slate-200" />
+                      <p className="text-slate-500 text-xs leading-relaxed">
                         Log scraping akan tampil di sini<br />
-                        <span className="text-slate-700">setelah kamu klik Mulai Scraping</span>
+                        <span className="text-slate-200">setelah kamu klik Mulai Scraping</span>
                       </p>
                     </div>
                   ) : (
                     progress.logs.map((line, i) => (
                       <div key={i} className={`text-xs leading-5 ${logColor(line)}`}>
-                        <span className="text-slate-700 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
+                        <span className="text-slate-200 select-none mr-2 tabular-nums">{String(i + 1).padStart(3, "0")}</span>
                         {line}
                       </div>
                     ))
                   )}
                   {isRunning && (
-                    <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                    <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                       <Loader2 className="w-2.5 h-2.5 animate-spin" />
                       <span className="animate-pulse">memproses...</span>
                     </div>
@@ -1856,19 +1856,19 @@ const Index = () => {
               </div>
 
               {/* Scheduler Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-300">
+              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-300">
                 <button
                   onClick={() => setSchedulerOpen(o => !o)}
-                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/10 hover:bg-white/5 transition-colors"
                   data-testid="scheduler-toggle"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <Timer className="w-3.5 h-3.5 text-indigo-600" />
+                    <div className="w-6 h-6 bg-indigo-900/40 rounded-lg flex items-center justify-center">
+                      <Timer className="w-3.5 h-3.5 text-indigo-400" />
                     </div>
-                    <span className="text-sm font-bold text-slate-800">Scheduler</span>
+                    <span className="text-sm font-bold text-slate-100">Scheduler</span>
                     {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
-                      <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-semibold text-indigo-300 bg-indigo-900/40 px-2 py-0.5 rounded-full">
                         {schedulerSettings.interval === "daily" ? "Harian" : "Mingguan"}
                       </span>
                     )}
@@ -1879,25 +1879,25 @@ const Index = () => {
                 {schedulerOpen && (
                   <div className="p-4 space-y-4">
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-xl bg-slate-50 p-2.5 text-center">
+                      <div className="rounded-xl bg-white/5 p-2.5 text-center">
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Last Run</p>
-                        <p className="text-xs font-semibold text-slate-700 mt-0.5 tabular-nums leading-tight">
+                        <p className="text-xs font-semibold text-slate-200 mt-0.5 tabular-nums leading-tight">
                           {schedulerSettings.last_run_at
                             ? new Date(schedulerSettings.last_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
                             : "—"}
                         </p>
                       </div>
-                      <div className="rounded-xl bg-indigo-50 p-2.5 text-center">
+                      <div className="rounded-xl bg-indigo-900/20 p-2.5 text-center">
                         <p className="text-[10px] text-indigo-400 uppercase tracking-wide">Next</p>
-                        <p className="text-xs font-semibold text-indigo-700 mt-0.5 tabular-nums leading-tight">
+                        <p className="text-xs font-semibold text-indigo-300 mt-0.5 tabular-nums leading-tight">
                           {schedulerSettings.next_run_at
                             ? new Date(schedulerSettings.next_run_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
                             : "—"}
                         </p>
                       </div>
-                      <div className="rounded-xl bg-emerald-50 p-2.5 text-center">
+                      <div className="rounded-xl bg-emerald-900/20 p-2.5 text-center">
                         <p className="text-[10px] text-emerald-500 uppercase tracking-wide">Artikel</p>
-                        <p className="text-xl font-bold text-emerald-700 mt-0.5 tabular-nums leading-none">
+                        <p className="text-xl font-bold text-emerald-300 mt-0.5 tabular-nums leading-none">
                           {schedulerSettings.last_run_articles_added}
                         </p>
                       </div>
@@ -1910,7 +1910,7 @@ const Index = () => {
                             onValueChange={v => setSchedulerSettings(s => ({
                               ...s, interval: v as "manual" | "daily" | "weekly", enabled: v !== "manual",
                             }))}>
-                            <SelectTrigger data-testid="scheduler-interval" className="h-8 text-xs bg-slate-50 border-slate-200">
+                            <SelectTrigger data-testid="scheduler-interval" className="h-8 text-xs bg-white/5 border-white/15">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1926,7 +1926,7 @@ const Index = () => {
                             <Input data-testid="scheduler-time" type="time"
                               value={schedulerSettings.time_of_day}
                               onChange={e => setSchedulerSettings(s => ({ ...s, time_of_day: e.target.value }))}
-                              className="w-24 h-8 text-xs bg-slate-50 border-slate-200" />
+                              className="w-24 h-8 text-xs bg-white/5 border-white/15" />
                           </div>
                         )}
                       </div>
@@ -1935,7 +1935,7 @@ const Index = () => {
                           <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Hari</Label>
                           <Select value={schedulerSettings.day_of_week}
                             onValueChange={v => setSchedulerSettings(s => ({ ...s, day_of_week: v }))}>
-                            <SelectTrigger data-testid="scheduler-dow" className="h-8 text-xs bg-slate-50 border-slate-200">
+                            <SelectTrigger data-testid="scheduler-dow" className="h-8 text-xs bg-white/5 border-white/15">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1952,13 +1952,13 @@ const Index = () => {
                           placeholder="https://www.kemlu.go.id/cairo/berita"
                           value={schedulerSettings.url}
                           onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
-                          className="h-8 text-xs bg-slate-50 border-slate-200" />
+                          className="h-8 text-xs bg-white/5 border-white/15" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Mode Scraping</Label>
                         <Select value={schedulerSettings.scrape_mode}
                           onValueChange={v => setSchedulerSettings(s => ({ ...s, scrape_mode: v }))}>
-                          <SelectTrigger data-testid="scheduler-mode" className="h-8 text-xs bg-slate-50 border-slate-200">
+                          <SelectTrigger data-testid="scheduler-mode" className="h-8 text-xs bg-white/5 border-white/15">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1971,11 +1971,11 @@ const Index = () => {
                       <div className="flex items-center gap-2">
                         <button onClick={() => setSchedulerSettings(s => ({ ...s, incremental: !s.incremental }))} className="shrink-0">
                           {schedulerSettings.incremental
-                            ? <ToggleRight className="w-8 h-8 text-indigo-600" />
-                            : <ToggleLeft className="w-8 h-8 text-slate-300" />}
+                            ? <ToggleRight className="w-8 h-8 text-indigo-400" />
+                            : <ToggleLeft className="w-8 h-8 text-slate-500" />}
                         </button>
                         <div>
-                          <p className="text-xs font-semibold text-slate-700">Incremental</p>
+                          <p className="text-xs font-semibold text-slate-200">Incremental</p>
                           <p className="text-[10px] text-slate-400">Hanya ambil artikel baru (lewati duplikat)</p>
                         </div>
                       </div>
@@ -1989,17 +1989,17 @@ const Index = () => {
                       </Button>
                       <Button data-testid="button-run-now" onClick={triggerRunNow}
                         disabled={schedulerRunNow || !schedulerSettings.url} size="sm" variant="outline"
-                        className="gap-1.5 h-8 border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full">
+                        className="gap-1.5 h-8 border-white/15 text-slate-500 hover:text-indigo-400 hover:border-indigo-300 rounded-full">
                         {schedulerRunNow ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                         Jalankan
                       </Button>
                       <Button variant="ghost" size="sm" onClick={fetchSchedulerSettings}
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-slate-500">
                         <RefreshCw className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                     {schedulerSettings.interval !== "manual" && schedulerSettings.enabled && (
-                      <p className="text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg leading-relaxed">
+                      <p className="text-[11px] text-indigo-400 bg-indigo-900/20 border border-indigo-100 px-3 py-2 rounded-lg leading-relaxed">
                         ✓ Aktif — {schedulerSettings.interval === "daily"
                           ? `setiap hari pukul ${schedulerSettings.time_of_day}`
                           : `setiap ${DOW_LABELS[schedulerSettings.day_of_week] || schedulerSettings.day_of_week} pukul ${schedulerSettings.time_of_day}`} WIB
@@ -2010,18 +2010,18 @@ const Index = () => {
               </div>
 
               {/* Riwayat Pipeline Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-350">
+              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-350">
                 <button
                   onClick={() => { setHistoryOpen(o => !o); if (!historyOpen) fetchIngestionHistory(); }}
-                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/10 hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <History className="w-3.5 h-3.5 text-emerald-600" />
+                    <div className="w-6 h-6 bg-emerald-900/40 rounded-lg flex items-center justify-center">
+                      <History className="w-3.5 h-3.5 text-emerald-400" />
                     </div>
-                    <span className="text-sm font-bold text-slate-800">Riwayat Pipeline</span>
+                    <span className="text-sm font-bold text-slate-100">Riwayat Pipeline</span>
                     {ingestionHistory.length > 0 && (
-                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-900/40 px-2 py-0.5 rounded-full">
                         {ingestionHistory.length} run
                       </span>
                     )}
@@ -2038,7 +2038,7 @@ const Index = () => {
                       <p className="text-[11px] text-slate-400 font-medium">Hasil pipeline background (terbaru di atas)</p>
                       <Button variant="ghost" size="sm" onClick={fetchIngestionHistory}
                         disabled={historyLoading}
-                        className="h-6 w-6 p-0 text-slate-400 hover:text-emerald-600">
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-emerald-400">
                         <RefreshCw className={`w-3 h-3 ${historyLoading ? "animate-spin" : ""}`} />
                       </Button>
                     </div>
@@ -2047,7 +2047,7 @@ const Index = () => {
                       <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
                         <History className="w-8 h-8 text-slate-200" />
                         <p className="text-xs text-slate-400 font-medium">Belum ada riwayat</p>
-                        <p className="text-[11px] text-slate-300">Pipeline belum pernah dijalankan,<br />atau scheduler belum aktif.</p>
+                        <p className="text-[11px] text-slate-500">Pipeline belum pernah dijalankan,<br />atau scheduler belum aktif.</p>
                       </div>
                     ) : (
                       <div className="space-y-1.5">
@@ -2067,25 +2067,25 @@ const Index = () => {
                           const errMsg     = run.error_message as string | null;
                           return (
                             <div key={i} className={`rounded-xl p-3 border text-xs ${
-                              isSuccess ? "bg-emerald-50/60 border-emerald-100"
-                              : isFailed ? "bg-red-50/60 border-red-100"
-                              : "bg-amber-50/60 border-amber-100"
+                              isSuccess ? "bg-emerald-900/20/60 border-emerald-700/30"
+                              : isFailed ? "bg-red-900/20/60 border-red-700/30"
+                              : "bg-amber-900/20/60 border-amber-700/30"
                             }`}>
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5">
                                   {isSuccess ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                     : isFailed ? <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                                     : <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                                  <span className="font-semibold text-slate-700">{dateStr}</span>
+                                  <span className="font-semibold text-slate-200">{dateStr}</span>
                                   <span className="text-slate-400">{timeStr}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-[10px] shrink-0">
                                   {isSuccess && (
                                     <>
-                                      <span className="text-emerald-700 font-semibold">+{inserted} baru</span>
-                                      {updated > 0 && <span className="text-blue-600">{updated} update</span>}
+                                      <span className="text-emerald-300 font-semibold">+{inserted} baru</span>
+                                      {updated > 0 && <span className="text-blue-400">{updated} update</span>}
                                       <span className="text-slate-400">{chunks} chunk</span>
-                                      <span className="text-slate-300">{duration.toFixed(1)}s</span>
+                                      <span className="text-slate-500">{duration.toFixed(1)}s</span>
                                     </>
                                   )}
                                   {isFailed && (
@@ -2093,7 +2093,7 @@ const Index = () => {
                                       {errMsg ? errMsg.slice(0, 40) + (errMsg.length > 40 ? "…" : "") : "Error"}
                                     </span>
                                   )}
-                                  {isSkipped && <span className="text-amber-600 font-semibold">Dilewati (concurrent)</span>}
+                                  {isSkipped && <span className="text-amber-400 font-semibold">Dilewati (concurrent)</span>}
                                 </div>
                               </div>
                               {isSuccess && (
@@ -2117,16 +2117,16 @@ const Index = () => {
               </div>
 
               {/* CSS Selector Card */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-slide-in-right animation-delay-400">
+              <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden animate-slide-in-right animation-delay-400">
                 <button
-                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/10 hover:bg-white/5 transition-colors"
                   onClick={() => setSettingsOpen(v => !v)}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center">
-                      <Settings2 className="w-3.5 h-3.5 text-violet-600" />
+                    <div className="w-6 h-6 bg-violet-900/40 rounded-lg flex items-center justify-center">
+                      <Settings2 className="w-3.5 h-3.5 text-violet-400" />
                     </div>
-                    <span className="text-sm font-bold text-slate-800">CSS Selector</span>
+                    <span className="text-sm font-bold text-slate-100">CSS Selector</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {!settingsOpen && (
@@ -2145,7 +2145,7 @@ const Index = () => {
                           <Label className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest">{label}</Label>
                           <Textarea data-testid={`input-${key}`} rows={2} value={settings[key]}
                             onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}
-                            className="font-mono text-xs resize-none bg-indigo-50/40 border-indigo-100 rounded-xl focus-visible:ring-indigo-300"
+                            className="font-mono text-xs resize-none bg-indigo-900/20/40 border-indigo-100 rounded-xl focus-visible:ring-indigo-300"
                             placeholder={DEFAULT_SETTINGS[key]} />
                           <p className="text-[10px] text-slate-400">{hint}</p>
                         </div>
@@ -2159,7 +2159,7 @@ const Index = () => {
                         Simpan
                       </Button>
                       <Button data-testid="button-reset-settings" onClick={resetSettings}
-                        variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 h-8 rounded-full">
+                        variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-slate-200 hover:bg-white/10 h-8 rounded-full">
                         <RotateCcw className="w-3.5 h-3.5" />Reset
                       </Button>
                       {settingsError && (

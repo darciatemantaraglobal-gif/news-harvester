@@ -44,10 +44,10 @@ interface KbStats {
 
 const STATUS_CONFIG: Record<ApprovalStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending:  { label: "Pending",  color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <Clock className="w-3 h-3" /> },
-  reviewed: { label: "Reviewed", color: "bg-blue-100 text-blue-700 border-blue-200",       icon: <Eye className="w-3 h-3" /> },
-  approved: { label: "Approved", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
-  rejected: { label: "Rejected", color: "bg-red-100 text-red-700 border-red-200",           icon: <XCircle className="w-3 h-3" /> },
-  exported: { label: "Exported", color: "bg-indigo-100 text-indigo-700 border-indigo-200",  icon: <Send className="w-3 h-3" /> },
+  reviewed: { label: "Reviewed", color: "bg-blue-900/40 text-blue-300 border-blue-200",       icon: <Eye className="w-3 h-3" /> },
+  approved: { label: "Approved", color: "bg-emerald-900/30 text-emerald-400 border-emerald-700/40", icon: <CheckCircle2 className="w-3 h-3" /> },
+  rejected: { label: "Rejected", color: "bg-red-900/40 text-red-300 border-red-700/40",           icon: <XCircle className="w-3 h-3" /> },
+  exported: { label: "Exported", color: "bg-indigo-900/30 text-indigo-400 border-indigo-700/40",  icon: <Send className="w-3 h-3" /> },
 };
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
@@ -221,7 +221,7 @@ export default function ReviewDashboard() {
   const someSelected = selected.size > 0 && selected.size < articles.length;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-black text-slate-900 relative">
+    <div className="flex h-screen overflow-hidden bg-black text-white relative">
 
       {/* ── Wallpaper ── */}
       <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
@@ -238,7 +238,7 @@ export default function ReviewDashboard() {
                 <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" /><span className="hidden sm:inline">Beranda</span>
               </Button>
             </Link>
-            <div className="w-px h-4 lg:h-6 bg-white/30 shrink-0 hidden sm:block" />
+            <div className="w-px h-4 lg:h-6 bg-white/15 shrink-0 hidden sm:block" />
             <div className="min-w-0">
               <p className="font-bold text-white text-sm lg:text-xl tracking-tight">KB Review Dashboard</p>
               <p className="hidden sm:block text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">AINA Knowledge Base — Approval Workflow</p>
@@ -247,7 +247,7 @@ export default function ReviewDashboard() {
           <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
             {stats.approved > 0 && (
               <Button variant="ghost" size="sm" onClick={doPushApproved} disabled={pushLoading}
-                className="gap-1.5 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 hover:text-emerald-200 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full border border-emerald-500/30">
+                className="gap-1.5 bg-emerald-900/200/20 text-emerald-300 hover:bg-emerald-900/200/30 hover:text-emerald-200 h-8 lg:h-10 px-2 sm:px-3 lg:px-4 text-xs lg:text-sm rounded-full border border-emerald-500/30">
                 {pushLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
                 <span className="hidden sm:inline text-xs lg:text-sm">Push Supabase</span>
               </Button>
@@ -277,14 +277,14 @@ export default function ReviewDashboard() {
           {/* ── Stats Row ── */}
           <div className="flex sm:grid sm:grid-cols-6 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
             {[
-              { label: "Total",    value: stats.total,    icon: BarChart3,    numColor: "text-slate-800",   iconBg: "bg-slate-100",   iconColor: "text-slate-500",   top: "bg-slate-300" },
-              { label: "Pending",  value: stats.pending,  icon: Clock,        numColor: "text-amber-600",   iconBg: "bg-amber-100",   iconColor: "text-amber-500",   top: "bg-amber-400" },
-              { label: "Reviewed", value: stats.reviewed, icon: Eye,          numColor: "text-blue-600",    iconBg: "bg-blue-100",    iconColor: "text-blue-500",    top: "bg-blue-400" },
-              { label: "Approved", value: stats.approved, icon: CheckCircle2, numColor: "text-emerald-600", iconBg: "bg-emerald-100", iconColor: "text-emerald-600", top: "bg-emerald-400" },
-              { label: "Rejected", value: stats.rejected, icon: XCircle,      numColor: "text-red-600",     iconBg: "bg-red-100",     iconColor: "text-red-500",     top: "bg-red-400" },
-              { label: "Exported", value: stats.exported, icon: Send,         numColor: "text-indigo-600",  iconBg: "bg-indigo-100",  iconColor: "text-indigo-500",  top: "bg-indigo-400" },
+              { label: "Total",    value: stats.total,    icon: BarChart3,    numColor: "text-slate-100",   iconBg: "bg-white/10",   iconColor: "text-slate-500",   top: "bg-slate-300" },
+              { label: "Pending",  value: stats.pending,  icon: Clock,        numColor: "text-amber-400",   iconBg: "bg-amber-900/40",   iconColor: "text-amber-500",   top: "bg-amber-400" },
+              { label: "Reviewed", value: stats.reviewed, icon: Eye,          numColor: "text-blue-400",    iconBg: "bg-blue-900/40",    iconColor: "text-blue-500",    top: "bg-blue-400" },
+              { label: "Approved", value: stats.approved, icon: CheckCircle2, numColor: "text-emerald-400", iconBg: "bg-emerald-900/40", iconColor: "text-emerald-400", top: "bg-emerald-400" },
+              { label: "Rejected", value: stats.rejected, icon: XCircle,      numColor: "text-red-400",     iconBg: "bg-red-900/40",     iconColor: "text-red-500",     top: "bg-red-400" },
+              { label: "Exported", value: stats.exported, icon: Send,         numColor: "text-indigo-400",  iconBg: "bg-indigo-900/40",  iconColor: "text-indigo-500",  top: "bg-indigo-400" },
             ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top }) => (
-              <div key={label} className="snap-start shrink-0 w-[108px] sm:w-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+              <div key={label} className="snap-start shrink-0 w-[108px] sm:w-auto bg-[#0f0b1e] rounded-xl sm:rounded-2xl border border-violet-900/30 overflow-hidden">
                 <div className={`h-[3px] w-full ${top}`} />
                 {/* Mobile layout */}
                 <div className="sm:hidden flex items-center gap-2 px-2.5 py-2.5">
@@ -313,7 +313,7 @@ export default function ReviewDashboard() {
           {/* ── Filter + Bulk Action Row ── */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Filter tabs */}
-            <div className="flex items-center gap-0.5 bg-white rounded-xl p-1 shadow-sm border border-slate-100/80 overflow-x-auto max-w-full">
+            <div className="flex items-center gap-0.5 bg-white/10 rounded-xl p-1 border border-white/10 overflow-x-auto max-w-full">
               <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5 shrink-0" />
               {STATUS_FILTERS.map(f => (
                 <button key={f.value}
@@ -321,8 +321,8 @@ export default function ReviewDashboard() {
                   onClick={() => setStatusFilter(f.value)}
                   className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
                     statusFilter === f.value
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      ? "bg-violet-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-100 hover:bg-white/10"
                   }`}>
                   {f.label}
                   {f.value !== "all" && (
@@ -336,8 +336,8 @@ export default function ReviewDashboard() {
 
             {/* Bulk action bar */}
             {selected.size > 0 && (
-              <div className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 shadow-sm border border-slate-100/80">
-                <span className="text-xs font-semibold text-indigo-700 mr-0.5">
+              <div className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 shadow-sm border border-violet-900/30">
+                <span className="text-xs font-semibold text-indigo-300 mr-0.5">
                   {selected.size} dipilih
                 </span>
                 {BULK_ACTIONS.map(ba => (
@@ -349,31 +349,31 @@ export default function ReviewDashboard() {
                   </Button>
                 ))}
                 <button onClick={() => setSelected(new Set())}
-                  className="text-xs text-slate-400 hover:text-slate-600 ml-0.5 underline">
+                  className="text-xs text-slate-400 hover:text-slate-200 ml-0.5 underline">
                   Batal
                 </button>
               </div>
             )}
             {bulkMsg && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl">
+              <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 px-3 py-1.5 rounded-xl">
                 <CheckCircle2 className="w-3.5 h-3.5" />{bulkMsg}
               </div>
             )}
           </div>
 
           {/* ── Table Card ── */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+          <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center py-20 text-slate-400 gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />Memuat artikel...
               </div>
             ) : articles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 px-6">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-slate-300" />
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-slate-500" />
                 </div>
                 <div className="text-center space-y-1">
-                  <p className="text-sm font-semibold text-slate-600">
+                  <p className="text-sm font-semibold text-slate-500">
                     {statusFilter === "all" ? "Belum ada KB Draft" : `Tidak ada artikel dengan status "${statusFilter}"`}
                   </p>
                   {statusFilter === "all" && (
@@ -390,9 +390,9 @@ export default function ReviewDashboard() {
                       { n: 3, label: "Auto Tag — beri tag topik otomatis" },
                       { n: 4, label: "Convert to KB Draft — konversi ke format KB AINA" },
                     ].map(s => (
-                      <div key={s.n} className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">
-                        <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{s.n}</span>
-                        <span className="text-xs text-slate-600">{s.label}</span>
+                      <div key={s.n} className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-900/200 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{s.n}</span>
+                        <span className="text-xs text-slate-500">{s.label}</span>
                       </div>
                     ))}
                   </div>
@@ -407,7 +407,7 @@ export default function ReviewDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px]">
+                    <tr className="border-b border-white/10 bg-white/5 text-[11px]">
                       <th className="px-3 sm:px-4 py-3 w-10">
                         <Checkbox
                           checked={allSelected}
@@ -432,8 +432,8 @@ export default function ReviewDashboard() {
                       return (
                         <tr key={article.id}
                           data-testid={`row-kb-${article.id}`}
-                          className={`border-b border-slate-50 align-top transition-colors ${
-                            isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50/60"
+                          className={`border-b border-white/5 align-top transition-colors ${
+                            isSelected ? "bg-violet-900/30" : "hover:bg-white/5"
                           }`}>
                           <td className="px-3 sm:px-4 py-3.5 w-10">
                             <Checkbox
@@ -444,7 +444,7 @@ export default function ReviewDashboard() {
                           </td>
                           <td className="hidden sm:table-cell px-3 py-3.5 text-slate-400 text-xs">{i + 1}</td>
                           <td className="px-3 py-3.5 min-w-0">
-                            <p className="font-semibold text-slate-900 line-clamp-2 text-xs sm:text-sm leading-snug">
+                            <p className="font-semibold text-white line-clamp-2 text-xs sm:text-sm leading-snug">
                               {article.title || "(Tanpa Judul)"}
                             </p>
                             <p className="font-mono text-[10px] sm:text-xs text-indigo-400 mt-0.5 truncate max-w-[140px] sm:max-w-xs">
@@ -456,18 +456,18 @@ export default function ReviewDashboard() {
                               )}
                               {article.source_url && (
                                 <a href={article.source_url} target="_blank" rel="noopener noreferrer"
-                                  className="text-[10px] sm:text-xs text-indigo-400 hover:text-indigo-600 underline truncate max-w-[100px] sm:max-w-[140px]">
+                                  className="text-[10px] sm:text-xs text-indigo-400 hover:text-indigo-400 underline truncate max-w-[100px] sm:max-w-[140px]">
                                   source ↗
                                 </a>
                               )}
                               {article.scrape_status && (
                                 <span className={`text-[10px] sm:text-xs font-mono px-1.5 py-px rounded ${
-                                  article.scrape_status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-600"
+                                  article.scrape_status === "success" ? "bg-emerald-900/30 text-emerald-300" : "bg-yellow-900/20 text-yellow-300"
                                 }`}>{article.scrape_status}</span>
                               )}
                             </div>
                             {article.scrape_status === "partial" && (
-                              <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug">
+                              <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-300 bg-amber-900/20 border border-amber-700/30 rounded-md px-2 py-1 leading-snug">
                                 <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
                                 <span>Konten artikel ini tidak lengkap saat di-scrape. Verifikasi dan lengkapi konten secara manual sebelum diapprove, atau reject jika tidak layak.</span>
                               </div>
@@ -480,14 +480,14 @@ export default function ReviewDashboard() {
                           </td>
                           <td className="hidden md:table-cell px-3 py-3.5 w-52">
                             <p data-testid={`summary-${article.id}`}
-                              className="text-xs text-slate-600 line-clamp-4 leading-relaxed">
-                              {article.summary || <span className="text-slate-300 italic">Tidak ada summary</span>}
+                              className="text-xs text-slate-500 line-clamp-4 leading-relaxed">
+                              {article.summary || <span className="text-slate-500 italic">Tidak ada summary</span>}
                             </p>
                           </td>
                           <td className="hidden md:table-cell px-3 py-3.5 w-36">
                             <div data-testid={`tags-${article.id}`} className="flex flex-wrap gap-1">
                               {(article.tags || []).map(t => (
-                                <span key={t} className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-px rounded-md font-medium">
+                                <span key={t} className="text-[10px] bg-indigo-900/30 text-indigo-300 px-1.5 py-px rounded-md font-medium">
                                   {t}
                                 </span>
                               ))}
@@ -535,7 +535,7 @@ export default function ReviewDashboard() {
                               onBlur={() => saveNotes(article.id)}
                               onKeyDown={e => e.key === "Enter" && saveNotes(article.id)}
                               placeholder="Tambah catatan..."
-                              className="h-7 text-xs border-slate-200 rounded-lg focus-visible:ring-indigo-400 placeholder:text-slate-300"
+                              className="h-7 text-xs border-white/15 bg-white/5 text-slate-200 rounded-lg focus-visible:ring-indigo-400 placeholder:text-slate-500"
                             />
                           </td>
                         </tr>
@@ -551,8 +551,8 @@ export default function ReviewDashboard() {
           {pushResult && (
             <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border ${
               pushResult.ok
-                ? "text-emerald-700 bg-emerald-50 border-emerald-100"
-                : "text-red-700 bg-red-50 border-red-100"
+                ? "text-emerald-300 bg-emerald-900/20 border-emerald-700/30"
+                : "text-red-300 bg-red-900/20 border-red-700/30"
             }`}>
               {pushResult.ok
                 ? <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -563,12 +563,12 @@ export default function ReviewDashboard() {
 
           {/* ── Download section ── */}
           {(stats.approved > 0 || stats.exported > 0) && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 p-4">
+            <div className="bg-[#0f0b1e] rounded-2xl border border-violet-900/30 p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
-                  <FileJson className="w-3.5 h-3.5 text-indigo-600" />
+                <div className="w-7 h-7 bg-indigo-900/40 rounded-lg flex items-center justify-center">
+                  <FileJson className="w-3.5 h-3.5 text-indigo-400" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">Export & Push ke Supabase</h3>
+                <h3 className="text-sm font-bold text-slate-100">Export & Push ke Supabase</h3>
               </div>
               <div className="flex flex-wrap gap-2.5">
                 {stats.approved > 0 && (
@@ -576,7 +576,7 @@ export default function ReviewDashboard() {
                     className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-9 text-xs">
                     {pushLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                     Push ke Supabase
-                    <span className="bg-emerald-500 text-white text-xs px-1.5 py-px rounded-md font-bold">
+                    <span className="bg-emerald-900/200 text-white text-xs px-1.5 py-px rounded-md font-bold">
                       {stats.approved}
                     </span>
                   </Button>
@@ -584,10 +584,10 @@ export default function ReviewDashboard() {
                 {stats.approved > 0 && (
                   <a href={apiUrl("/export/kb-approved")} download>
                     <Button data-testid="button-download-approved" variant="outline"
-                      className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl h-9 text-xs">
+                      className="gap-2 border-emerald-700/40 text-emerald-400 hover:bg-emerald-900/20 rounded-xl h-9 text-xs">
                       <Download className="w-3.5 h-3.5" />
                       kb_approved.json
-                      <span className="bg-emerald-100 text-emerald-700 text-xs px-1.5 py-px rounded-md font-bold">
+                      <span className="bg-emerald-900/30 text-emerald-400 text-xs px-1.5 py-px rounded-md font-bold">
                         {stats.approved}
                       </span>
                     </Button>
@@ -596,10 +596,10 @@ export default function ReviewDashboard() {
                 {stats.exported > 0 && (
                   <a href={apiUrl("/export/kb-exported")} download>
                     <Button data-testid="button-download-exported" variant="outline"
-                      className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl h-9 text-xs">
+                      className="gap-2 border-indigo-700/40 text-indigo-400 hover:bg-indigo-900/20 rounded-xl h-9 text-xs">
                       <Download className="w-3.5 h-3.5" />
                       kb_exported.json
-                      <span className="bg-indigo-100 text-indigo-700 text-xs px-1.5 py-px rounded-md font-bold">
+                      <span className="bg-indigo-900/30 text-indigo-400 text-xs px-1.5 py-px rounded-md font-bold">
                         {stats.exported}
                       </span>
                     </Button>
