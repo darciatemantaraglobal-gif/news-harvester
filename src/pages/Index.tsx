@@ -765,10 +765,14 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f0f1f8] text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-black text-slate-900 relative">
+
+      {/* ── Wallpaper ── */}
+      <img src="/bg-home.jpg" alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        style={{ opacity: 0.18, objectPosition: "center 70%", transform: "scale(1.18)", transformOrigin: "center center" }} />
 
       {/* ─── Main Content Area ─── */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative z-10">
 
         {/* ─── Dark Header Card ─── */}
         <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20 animate-fade-in-up">
