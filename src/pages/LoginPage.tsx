@@ -56,18 +56,13 @@ export default function LoginPage() {
       {/* ══ MOBILE layout — full screen ══ */}
       <div className="sm:hidden absolute inset-0 z-10 flex flex-col px-6 pt-0 pb-8">
 
-        {/* Upper: logo + title */}
+        {/* Upper: logo */}
         <div className="flex flex-col items-center justify-center text-center" style={{ flex: "0 0 42%" }}>
-          <div className="relative mb-3">
+          <div className="relative">
             <div className="absolute inset-0 scale-[3] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
-            <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-14 h-14 object-contain"
-              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 14px rgba(200,160,255,1))" }} />
+            <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-28 h-28 object-contain"
+              style={{ filter: "drop-shadow(0 0 22px rgba(200,160,255,0.85))" }} />
           </div>
-          <div className="flex flex-col items-center leading-none" style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}>
-            <span style={{ fontSize: "clamp(2.6rem, 14vw, 3.4rem)", background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>AINA</span>
-            <span style={{ fontSize: "clamp(2.1rem, 11vw, 2.8rem)", background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>Scraper</span>
-          </div>
-          <p className="mt-2 text-violet-300/50 text-[11px] tracking-widest uppercase font-medium">Internal Access Only</p>
         </div>
 
         {/* Lower: form */}
@@ -143,18 +138,13 @@ export default function LoginPage() {
       <div className="hidden sm:flex items-center justify-center h-full px-4">
         <div className="relative z-10 w-full max-w-sm">
 
-          {/* Logo + title */}
+          {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="relative mb-4">
+            <div className="relative">
               <div className="absolute inset-0 scale-[3] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
-              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-14 h-14 object-contain"
-                style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 14px rgba(200,160,255,1))" }} />
+              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-28 h-28 object-contain"
+                style={{ filter: "drop-shadow(0 0 22px rgba(200,160,255,0.85))" }} />
             </div>
-            <div className="flex flex-col items-center leading-none" style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}>
-              <span style={{ fontSize: "clamp(2rem, 12vw, 3.2rem)", background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>AINA</span>
-              <span style={{ fontSize: "clamp(1.6rem, 10vw, 2.6rem)", background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>Scraper</span>
-            </div>
-            <p className="mt-2 text-violet-300/50 text-xs tracking-widest uppercase font-medium">Internal Access Only</p>
           </div>
 
           {/* Form card */}

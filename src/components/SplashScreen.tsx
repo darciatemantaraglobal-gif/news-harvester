@@ -44,14 +44,13 @@ export default function SplashScreen({ onDone }: Props) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: "28px",
         animation: phase === "hold" ? "aina-pulse 1.6s ease-in-out infinite" : "aina-pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards",
       }}>
         {/* Outer glow ring */}
         <div style={{
           position: "absolute",
-          width: "160px",
-          height: "160px",
+          width: "240px",
+          height: "240px",
           borderRadius: "50%",
           background: "radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)",
           animation: phase === "hold" ? "aina-ring 1.6s ease-in-out infinite" : "none",
@@ -59,8 +58,8 @@ export default function SplashScreen({ onDone }: Props) {
         {/* Inner ring */}
         <div style={{
           position: "absolute",
-          width: "118px",
-          height: "118px",
+          width: "175px",
+          height: "175px",
           borderRadius: "50%",
           border: "1px solid rgba(139,92,246,0.35)",
           animation: phase === "hold" ? "aina-ring-inner 1.6s ease-in-out infinite 0.1s" : "none",
@@ -71,55 +70,14 @@ export default function SplashScreen({ onDone }: Props) {
           src="/aigypt-logo.png"
           alt="AINA"
           style={{
-            width: "90px",
-            height: "90px",
+            width: "140px",
+            height: "140px",
             objectFit: "contain",
             filter: "drop-shadow(0 0 18px rgba(139,92,246,0.7)) drop-shadow(0 0 6px rgba(196,181,253,0.5)) brightness(1.15)",
             position: "relative",
             zIndex: 1,
           }}
         />
-      </div>
-
-      {/* App name */}
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "2px",
-        animation: phase === "hold" ? "none" : "aina-text-in 0.5s ease 0.2s forwards",
-        opacity: phase === "in" ? 0 : 1,
-      }}>
-        <span style={{
-          fontFamily: "'Sk-Modernist-Bold', 'Segoe UI', sans-serif",
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.35em",
-          color: "rgba(196,181,253,0.7)",
-          textTransform: "uppercase",
-        }}>
-          AINA
-        </span>
-        <span style={{
-          fontFamily: "'Sk-Modernist-Bold', 'Segoe UI', sans-serif",
-          fontSize: "26px",
-          fontWeight: 800,
-          letterSpacing: "0.12em",
-          color: "#ffffff",
-          textTransform: "uppercase",
-          lineHeight: 1.1,
-        }}>
-          SCRAPER
-        </span>
-        <span style={{
-          fontSize: "10px",
-          letterSpacing: "0.2em",
-          color: "rgba(139,92,246,0.6)",
-          marginTop: "4px",
-          textTransform: "uppercase",
-        }}>
-          Internal Access Only
-        </span>
       </div>
 
       {/* Keyframes injected via style tag */}

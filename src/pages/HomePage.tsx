@@ -127,34 +127,9 @@ export default function HomePage() {
             <img
               src="/AIGYPT_logo.png"
               alt="AINA"
-              className="relative w-10 h-10 sm:w-20 sm:h-20 object-contain"
-              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 12px rgba(200,160,255,1))" }}
+              className="relative w-24 h-24 sm:w-36 sm:h-36 object-contain"
+              style={{ filter: "drop-shadow(0 0 18px rgba(200,160,255,0.85))" }}
             />
-          </div>
-
-          {/* Title — Sunspire font, stacked top/bottom */}
-          <div
-            className="flex flex-col items-center leading-none"
-            style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}
-          >
-            <span
-              style={{
-                fontSize: "clamp(2.8rem, 16vw, 6rem)",
-                background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                lineHeight: 1.05,
-              }}
-            >AINA</span>
-            <span
-              style={{
-                fontSize: "clamp(2.3rem, 13vw, 5rem)",
-                background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                lineHeight: 1.05,
-              }}
-            >Scraper</span>
           </div>
           <p className="mt-1 sm:mt-2 text-purple-400/60 text-[10px] sm:text-sm font-medium tracking-wide">
             Internal Knowledge Scraping Tool
@@ -379,12 +354,8 @@ export default function HomePage() {
           <div className="flex flex-col items-center text-center shrink-0 w-72 lg:w-[22rem]">
             <div className="relative mb-4">
               <div className="absolute inset-0 scale-[2.6] bg-violet-500/22 rounded-full blur-2xl pointer-events-none" />
-              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-[4.5rem] h-[4.5rem] lg:w-24 lg:h-24 object-contain"
-                style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 14px rgba(200,160,255,1))" }} />
-            </div>
-            <div className="flex flex-col items-center leading-none mb-3" style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}>
-              <span style={{ fontSize: "clamp(2.6rem, 4.2vw, 4.5rem)", background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>AINA</span>
-              <span style={{ fontSize: "clamp(2.1rem, 3.4vw, 3.6rem)", background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>Scraper</span>
+              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-36 h-36 lg:w-44 lg:h-44 object-contain"
+                style={{ filter: "drop-shadow(0 0 22px rgba(200,160,255,0.85))" }} />
             </div>
             <p className="text-purple-400/60 text-xs font-medium tracking-wide mb-4">Internal Knowledge Scraping Tool</p>
             <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-1.5">
