@@ -105,6 +105,9 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  html, body {
+    background-color: #000000;
+  }
   body {
     font-family: 'Sk-Modernist', sans-serif;
   }
