@@ -1460,6 +1460,133 @@ def api_push_log_clear():
     return jsonify({"ok": True})
 
 
+_ARAB_HEADINGS = re.compile(
+    r'^\s*(بسم الله|بِسْمِ|باب|بَابٌ|بَاب|فصل|فَصْلٌ|كتاب|كِتَابٌ|مقدمة|مُقَدِّمَة|خاتمة|تمهيد|قاعدة|مسألة|الفصل|الباب|الكتاب|المقدمة|الخاتمة)',
+    re.UNICODE | re.MULTILINE
+)
+_LATIN_HEADINGS = re.compile(
+    r'^\s*(BAB|Bab|CHAPTER|Chapter|PASAL|Pasal|FASAL|Fasal|PENDAHULUAN|Pendahuluan|PENUTUP|Penutup|MUKADIMAH|Mukadimah|PROLOG|EPILOG)\b',
+    re.MULTILINE
+)
+
+@app.route("/api/pdf/inspect", methods=["POST"])
+def api_pdf_inspect():
+    """
+    Inspeksi PDF: baca metadata, judul, dan daftar halaman dengan deteksi bab/fasal/heading.
+    Kembalikan ringkasan detail sebelum ekstraksi dimulai.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "Tidak ada file yang dikirim."}), 400
+    pdf_file = request.files["file"]
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File harus berformat PDF."}), 400
+
+    try:
+        pdf_bytes = pdf_file.read()
+
+        # ── Buka dengan PyMuPDF untuk metadata ──
+        fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        total_pages = len(fitz_doc)
+        meta = fitz_doc.metadata or {}
+        pdf_title = (meta.get("title") or "").strip()
+        pdf_author = (meta.get("author") or "").strip()
+        pdf_subject = (meta.get("subject") or "").strip()
+        fitz_doc.close()
+
+        # ── Buka dengan pdfplumber untuk analisis per halaman ──
+        pages_info = []
+        chapters = []   # list of {page_num, heading, heading_type}
+        text_count = 0
+        scan_count = 0
+
+        MAX_INSPECT_PAGES = 800  # cap agar tidak OOM
+
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            inspect_pages = min(total_pages, MAX_INSPECT_PAGES)
+            for i in range(inspect_pages):
+                page = pdf.pages[i]
+                raw = (page.extract_text() or "").strip()
+                page_num = i + 1
+                is_scan = not raw or len(raw) < 15
+
+                if is_scan:
+                    scan_count += 1
+                    pages_info.append({
+                        "page": page_num,
+                        "type": "scan",
+                        "heading": None,
+                        "preview": "[Halaman gambar/scan — perlu OCR]",
+                        "words": 0,
+                    })
+                    continue
+
+                text_count += 1
+                word_count = len(raw.split())
+                first_line = raw.split('\n')[0][:120].strip()
+
+                # Deteksi heading Arabic atau Latin
+                heading = None
+                heading_type = None
+                arab_match = _ARAB_HEADINGS.search(raw[:300])
+                latin_match = _LATIN_HEADINGS.search(raw[:300])
+                if arab_match:
+                    # Ambil baris pertama yang mengandung heading Arab
+                    for ln in raw.split('\n')[:5]:
+                        if _ARAB_HEADINGS.search(ln):
+                            heading = ln.strip()[:120]
+                            break
+                    heading_type = "arab"
+                elif latin_match:
+                    for ln in raw.split('\n')[:5]:
+                        if _LATIN_HEADINGS.search(ln):
+                            heading = ln.strip()[:120]
+                            break
+                    heading_type = "latin"
+
+                if heading:
+                    chapters.append({"page": page_num, "heading": heading, "type": heading_type})
+
+                pages_info.append({
+                    "page": page_num,
+                    "type": "text",
+                    "heading": heading,
+                    "heading_type": heading_type,
+                    "preview": first_line,
+                    "words": word_count,
+                })
+
+        # Halaman yang tidak di-inspect (> MAX_INSPECT_PAGES) dianggap scan
+        if total_pages > MAX_INSPECT_PAGES:
+            for i in range(MAX_INSPECT_PAGES, total_pages):
+                pages_info.append({
+                    "page": i + 1,
+                    "type": "unknown",
+                    "heading": None,
+                    "preview": "[Tidak di-inspeksi — di luar batas preview]",
+                    "words": 0,
+                })
+
+        # Nama file sebagai fallback judul
+        base_name = os.path.splitext(pdf_file.filename)[0].replace("-", " ").replace("_", " ").strip()
+
+        return jsonify({
+            "ok": True,
+            "filename": pdf_file.filename,
+            "title": pdf_title or base_name,
+            "author": pdf_author,
+            "subject": pdf_subject,
+            "total_pages": total_pages,
+            "text_pages": text_count,
+            "scan_pages": scan_count,
+            "chapters": chapters,
+            "pages": pages_info,
+        })
+
+    except Exception as e:
+        logger.error(f"[PDF INSPECT] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 def _safe_pdf_slug(filename: str, suffix: str = "") -> str:
     """Buat slug aman dari nama file PDF (bisa non-ASCII/Arab)."""
     base = os.path.splitext(filename)[0]
@@ -1489,6 +1616,10 @@ def api_pdf_upload():
     use_ocr = request.form.get("use_ocr", "false").lower() == "true"
     # Max scan pages to OCR per file — caps cost (default 150, user-configurable)
     max_ocr_pages = max(10, min(500, int(request.form.get("max_ocr_pages", "150"))))
+    # Page range (1-based, inclusive) — 0 = tidak dibatasi
+    page_start = max(1, int(request.form.get("page_start", "1") or "1"))
+    page_end_raw = request.form.get("page_end", "0") or "0"
+    page_end = int(page_end_raw) if page_end_raw.isdigit() and int(page_end_raw) > 0 else 0
     ocr_available = check_openai_available()
     OCR_BATCH = 4  # Halaman per API call — 4x lebih sedikit calls
 
@@ -1514,8 +1645,14 @@ def api_pdf_upload():
             fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             total_pages = len(fitz_doc)
 
+            # Hitung range halaman yang akan diproses (1-based → 0-based index)
+            p_start_idx = max(0, page_start - 1)
+            p_end_idx = min(total_pages - 1, page_end - 1) if page_end > 0 else total_pages - 1
+
             with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
                 for i, page in enumerate(pdf.pages):
+                    if i < p_start_idx or i > p_end_idx:
+                        continue  # Skip halaman di luar range
                     raw_text = (page.extract_text() or "").strip()
                     if raw_text and len(raw_text) > 20:
                         pages_text.append((i + 1, raw_text, False))

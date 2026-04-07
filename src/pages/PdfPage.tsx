@@ -5,6 +5,7 @@ import {
   FileText, Upload, Loader2, ChevronLeft, CheckCircle2,
   AlertCircle, BookOpen, CheckSquare, X,
   Sparkles, Info, ScanLine, Layers, DollarSign, ChevronDown, Wand2,
+  Search, ChevronUp, Hash, Image, AlignLeft, ListCollapse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
@@ -19,6 +20,33 @@ interface UploadResult {
   ocr_pages_done?: number;
   chunks?: number;
   error?: string | null;
+}
+
+interface PdfPageInfo {
+  page: number;
+  type: "text" | "scan" | "unknown";
+  heading: string | null;
+  heading_type?: string;
+  preview: string;
+  words: number;
+}
+
+interface PdfChapter {
+  page: number;
+  heading: string;
+  type: string;
+}
+
+interface PdfInspectResult {
+  filename: string;
+  title: string;
+  author: string;
+  subject: string;
+  total_pages: number;
+  text_pages: number;
+  scan_pages: number;
+  chapters: PdfChapter[];
+  pages: PdfPageInfo[];
 }
 
 const CATEGORIES = [
@@ -46,6 +74,16 @@ export default function PdfPage() {
   const [useOcr, setUseOcr] = useState(false);
   const [maxOcrPages, setMaxOcrPages] = useState(150);
 
+  // ── Inspect state ──
+  const [inspectMap, setInspectMap] = useState<Record<string, PdfInspectResult>>({});
+  const [inspectLoadingMap, setInspectLoadingMap] = useState<Record<string, boolean>>({});
+  const [inspectErrorMap, setInspectErrorMap] = useState<Record<string, string>>({});
+  const [inspectOpenMap, setInspectOpenMap] = useState<Record<string, boolean>>({});
+  const [showAllPagesMap, setShowAllPagesMap] = useState<Record<string, boolean>>({});
+  // Page range — berlaku untuk semua file dalam batch
+  const [pageStart, setPageStart] = useState(1);
+  const [pageEnd, setPageEnd] = useState(0); // 0 = semua halaman
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = (incoming: FileList | null) => {
@@ -57,7 +95,33 @@ export default function PdfPage() {
     });
   };
 
-  const removeFile = (name: string) => setFiles(prev => prev.filter(f => f.name !== name));
+  const removeFile = (name: string) => {
+    setFiles(prev => prev.filter(f => f.name !== name));
+    setInspectMap(prev => { const n = { ...prev }; delete n[name]; return n; });
+    setInspectOpenMap(prev => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  const handleInspect = async (file: File) => {
+    const name = file.name;
+    setInspectLoadingMap(prev => ({ ...prev, [name]: true }));
+    setInspectErrorMap(prev => ({ ...prev, [name]: "" }));
+    setInspectOpenMap(prev => ({ ...prev, [name]: true }));
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(apiUrl("/api/pdf/inspect"), { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal inspeksi");
+      setInspectMap(prev => ({ ...prev, [name]: data as PdfInspectResult }));
+      // Set default page range dari hasil inspect
+      setPageStart(1);
+      setPageEnd(data.total_pages);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Terjadi kesalahan";
+      setInspectErrorMap(prev => ({ ...prev, [name]: msg }));
+    }
+    setInspectLoadingMap(prev => ({ ...prev, [name]: false }));
+  };
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -92,6 +156,8 @@ export default function PdfPage() {
     fd.append("chunk_size", String(chunkSize));
     fd.append("use_ocr", useOcr ? "true" : "false");
     fd.append("max_ocr_pages", String(maxOcrPages));
+    fd.append("page_start", String(pageStart));
+    fd.append("page_end", String(pageEnd));
 
     try {
       const res = await fetch(apiUrl("/api/pdf/upload"), { method: "POST", body: fd });
@@ -389,21 +455,215 @@ export default function PdfPage() {
 
                       {/* File list */}
                       {files.length > 0 && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">{files.length} file dipilih</p>
-                          {files.map(f => (
-                            <div key={f.name} className="flex items-center gap-2.5 bg-white/4 border border-violet-800/30 rounded-xl px-3 py-2.5">
-                              <FileText className="w-4 h-4 text-red-400 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-slate-200 truncate">{f.name}</p>
-                                <p className="text-[10px] text-slate-500">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
+                          {files.map(f => {
+                            const insp = inspectMap[f.name];
+                            const inspLoading = inspectLoadingMap[f.name];
+                            const inspError = inspectErrorMap[f.name];
+                            const inspOpen = inspectOpenMap[f.name];
+                            const showAll = showAllPagesMap[f.name];
+                            return (
+                              <div key={f.name} className="space-y-0">
+                                {/* File row */}
+                                <div className="flex items-center gap-2.5 bg-white/4 border border-violet-800/30 rounded-xl px-3 py-2.5">
+                                  <FileText className="w-4 h-4 text-red-400 shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-slate-200 truncate">{f.name}</p>
+                                    <p className="text-[10px] text-slate-500">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
+                                  </div>
+                                  {/* Inspect button */}
+                                  <button
+                                    onClick={() => insp
+                                      ? setInspectOpenMap(prev => ({ ...prev, [f.name]: !inspOpen }))
+                                      : handleInspect(f)
+                                    }
+                                    disabled={inspLoading}
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                                      insp
+                                        ? inspOpen
+                                          ? "bg-violet-600/30 text-violet-300 border border-violet-500/50"
+                                          : "bg-violet-900/40 text-violet-400 border border-violet-700/40 hover:border-violet-500/60"
+                                        : "bg-indigo-900/40 text-indigo-300 border border-indigo-700/40 hover:border-indigo-400/60"
+                                    }`}
+                                  >
+                                    {inspLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                                    {inspLoading ? "Analisis..." : insp ? (inspOpen ? "Tutup" : "Lihat Detail") : "Pratinjau PDF"}
+                                  </button>
+                                  <button onClick={e => { e.stopPropagation(); removeFile(f.name); }}
+                                    className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-white/8">
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                {/* Inspect error */}
+                                {inspError && (
+                                  <div className="mt-1.5 px-3 py-2 bg-red-900/20 border border-red-700/30 rounded-xl text-[11px] text-red-400 flex items-center gap-2">
+                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />{inspError}
+                                  </div>
+                                )}
+
+                                {/* Inspect panel */}
+                                {insp && inspOpen && (
+                                  <div className="mt-1.5 rounded-xl border border-violet-700/40 overflow-hidden" style={{ background: "#0a0618" }}>
+                                    <div className="h-[2px] bg-gradient-to-r from-indigo-500 via-violet-400 to-purple-500" />
+
+                                    {/* Metadata */}
+                                    <div className="px-4 py-3 space-y-3">
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-900/50 flex items-center justify-center shrink-0 mt-0.5">
+                                          <FileText className="w-4 h-4 text-indigo-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-bold text-slate-100 leading-tight" dir="auto">{insp.title || f.name}</p>
+                                          {insp.author && <p className="text-[11px] text-slate-400 mt-0.5">Penulis: {insp.author}</p>}
+                                          {insp.subject && <p className="text-[11px] text-slate-500 mt-0.5">Subjek: {insp.subject}</p>}
+                                        </div>
+                                      </div>
+
+                                      {/* Stats row */}
+                                      <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                          { icon: <Hash className="w-3 h-3" />, label: "Total Hal.", value: insp.total_pages, color: "text-slate-200" },
+                                          { icon: <AlignLeft className="w-3 h-3" />, label: "Teks", value: insp.text_pages, color: "text-emerald-400" },
+                                          { icon: <Image className="w-3 h-3" />, label: "Scan/Gambar", value: insp.scan_pages, color: insp.scan_pages > 0 ? "text-amber-400" : "text-slate-500" },
+                                        ].map(({ icon, label, value, color }) => (
+                                          <div key={label} className="bg-white/5 rounded-lg px-2.5 py-2 flex items-center gap-2">
+                                            <span className={`${color} shrink-0`}>{icon}</span>
+                                            <div>
+                                              <p className="text-[9px] text-slate-500 uppercase tracking-wide leading-none">{label}</p>
+                                              <p className={`text-sm font-bold leading-tight ${color}`}>{value}</p>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      {/* Chapters / Bab detected */}
+                                      {insp.chapters.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          <div className="flex items-center gap-1.5">
+                                            <BookOpen className="w-3.5 h-3.5 text-violet-400" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-400/80">
+                                              Bab / Fasal Terdeteksi ({insp.chapters.length})
+                                            </span>
+                                          </div>
+                                          <div className="max-h-44 overflow-y-auto rounded-lg border border-violet-800/30 divide-y divide-violet-900/30" style={{ background: "#0d0720" }}>
+                                            {insp.chapters.map((ch, ci) => (
+                                              <div key={ci} className="flex items-center gap-2.5 px-3 py-2 hover:bg-violet-900/20 transition-colors group">
+                                                <span className="text-[10px] font-bold text-violet-500 tabular-nums w-8 shrink-0">Hal.{ch.page}</span>
+                                                <p className="flex-1 text-[11px] text-slate-300 truncate" dir="auto">{ch.heading}</p>
+                                                <button
+                                                  onClick={() => { setPageStart(ch.page); setPageEnd(insp.total_pages); }}
+                                                  className="shrink-0 text-[9px] text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity bg-violet-900/40 border border-violet-700/40 rounded-md px-2 py-1 hover:bg-violet-700/40"
+                                                >
+                                                  Mulai dari sini
+                                                </button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {insp.chapters.length === 0 && (
+                                        <p className="text-[11px] text-slate-500 italic flex items-center gap-1.5">
+                                          <Info className="w-3 h-3 shrink-0" />Tidak ada heading bab/fasal terdeteksi secara otomatis
+                                        </p>
+                                      )}
+
+                                      {/* Range selector */}
+                                      <div className="bg-violet-900/20 border border-violet-700/30 rounded-xl p-3.5 space-y-2.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <Layers className="w-3.5 h-3.5 text-violet-400" />
+                                          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-400/80">Pilih Range Halaman</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 space-y-1">
+                                            <label className="text-[10px] text-slate-500">Mulai dari hal.</label>
+                                            <input
+                                              type="number"
+                                              min={1} max={insp.total_pages}
+                                              value={pageStart}
+                                              onChange={e => setPageStart(Math.max(1, Math.min(insp.total_pages, Number(e.target.value))))}
+                                              className="w-full bg-[#0f0a1e] border border-violet-800/50 rounded-lg px-2.5 py-1.5 text-sm text-slate-200 font-bold tabular-nums text-center outline-none focus:border-violet-500/60"
+                                              style={{ colorScheme: "dark" }}
+                                            />
+                                          </div>
+                                          <span className="text-slate-500 text-sm mt-4">—</span>
+                                          <div className="flex-1 space-y-1">
+                                            <label className="text-[10px] text-slate-500">Sampai hal.</label>
+                                            <input
+                                              type="number"
+                                              min={pageStart} max={insp.total_pages}
+                                              value={pageEnd || insp.total_pages}
+                                              onChange={e => setPageEnd(Math.max(pageStart, Math.min(insp.total_pages, Number(e.target.value))))}
+                                              className="w-full bg-[#0f0a1e] border border-violet-800/50 rounded-lg px-2.5 py-1.5 text-sm text-slate-200 font-bold tabular-nums text-center outline-none focus:border-violet-500/60"
+                                              style={{ colorScheme: "dark" }}
+                                            />
+                                          </div>
+                                          <button
+                                            onClick={() => { setPageStart(1); setPageEnd(insp.total_pages); }}
+                                            className="mt-4 px-2.5 py-1.5 text-[10px] font-semibold text-slate-400 border border-slate-700/50 rounded-lg hover:border-violet-600/50 hover:text-violet-300 transition-colors whitespace-nowrap"
+                                          >
+                                            Semua
+                                          </button>
+                                        </div>
+                                        <p className="text-[11px] text-violet-300/80">
+                                          Akan memproses <strong className="text-violet-200">{Math.max(0, (pageEnd || insp.total_pages) - pageStart + 1)} halaman</strong>
+                                          {" "}(hal. {pageStart} – {pageEnd || insp.total_pages})
+                                        </p>
+                                      </div>
+
+                                      {/* Per-page detail toggle */}
+                                      <button
+                                        onClick={() => setShowAllPagesMap(prev => ({ ...prev, [f.name]: !showAll }))}
+                                        className="w-full flex items-center justify-center gap-1.5 py-2 text-[10px] text-slate-500 hover:text-violet-300 transition-colors"
+                                      >
+                                        {showAll ? <ChevronUp className="w-3.5 h-3.5" /> : <ListCollapse className="w-3.5 h-3.5" />}
+                                        {showAll ? "Sembunyikan daftar halaman" : `Lihat detail per halaman (${insp.total_pages} hal.)`}
+                                      </button>
+
+                                      {/* Per-page table */}
+                                      {showAll && (
+                                        <div className="rounded-lg border border-white/8 overflow-hidden">
+                                          <div className="grid grid-cols-[40px_52px_1fr_48px] gap-0 text-[9px] font-black uppercase tracking-wide text-slate-600 bg-white/4 border-b border-white/8 px-2 py-1.5">
+                                            <span>Hal.</span><span>Tipe</span><span>Isi / Heading</span><span className="text-right">Kata</span>
+                                          </div>
+                                          <div className="max-h-64 overflow-y-auto divide-y divide-white/5">
+                                            {insp.pages.map(pg => (
+                                              <div
+                                                key={pg.page}
+                                                className={`grid grid-cols-[40px_52px_1fr_48px] gap-0 px-2 py-1.5 text-[10px] items-start cursor-pointer transition-colors ${
+                                                  pg.page >= pageStart && pg.page <= (pageEnd || insp.total_pages)
+                                                    ? "hover:bg-violet-900/20"
+                                                    : "opacity-30 hover:opacity-50"
+                                                } ${pg.heading ? "bg-violet-950/30" : ""}`}
+                                                onClick={() => setPageStart(pg.page)}
+                                                title="Klik untuk set mulai dari halaman ini"
+                                              >
+                                                <span className="font-bold text-violet-500 tabular-nums">{pg.page}</span>
+                                                <span>
+                                                  {pg.type === "scan"
+                                                    ? <span className="text-amber-500 flex items-center gap-0.5"><ScanLine className="w-2.5 h-2.5" />scan</span>
+                                                    : pg.type === "text"
+                                                      ? <span className="text-emerald-500">teks</span>
+                                                      : <span className="text-slate-500">—</span>
+                                                  }
+                                                </span>
+                                                <span className={`truncate leading-snug ${pg.heading ? "font-semibold text-violet-200" : "text-slate-400"}`} dir="auto">
+                                                  {pg.heading ? `📌 ${pg.heading}` : pg.preview}
+                                                </span>
+                                                <span className="text-right text-slate-600 tabular-nums">{pg.words > 0 ? pg.words : "—"}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <button onClick={e => { e.stopPropagation(); removeFile(f.name); }}
-                                className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-white/8">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
+                            );
+                          })}
 
                           {/* Process button */}
                           <button
@@ -421,7 +681,9 @@ export default function PdfPage() {
                             )}
                             {uploading
                               ? <><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10">{useOcr ? "Memproses + OCR Arab..." : "Memproses..."}</span></>
-                              : <><Upload className="w-4 h-4" /><span>Proses {files.length} PDF{category ? ` — ${category}` : ""}{useOcr ? " + OCR" : ""}</span></>}
+                              : <><Upload className="w-4 h-4" /><span>Proses {files.length} PDF{category ? ` — ${category}` : ""}{useOcr ? " + OCR" : ""}
+                                  {pageEnd > 0 && ` · hal. ${pageStart}–${pageEnd}`}
+                                </span></>}
                           </button>
 
                           {uploading && useOcr && (
