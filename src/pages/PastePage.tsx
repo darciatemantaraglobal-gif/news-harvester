@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
@@ -14,6 +14,8 @@ export default function PastePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushStatus, setPushStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleRapikan = async () => {
@@ -48,11 +50,41 @@ export default function PastePage() {
     });
   };
 
+  const handlePush = async () => {
+    if (!result.trim()) return;
+    setPushLoading(true);
+    setPushStatus(null);
+    try {
+      const res = await fetch(apiUrl("/api/push-paste"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ title: title.trim() || "Artikel dari Paste", content: result.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal push ke Supabase.");
+      if (data.inserted > 0) {
+        setPushStatus({ ok: true, msg: `Berhasil masuk ke Supabase (${data.inserted} artikel)` });
+      } else if (data.errors?.length) {
+        setPushStatus({ ok: false, msg: data.errors[0] });
+      } else {
+        setPushStatus({ ok: false, msg: "Tidak ada artikel yang berhasil di-push." });
+      }
+    } catch (e: unknown) {
+      setPushStatus({ ok: false, msg: e instanceof Error ? e.message : "Terjadi kesalahan." });
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   const handleClear = () => {
     setTitle("");
     setContent("");
     setResult("");
     setError("");
+    setPushStatus(null);
     textareaRef.current?.focus();
   };
 
@@ -195,19 +227,50 @@ export default function PastePage() {
                       </span>
                     </div>
                     {result && !error && (
-                      <button
-                        onClick={handleCopy}
-                        className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all"
-                        style={{
-                          background: copied ? "rgba(16,185,129,0.2)" : "rgba(139,92,246,0.2)",
-                          color: copied ? "#34d399" : "#a78bfa",
-                          border: copied ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(139,92,246,0.4)",
-                        }}
-                      >
-                        {copied ? <><Check className="w-3 h-3" />Tersalin!</> : <><Copy className="w-3 h-3" />Salin</>}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={handleCopy}
+                          className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all"
+                          style={{
+                            background: copied ? "rgba(16,185,129,0.2)" : "rgba(139,92,246,0.2)",
+                            color: copied ? "#34d399" : "#a78bfa",
+                            border: copied ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(139,92,246,0.4)",
+                          }}
+                        >
+                          {copied ? <><Check className="w-3 h-3" />Tersalin!</> : <><Copy className="w-3 h-3" />Salin</>}
+                        </button>
+                        <button
+                          onClick={handlePush}
+                          disabled={pushLoading || pushStatus?.ok === true}
+                          className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{
+                            background: pushStatus?.ok ? "rgba(16,185,129,0.2)" : "rgba(59,130,246,0.2)",
+                            color: pushStatus?.ok ? "#34d399" : "#93c5fd",
+                            border: pushStatus?.ok ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(59,130,246,0.4)",
+                          }}
+                        >
+                          {pushLoading
+                            ? <><Loader2 className="w-3 h-3 animate-spin" />Pushing...</>
+                            : pushStatus?.ok
+                              ? <><CheckCircle2 className="w-3 h-3" />Sudah Push</>
+                              : <><Send className="w-3 h-3" />Push Supabase</>
+                          }
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {/* Push status bar */}
+                  {pushStatus && (
+                    <div className="flex items-center gap-2 px-3 sm:px-4 py-2 border-b shrink-0"
+                      style={{ borderColor: pushStatus.ok ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)", background: pushStatus.ok ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)" }}>
+                      {pushStatus.ok
+                        ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        : <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      }
+                      <span className="text-[11px]" style={{ color: pushStatus.ok ? "#34d399" : "#f87171" }}>{pushStatus.msg}</span>
+                    </div>
+                  )}
 
                   {/* Content */}
                   <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3">

@@ -706,6 +706,38 @@ def api_format_text():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/push-paste", methods=["POST"])
+def api_push_paste():
+    """Push artikel hasil Paste & Rapikan langsung ke Supabase knowledge_base."""
+    from db_services import push_kb_articles
+    from kb_processor import KEYWORD_TAG_MAP, DEFAULT_TAGS
+    data = request.get_json(force=True) or {}
+    title = data.get("title", "").strip()
+    content = data.get("content", "").strip()
+    if not content:
+        return jsonify({"error": "Konten tidak boleh kosong."}), 400
+    if not title:
+        title = "Artikel dari Paste"
+    # Auto-tag dari title + content
+    combined = (title + " " + content).lower()
+    tags = list(DEFAULT_TAGS)
+    for keyword, tag in KEYWORD_TAG_MAP.items():
+        if keyword in combined and tag not in tags:
+            tags.append(tag)
+    article = {"title": title, "content": content, "tags": tags, "summary": ""}
+    try:
+        result = push_kb_articles([article])
+        return jsonify({
+            "status": "ok",
+            "inserted": result["inserted"],
+            "skipped": result.get("skipped", 0),
+            "errors": result.get("errors", []),
+        })
+    except Exception as e:
+        logger.error(f"[PUSH-PASTE] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/articles/bulk-delete", methods=["POST"])
 def api_articles_bulk_delete():
     """Hapus artikel terpilih berdasarkan daftar ID."""
