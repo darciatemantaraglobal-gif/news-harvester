@@ -933,12 +933,12 @@ const Index = () => {
                       className={`relative flex flex-col items-center justify-center gap-1.5 p-3.5 rounded-xl border-2 transition-all duration-200 overflow-hidden
                         ${mode === value
                           ? "border-violet-500/70 text-white"
-                          : "border-white/8 text-slate-500 hover:text-slate-300 hover:border-violet-800/50"
+                          : "border-transparent text-slate-600 hover:text-slate-400"
                         }`}
                       style={mode === value ? {
                         background: "linear-gradient(145deg, rgba(109,40,217,0.28) 0%, rgba(79,20,180,0.14) 100%)",
                         boxShadow: "0 0 16px rgba(139,92,246,0.25), inset 0 1px 0 rgba(196,181,253,0.15)"
-                      } : { background: "rgba(255,255,255,0.03)" }}>
+                      } : { background: "rgba(255,255,255,0.025)", opacity: 0.55 }}>
                       {mode === value && (
                         <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-purple-400 to-violet-500" />
                       )}
