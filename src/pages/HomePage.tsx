@@ -47,8 +47,8 @@ export default function HomePage() {
         <img
           src="/bg-home.jpg"
           alt=""
-          className="absolute inset-0 w-full h-full object-cover object-bottom animate-glow-pulse"
-          style={{ opacity: 0.9 }}
+          className="absolute inset-0 w-full h-full object-cover animate-glow-pulse"
+          style={{ opacity: 0.9, objectPosition: "center 70%", transform: "scale(1.18)", transformOrigin: "center center" }}
         />
         {/* Extra animated overlay glow for depth */}
         <div
