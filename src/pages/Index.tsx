@@ -781,7 +781,7 @@ const Index = () => {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative z-10">
 
         {/* ─── Dark Header Card ─── */}
-        <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 bg-gradient-to-r from-[#1a0533] via-[#2e0d5e] to-[#3d1480] rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 lg:py-5 flex items-center justify-between shrink-0 shadow-lg shadow-purple-900/20 animate-fade-in-up">
+        <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 lg:mt-5 rounded-xl sm:rounded-2xl px-3 sm:px-5 lg:px-8 py-3 sm:py-4 lg:py-5 flex items-center justify-between shrink-0 animate-fade-in-up" style={{ background: "linear-gradient(135deg, #1a0535 0%, #2f0c60 40%, #4a1890 100%)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 40px rgba(109,40,217,0.22), 0 4px 20px rgba(0,0,0,0.6)" }}>
           <div className="flex items-center gap-2.5 sm:gap-3 lg:gap-4 min-w-0">
             <Link to="/">
               <Button variant="ghost" size="sm" className="gap-1 lg:gap-2 text-white/70 hover:text-white hover:bg-white/15 -ml-1 h-8 lg:h-10 px-2 lg:px-3 text-xs lg:text-sm">
@@ -796,8 +796,14 @@ const Index = () => {
               style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(200,160,255,0.8))" }}
             />
             <div className="leading-none min-w-0">
-              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">Scraper Berita Web</p>
-              <p className="text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Scrape artikel dari website manapun</p>
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="font-bold text-white text-sm lg:text-xl tracking-tight">Scraper Berita Web</p>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] lg:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(139,92,246,0.25)", border: "1px solid rgba(167,139,250,0.4)", color: "rgba(196,181,253,0.9)" }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />AI
+                </span>
+              </div>
+              <p className="text-violet-300/70 text-[11px] lg:text-[13px] mt-0 lg:mt-0.5">Scrape artikel dari website manapun</p>
             </div>
           </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
@@ -860,127 +866,139 @@ const Index = () => {
             {/* Animated gradient top bar */}
             <div className="h-[3px] bg-gradient-to-r from-violet-500 via-purple-400 to-violet-500 gradient-flow" />
 
-            <div className="p-3.5 sm:p-5 lg:p-7 space-y-3.5 sm:space-y-4 lg:space-y-5">
+            <div className="p-4 sm:p-5 lg:p-7 space-y-4 lg:space-y-5">
 
-              {/* Section label */}
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-indigo-900/40 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
-                  <Globe className="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px] text-indigo-500" />
+              {/* ─ URL row: label + source badge + input ─ */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 lg:w-6 lg:h-6 rounded-lg bg-violet-900/50 flex items-center justify-center shrink-0">
+                      <Globe className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-violet-400" />
+                    </div>
+                    <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-[0.18em] text-violet-400/80">Sumber Berita</span>
+                  </div>
+                  {url && (
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${getSourceMeta(url).categoryColor}`}>
+                      {getSourceMeta(url).category} · {getSourceMeta(url).trust}
+                    </span>
+                  )}
                 </div>
-                <span className="text-[10px] sm:text-[11px] lg:text-sm font-bold text-indigo-400 uppercase tracking-widest">URL Sumber Berita</span>
-              </div>
 
-              {/* URL Input with icon + clear button */}
-              <div className="relative group">
-                <Globe className="absolute left-3.5 lg:left-4 top-1/2 -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-200 pointer-events-none" />
-                <input
-                  data-testid="input-url"
-                  type="url"
-                  placeholder="https://contoh.com/kategori/berita"
-                  value={url}
-                  onChange={e => { setUrl(e.target.value); setUrlError(""); }}
-                  onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
-                  disabled={isRunning}
-                  className={`w-full h-11 sm:h-12 lg:h-14 pl-10 lg:pl-12 pr-9 rounded-xl lg:rounded-2xl text-sm lg:text-base border outline-none transition-all duration-200
-                    placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed font-mono tracking-tight
-                    ${urlError
-                      ? "border-red-300 bg-red-900/20 ring-2 ring-red-500/30 text-red-300"
-                      : "border-white/15 bg-[#1a1530] text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:bg-[#1f1a38]"
-                    }`}
-                />
-                {url && !isRunning && (
-                  <button
-                    onClick={() => { setUrl(""); setUrlError(""); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-500 transition-colors duration-150 rounded-full p-0.5 hover:bg-white/10">
-                    <X className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                  </button>
+                <div className="relative group">
+                  <Globe className="absolute left-4 lg:left-5 top-1/2 -translate-y-1/2 w-4 h-4 lg:w-[18px] lg:h-[18px] text-violet-500/50 group-focus-within:text-violet-400 transition-colors duration-200 pointer-events-none" />
+                  <input
+                    data-testid="input-url"
+                    type="url"
+                    placeholder="https://contoh.com/kategori/berita"
+                    value={url}
+                    onChange={e => { setUrl(e.target.value); setUrlError(""); }}
+                    onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
+                    disabled={isRunning}
+                    className={`w-full h-12 lg:h-[56px] pl-11 lg:pl-13 pr-10 rounded-xl lg:rounded-2xl text-sm lg:text-[15px] border-2 outline-none transition-all duration-200 font-mono tracking-tight
+                      placeholder:text-slate-600 disabled:opacity-60 disabled:cursor-not-allowed
+                      ${urlError
+                        ? "border-red-500/50 bg-red-900/20 text-red-300"
+                        : "border-violet-800/40 bg-[#0f0a1e] text-white focus:border-violet-500/70 focus:bg-[#130d26]"
+                      }`}
+                    style={!urlError ? { boxShadow: "0 0 0 0 transparent" } : undefined}
+                  />
+                  {url && !isRunning && (
+                    <button onClick={() => { setUrl(""); setUrlError(""); }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-300 transition-colors rounded-full p-0.5 hover:bg-white/10">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {urlError && (
+                  <p className="text-red-400 text-xs flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
+                  </p>
                 )}
               </div>
-              {urlError && (
-                <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1.5 -mt-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
-                </p>
-              )}
 
-              {/* Mode pills + Scrape button */}
-              <div className="flex flex-col sm:flex-row gap-2.5 lg:gap-3">
-                {/* Mode segmented pills */}
-                <div className="flex items-center bg-white/10 rounded-xl lg:rounded-2xl p-1 lg:p-1.5 gap-0.5 flex-1">
-                  {MODES.map(m => (
+              {/* ─ Mode icon cards + Mulai Scraping ─ */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* 3-column mode cards */}
+                <div className="grid grid-cols-3 gap-2 flex-1">
+                  {[
+                    { value: "list", label: "List Only",    Icon: LayoutList, sub: "Judul & URL" },
+                    { value: "full", label: "Full Article", Icon: Newspaper,  sub: "Konten lengkap" },
+                    { value: "kb",   label: "KB Mode",      Icon: Database,   sub: "Knowledge Base" },
+                  ].map(({ value, label, Icon, sub }) => (
                     <button
-                      key={m.value}
-                      data-testid={`mode-${m.value}`}
-                      onClick={() => !isRunning && setMode(m.value)}
+                      key={value}
+                      data-testid={`mode-${value}`}
+                      onClick={() => !isRunning && setMode(value)}
                       disabled={isRunning}
-                      title={m.desc}
-                      className={`flex-1 text-xs lg:text-sm font-semibold px-2 lg:px-3 py-2 lg:py-2.5 rounded-lg lg:rounded-xl transition-all duration-150 truncate
-                        ${mode === m.value
-                          ? "bg-violet-600 text-white shadow-sm"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-white/15"
-                        }`}>
-                      {m.label}
+                      className={`relative flex flex-col items-center justify-center gap-1 lg:gap-1.5 p-2.5 lg:p-3.5 rounded-xl border-2 transition-all duration-200 overflow-hidden
+                        ${mode === value
+                          ? "border-violet-500/70 text-white"
+                          : "border-white/8 text-slate-500 hover:text-slate-300 hover:border-violet-800/50"
+                        }`}
+                      style={mode === value ? {
+                        background: "linear-gradient(145deg, rgba(109,40,217,0.28) 0%, rgba(79,20,180,0.14) 100%)",
+                        boxShadow: "0 0 16px rgba(139,92,246,0.25), inset 0 1px 0 rgba(196,181,253,0.15)"
+                      } : { background: "rgba(255,255,255,0.03)" }}>
+                      {mode === value && (
+                        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-purple-400 to-violet-500" />
+                      )}
+                      <Icon className={`w-4 h-4 lg:w-5 lg:h-5 relative z-10 transition-colors ${mode === value ? "text-violet-300" : ""}`} />
+                      <span className="text-[10px] lg:text-[11px] font-bold tracking-wide relative z-10 leading-none">{label}</span>
+                      <span className={`text-[9px] lg:text-[10px] relative z-10 leading-none ${mode === value ? "text-violet-400/70" : "text-slate-600"}`}>{sub}</span>
                     </button>
                   ))}
                 </div>
 
-                {/* Scrape button */}
+                {/* Mulai Scraping */}
                 <div className="relative shrink-0">
-                  {/* Purple glow bloom behind the button */}
                   <div className="absolute inset-0 -z-10 rounded-2xl pointer-events-none"
                     style={{
                       background: "radial-gradient(ellipse 120% 160% at 50% 50%, rgba(139,92,246,0.65) 0%, rgba(109,40,217,0.35) 40%, transparent 70%)",
-                      filter: "blur(14px)",
-                      transform: "scale(1.5)",
+                      filter: "blur(14px)", transform: "scale(1.5)",
                     }} />
                   <button
                     data-testid="button-start-scrape"
                     onClick={startScrape}
                     disabled={isRunning}
-                    className={`relative h-10 sm:h-auto lg:h-14 px-5 sm:px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 lg:gap-2.5 flex items-center justify-center
+                    className={`relative w-full sm:w-auto h-10 sm:h-full px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 flex items-center justify-center
                       transition-all duration-200 overflow-hidden
                       ${isRunning
                         ? "bg-gradient-to-r from-violet-600 to-purple-600 opacity-80 cursor-not-allowed"
-                        : "bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 hover:scale-[1.03] active:scale-95"
+                        : "bg-gradient-to-br from-violet-600 via-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 hover:scale-[1.03] active:scale-95"
                       }`}
-                    style={isRunning ? {} : { boxShadow: "0 0 18px rgba(139,92,246,0.7), 0 0 40px rgba(109,40,217,0.45), 0 4px 16px rgba(0,0,0,0.5)" }}>
-                    {/* Animated shimmer when running */}
+                    style={isRunning ? {} : { boxShadow: "0 0 20px rgba(139,92,246,0.75), 0 0 45px rgba(109,40,217,0.4), 0 4px 16px rgba(0,0,0,0.5)" }}>
                     {isRunning && (
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
                     )}
                     {isRunning
-                      ? <><Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin relative z-10" /><span className="relative z-10">Scraping...</span></>
-                      : <><Zap className="w-4 h-4 lg:w-5 lg:h-5" />Mulai Scraping</>}
+                      ? <><Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin relative z-10" /><span className="relative z-10 whitespace-nowrap">Scraping...</span></>
+                      : <><Zap className="w-4 h-4 lg:w-5 lg:h-5" /><span className="whitespace-nowrap">Mulai Scraping</span></>}
                   </button>
                 </div>
               </div>
 
-              {/* Mode description */}
-              <p className="text-[10px] sm:text-xs lg:text-sm text-slate-400 -mt-1 flex items-center gap-1.5">
-                <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                {MODES.find(m => m.value === mode)?.desc}
-              </p>
-
-              {/* Rentang as pill chips */}
-              <div className="flex flex-wrap items-center gap-2 lg:gap-3 pt-3 lg:pt-4 border-t border-white/10">
-                <span className="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0">Rentang</span>
-                <div className="flex flex-wrap gap-1.5 lg:gap-2">
+              {/* ─ Date range ─ */}
+              <div className="flex flex-wrap items-center gap-2 pt-3 lg:pt-4 border-t border-violet-900/30">
+                <CalendarDays className="w-3.5 h-3.5 text-violet-500/50 shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 shrink-0">Rentang</span>
+                <div className="flex flex-wrap gap-1.5">
                   {SCRAPE_RANGES.map(r => (
                     <button
                       key={r.value}
                       data-testid={`range-${r.value}`}
                       onClick={() => !isRunning && setScrapeRange(r.value)}
                       disabled={isRunning}
-                      className={`text-[11px] sm:text-xs lg:text-sm px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full font-semibold transition-all duration-150
+                      className={`text-[11px] px-3 py-1.5 rounded-full font-semibold transition-all duration-150
                         ${scrapeRange === r.value
-                          ? "bg-violet-600 text-white shadow-sm"
-                          : "bg-white/10 text-slate-500 hover:bg-white/15 hover:text-slate-200"
+                          ? "bg-violet-600 text-white shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                          : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-slate-200 border border-white/8"
                         }`}>
                       {r.label}
                     </button>
                   ))}
                 </div>
                 {scrapeRange === "custom" && (
-                  <div className="flex items-center gap-1.5 mt-1 w-full sm:w-auto sm:mt-0">
+                  <div className="flex items-center gap-1.5 mt-1.5 w-full sm:w-auto sm:mt-0">
                     <Input data-testid="input-custom-start" type="date" value={customStart}
                       onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
                       className="w-36 h-7 text-xs bg-white/5 border-white/15 rounded-lg" />
@@ -1028,7 +1046,7 @@ const Index = () => {
                       <Icon className={`w-3 h-3 lg:w-4 lg:h-4 ${iconColor}`} />
                     </div>
                   </div>
-                  <p data-testid={testid} className={`text-2xl lg:text-4xl font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
+                  <p data-testid={testid} className={`text-2xl lg:text-4xl font-extrabold leading-none tabular-nums ${numColor}`} style={value > 0 ? { textShadow: "0 0 20px currentColor, 0 0 8px currentColor" } : {}}>{value}</p>
                 </div>
               </div>
             ))}
