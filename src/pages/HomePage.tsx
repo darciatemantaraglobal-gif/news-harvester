@@ -55,46 +55,42 @@ export default function HomePage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col flex-1 px-4 sm:px-6 pb-24 pt-10">
+      <div className="relative z-10 flex flex-col flex-1 px-3 sm:px-6 pb-20 pt-6 sm:pt-10">
 
         {/* ── Hero ── */}
-        <div className="flex flex-col items-center text-center mb-10">
-          {/* Logo */}
-          <div className="relative mb-5">
-            <div className="absolute inset-0 scale-150 bg-violet-500/25 rounded-full blur-2xl" />
-            <div
-              className="relative w-20 h-20 rounded-2xl flex items-center justify-center border border-violet-500/40"
-              style={{ background: "linear-gradient(135deg, #3b1278 0%, #1a0645 100%)" }}
-            >
-              <img
-                src="/AIGYPT_logo.png"
-                alt="AINA"
-                className="w-11 h-11 object-contain"
-                style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 8px rgba(200,160,255,0.9))" }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
-                }}
-              />
-              <span className="hidden text-white font-black text-3xl">A</span>
-            </div>
+        <div className="flex flex-col items-center text-center mb-6 sm:mb-10">
+          {/* Logo — transparent box, glow only */}
+          <div className="relative mb-3 sm:mb-5">
+            <div className="absolute inset-0 scale-[2] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
+            <img
+              src="/AIGYPT_logo.png"
+              alt="AINA"
+              className="relative w-14 h-14 sm:w-20 sm:h-20 object-contain"
+              style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 14px rgba(200,160,255,1))" }}
+            />
           </div>
 
-          {/* Title */}
+          {/* Title — Sunspire font */}
           <h1
-            className="text-4xl sm:text-5xl font-black tracking-tight leading-none"
-            style={{ background: "linear-gradient(135deg, #ffffff 0%, #d8b4fe 50%, #a78bfa 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
+            className="text-[2.6rem] sm:text-6xl leading-none"
+            style={{
+              fontFamily: "'Sunspire', cursive",
+              background: "linear-gradient(135deg, #ffffff 0%, #d8b4fe 55%, #a78bfa 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              letterSpacing: "0.02em",
+            }}
           >
             AINA Scraper
           </h1>
-          <p className="mt-3 text-purple-400/80 text-sm font-medium tracking-wide">
+          <p className="mt-2 text-purple-400/70 text-xs sm:text-sm font-medium tracking-wide">
             Internal Knowledge Scraping Tool
           </p>
 
-          {/* Divider badge */}
-          <div className="mt-5 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5">
-            <Zap className="w-3.5 h-3.5 text-violet-400" />
-            <span className="text-[11px] text-violet-300 font-semibold tracking-wider uppercase">
+          {/* Flow badge */}
+          <div className="mt-3 sm:mt-5 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 sm:px-4 py-1 sm:py-1.5">
+            <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-400" />
+            <span className="text-[10px] sm:text-[11px] text-violet-300 font-semibold tracking-wider uppercase">
               Pilih sumber · Review · Kirim ke Supabase
             </span>
           </div>
@@ -115,23 +111,24 @@ export default function HomePage() {
               <div className="absolute inset-0 rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.6) 0%, rgba(139,92,246,0.3) 100%)" }} />
               {/* card body */}
-              <div className="relative rounded-2xl p-5 h-full flex flex-col"
+              <div className="relative rounded-2xl p-4 sm:p-5 h-full flex flex-col"
                 style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
 
-                {/* icon glow */}
-                <div className="relative w-12 h-12 mb-4">
-                  <div className="absolute inset-0 bg-blue-500/30 rounded-xl blur-lg group-hover:bg-blue-500/50 transition-colors duration-300" />
-                  <div className="relative w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                    <Newspaper className="w-5.5 h-5.5 text-blue-300" strokeWidth={1.8} />
+                <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                  <div className="relative w-10 h-10 shrink-0">
+                    <div className="absolute inset-0 bg-blue-500/30 rounded-xl blur-md group-hover:bg-blue-500/50 transition-colors duration-300" />
+                    <div className="relative w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
+                      <Newspaper className="w-5 h-5 text-blue-300" strokeWidth={1.8} />
+                    </div>
                   </div>
+                  <h3 className="font-bold text-white text-sm sm:text-base leading-tight">Berita Kemlu / KBRI</h3>
                 </div>
 
-                <h3 className="font-bold text-white text-base leading-tight">Berita Kemlu / KBRI</h3>
-                <p className="text-purple-300/60 text-xs mt-2 leading-relaxed flex-1">
+                <p className="text-purple-300/60 text-xs leading-relaxed flex-1">
                   Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
                 </p>
 
-                <div className="flex items-center justify-between mt-5 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
                   <span className="text-[10px] font-bold text-blue-400/80 uppercase tracking-widest">Portal Resmi</span>
                   <div className="flex items-center gap-1 text-xs font-semibold text-blue-400 group-hover:text-blue-300 transition-colors">
                     Mulai <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -144,22 +141,24 @@ export default function HomePage() {
             <Link to="/pdf" className="group relative rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
               <div className="absolute inset-0 rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(168,85,247,0.3) 100%)" }} />
-              <div className="relative rounded-2xl p-5 h-full flex flex-col"
+              <div className="relative rounded-2xl p-4 sm:p-5 h-full flex flex-col"
                 style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
 
-                <div className="relative w-12 h-12 mb-4">
-                  <div className="absolute inset-0 bg-violet-500/30 rounded-xl blur-lg group-hover:bg-violet-500/50 transition-colors duration-300" />
-                  <div className="relative w-12 h-12 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
-                    <BookOpen className="w-5.5 h-5.5 text-violet-300" strokeWidth={1.8} />
+                <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                  <div className="relative w-10 h-10 shrink-0">
+                    <div className="absolute inset-0 bg-violet-500/30 rounded-xl blur-md group-hover:bg-violet-500/50 transition-colors duration-300" />
+                    <div className="relative w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
+                      <BookOpen className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
+                    </div>
                   </div>
+                  <h3 className="font-bold text-white text-sm sm:text-base leading-tight">Kitab PDF Arab</h3>
                 </div>
 
-                <h3 className="font-bold text-white text-base leading-tight">Kitab PDF Arab</h3>
-                <p className="text-purple-300/60 text-xs mt-2 leading-relaxed flex-1">
+                <p className="text-purple-300/60 text-xs leading-relaxed flex-1">
                   Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.
                 </p>
 
-                <div className="flex items-center justify-between mt-5 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
                   <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">Kitab Arab · OCR</span>
                   <div className="flex items-center gap-1 text-xs font-semibold text-violet-400 group-hover:text-violet-300 transition-colors">
                     Upload <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
