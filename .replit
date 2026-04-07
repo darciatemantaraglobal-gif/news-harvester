@@ -70,3 +70,8 @@ externalPort = 3003
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[userenv]
+
+[userenv.shared]
+ADMIN_USERNAME = "admin"

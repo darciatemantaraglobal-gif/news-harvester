@@ -1,5 +1,6 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata, logging, time
+from functools import wraps
 import pdfplumber
 import fitz  # PyMuPDF
 from datetime import datetime, date, timedelta
@@ -24,6 +25,37 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app, origins="*")
+
+# ─── Auth ───────────────────────────────────────────────────────────────────────
+_ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+_SESSION_SECRET = os.environ.get("SESSION_SECRET", "")
+
+_PUBLIC_ENDPOINTS = {"login", "static"}
+
+@app.before_request
+def _check_auth():
+    if request.method == "OPTIONS":
+        return
+    if request.endpoint in _PUBLIC_ENDPOINTS:
+        return
+    if not _SESSION_SECRET:
+        return jsonify({"error": "Auth not configured. Set SESSION_SECRET env var."}), 500
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    if token != _SESSION_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    if not _ADMIN_PASSWORD:
+        return jsonify({"error": "Auth not configured. Set ADMIN_PASSWORD secret."}), 500
+    if username == _ADMIN_USERNAME and password == _ADMIN_PASSWORD:
+        return jsonify({"token": _SESSION_SECRET})
+    return jsonify({"error": "Username atau password salah."}), 401
 
 
 @app.after_request

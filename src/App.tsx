@@ -9,6 +9,8 @@ import ArticleDetail from "./pages/ArticleDetail.tsx";
 import ReviewDashboard from "./pages/ReviewDashboard.tsx";
 import PdfPage from "./pages/PdfPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import LoginPage from "./pages/LoginPage.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
 const queryClient = new QueryClient();
 
@@ -19,11 +21,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/scraper" element={<Index />} />
-          <Route path="/article/:id" element={<ArticleDetail />} />
-          <Route path="/review" element={<ReviewDashboard />} />
-          <Route path="/pdf" element={<PdfPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/scraper" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/article/:id" element={<ProtectedRoute><ArticleDetail /></ProtectedRoute>} />
+          <Route path="/review" element={<ProtectedRoute><ReviewDashboard /></ProtectedRoute>} />
+          <Route path="/pdf" element={<ProtectedRoute><PdfPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
