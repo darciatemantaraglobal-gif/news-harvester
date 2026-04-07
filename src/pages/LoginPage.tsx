@@ -43,15 +43,64 @@ export default function LoginPage() {
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
+        {/* Wallpaper images — slow Ken Burns drift */}
         <img src="/bg-home.jpg" alt="" className="absolute inset-0 w-full h-full object-cover sm:hidden"
-          style={{ opacity: 0.28, objectPosition: "center 82%", transform: "scale(1.38)", transformOrigin: "center bottom" }} />
+          style={{ opacity: 0.32, objectPosition: "center 82%", transformOrigin: "center bottom", animation: "login-bg-drift-mobile 18s ease-in-out infinite" }} />
         <img src="/bg-desktop.jpg" alt="" className="absolute inset-0 w-full h-full object-cover hidden sm:block"
-          style={{ opacity: 0.28 }} />
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 70% at 50% 40%, rgba(109,40,217,0.30) 0%, transparent 65%)" }} />
-        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px" }} />
-        <div className="absolute top-0 inset-x-0 h-1/3" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%)" }} />
-        <div className="absolute bottom-0 inset-x-0 h-1/3" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)" }} />
+          style={{ opacity: 0.32, transformOrigin: "center center", animation: "login-bg-drift 20s ease-in-out infinite" }} />
+        {/* Animated aurora overlay */}
+        <div className="absolute inset-0" style={{ animation: "login-aurora 8s ease-in-out infinite", background: "radial-gradient(ellipse 80% 70% at 50% 40%, rgba(109,40,217,0.32) 0%, transparent 65%)" }} />
+        {/* Floating orb 1 */}
+        <div className="absolute" style={{ width: "380px", height: "380px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)", top: "-100px", left: "-100px", animation: "login-orb-1 9s ease-in-out infinite" }} />
+        {/* Floating orb 2 */}
+        <div className="absolute" style={{ width: "280px", height: "280px", borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.14) 0%, transparent 70%)", bottom: "-60px", right: "-60px", animation: "login-orb-2 11s ease-in-out infinite 2s" }} />
+        {/* Floating orb 3 — subtle mid accent */}
+        <div className="absolute hidden sm:block" style={{ width: "200px", height: "200px", borderRadius: "50%", background: "radial-gradient(circle, rgba(196,181,253,0.12) 0%, transparent 70%)", top: "35%", right: "12%", animation: "login-orb-3 7s ease-in-out infinite 1s" }} />
+        {/* Dot grid */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1.5px 1.5px, rgba(200,180,255,0.8) 1.5px, transparent 0)", backgroundSize: "32px 32px", animation: "login-grid 16s linear infinite" }} />
+        <div className="absolute top-0 inset-x-0 h-1/3" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, transparent 100%)" }} />
+        <div className="absolute bottom-0 inset-x-0 h-1/3" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, transparent 100%)" }} />
       </div>
+
+      {/* Animation keyframes */}
+      <style>{`
+        @keyframes login-bg-drift {
+          0%   { transform: scale(1.05) translate(0, 0); }
+          33%  { transform: scale(1.12) translate(-1.5%, 1%); }
+          66%  { transform: scale(1.08) translate(1.5%, -1%); }
+          100% { transform: scale(1.05) translate(0, 0); }
+        }
+        @keyframes login-bg-drift-mobile {
+          0%   { transform: scale(1.38) translate(0, 0); }
+          50%  { transform: scale(1.46) translate(-2%, 1.5%); }
+          100% { transform: scale(1.38) translate(0, 0); }
+        }
+        @keyframes login-aurora {
+          0%   { opacity: 0.85; transform: scale(1) translate(0, 0); }
+          33%  { opacity: 1;    transform: scale(1.1) translate(3%, -3%); }
+          66%  { opacity: 0.9;  transform: scale(1.05) translate(-3%, 2%); }
+          100% { opacity: 0.85; transform: scale(1) translate(0, 0); }
+        }
+        @keyframes login-orb-1 {
+          0%   { transform: translate(0, 0) scale(1); }
+          50%  { transform: translate(50px, 60px) scale(1.25); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        @keyframes login-orb-2 {
+          0%   { transform: translate(0, 0) scale(1); }
+          50%  { transform: translate(-40px, -50px) scale(1.2); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        @keyframes login-orb-3 {
+          0%   { transform: translate(0, 0); opacity: 0.6; }
+          50%  { transform: translate(-30px, 35px); opacity: 1; }
+          100% { transform: translate(0, 0); opacity: 0.6; }
+        }
+        @keyframes login-grid {
+          0%   { background-position: 0 0; }
+          100% { background-position: 32px 32px; }
+        }
+      `}</style>
 
       {/* ══ MOBILE layout — full screen ══ */}
       <div className="sm:hidden absolute inset-0 z-10 flex flex-col px-6 pt-0 pb-8">
@@ -60,8 +109,8 @@ export default function LoginPage() {
         <div className="flex flex-col items-center justify-center text-center" style={{ flex: "0 0 42%" }}>
           <div className="relative">
             <div className="absolute inset-0 scale-[3] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
-            <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-28 h-28 object-contain"
-              style={{ filter: "drop-shadow(0 0 22px rgba(200,160,255,0.85))" }} />
+            <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-40 h-40 object-contain"
+              style={{ filter: "drop-shadow(0 0 28px rgba(200,160,255,0.9))" }} />
           </div>
         </div>
 
@@ -142,8 +191,8 @@ export default function LoginPage() {
           <div className="flex flex-col items-center mb-8">
             <div className="relative">
               <div className="absolute inset-0 scale-[3] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
-              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-28 h-28 object-contain"
-                style={{ filter: "drop-shadow(0 0 22px rgba(200,160,255,0.85))" }} />
+              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-40 h-40 object-contain"
+                style={{ filter: "drop-shadow(0 0 28px rgba(200,160,255,0.9))" }} />
             </div>
           </div>
 
