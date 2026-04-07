@@ -9,3 +9,14 @@ supabase
 gunicorn
 pdfplumber
 pymupdf
+apscheduler
+beautifulsoup4
+flask
+flask-cors
+gunicorn
+lxml
+openai
+pdfplumber
+pymupdf
+requests
+supabase
