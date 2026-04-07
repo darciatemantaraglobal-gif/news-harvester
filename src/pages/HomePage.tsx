@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiUrl } from "@/lib/api";
 import {
   Newspaper, BookOpen, ArrowRight, ClipboardCheck,
-  CheckCircle2, Clock, Send, AlertCircle, Zap, Users, LogOut,
+  CheckCircle2, Clock, Send, AlertCircle, Zap, Users, LogOut, ClipboardPaste,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { clearToken, getIsAdmin, getUsername } from "@/lib/auth";
@@ -218,6 +218,25 @@ export default function HomePage() {
               </div>
             </Link>
 
+          {/* Paste card — full width */}
+            <Link to="/paste" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.01] col-span-2"
+              style={{ background: "#0d0720" }}>
+              <div className="absolute animate-border-beam-slow pointer-events-none"
+                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(99,102,241,0.5) 300deg, rgba(165,180,252,0.9) 345deg, transparent 360deg)" }} />
+              <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex items-center gap-3 p-3 sm:p-4" style={{ background: "#0d0720" }}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl bg-indigo-900/60 border border-indigo-500/40 flex items-center justify-center">
+                  <ClipboardPaste className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-300" strokeWidth={1.8} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-white text-xs sm:text-sm leading-tight">Paste & Rapikan Artikel</h3>
+                  <p className="text-indigo-300/50 text-[10px] sm:text-xs leading-relaxed mt-0.5">Tempel konten artikel, AI langsung rapikan jadi Markdown presisi.</p>
+                </div>
+                <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-indigo-400 group-hover:text-indigo-200 transition-colors shrink-0">
+                  Paste <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
           </div>
         </div>
 
@@ -396,6 +415,23 @@ export default function HomePage() {
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-violet-800/40">
                     <span className="text-[10px] font-bold text-violet-500/70 uppercase tracking-widest">Kitab Arab · OCR</span>
                     <div className="flex items-center gap-0.5 text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" /></div>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Paste card — full width desktop */}
+              <Link to="/paste" className="group relative overflow-hidden rounded-2xl col-span-2 transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
+                <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(99,102,241,0.5) 300deg, rgba(165,180,252,0.9) 345deg, transparent 360deg)" }} />
+                <div className="relative m-px rounded-[15px] flex items-center gap-4 p-4" style={{ background: "#0d0720" }}>
+                  <div className="w-11 h-11 shrink-0 rounded-xl bg-indigo-900/60 border border-indigo-500/40 flex items-center justify-center">
+                    <ClipboardPaste className="w-5 h-5 text-indigo-300" strokeWidth={1.8} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-white text-base leading-tight">Paste & Rapikan Artikel</h3>
+                    <p className="text-indigo-300/50 text-xs leading-relaxed mt-1">Tempel konten artikel dari sumber manapun. AI akan menyaring info penting dan memformatnya jadi Markdown yang rapi dan presisi.</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 text-xs font-semibold text-indigo-400 group-hover:text-indigo-200 transition-colors shrink-0">
+                    Paste <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
               </Link>

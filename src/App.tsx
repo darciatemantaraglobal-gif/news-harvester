@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import ArticleDetail from "./pages/ArticleDetail.tsx";
 import ReviewDashboard from "./pages/ReviewDashboard.tsx";
 import PdfPage from "./pages/PdfPage.tsx";
+import PastePage from "./pages/PastePage.tsx";
 import UsersPage from "./pages/UsersPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/article/:id" element={<ProtectedRoute><ArticleDetail /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute><ReviewDashboard /></ProtectedRoute>} />
           <Route path="/pdf" element={<ProtectedRoute><PdfPage /></ProtectedRoute>} />
+          <Route path="/paste" element={<ProtectedRoute><PastePage /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -651,6 +651,61 @@ def api_format_article(article_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/format-text", methods=["POST"])
+def api_format_text():
+    """Rapikan teks artikel yang di-paste langsung oleh user."""
+    from ai_services import get_openai_client, check_openai_available
+    if not check_openai_available():
+        return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur ini membutuhkan OPENAI_API_KEY."}), 503
+
+    data = request.get_json(force=True) or {}
+    title = data.get("title", "").strip()
+    content = data.get("content", "").strip()
+
+    if not content:
+        return jsonify({"error": "Konten tidak boleh kosong."}), 400
+
+    try:
+        client = get_openai_client()
+        prompt = (
+            "Kamu adalah editor konten berita profesional. Tugasmu adalah mengekstrak dan menyajikan HANYA informasi penting dari teks berikut dalam format Markdown yang rapi dan presisi.\n\n"
+            + (f"Judul: {title}\n\n" if title else "")
+            + f"Teks asli:\n{content[:6000]}\n\n"
+            "INSTRUKSI KETAT:\n\n"
+            "**Yang HARUS dibuang (jangan masukkan sama sekali):**\n"
+            "- Iklan, promo, ajakan subscribe/follow\n"
+            "- Navigasi website, footer, cookie notice, disclaimer boilerplate\n"
+            "- Kalimat basa-basi, pembuka/penutup tidak informatif\n"
+            "- Informasi duplikat atau pengulangan\n"
+            "- Opini yang tidak didukung fakta\n"
+            "- Informasi yang tidak relevan dengan topik utama\n\n"
+            "**Yang HARUS dipertahankan:**\n"
+            "- Fakta utama: apa, siapa, kapan, di mana, mengapa, bagaimana\n"
+            "- Angka, statistik, tanggal, nama resmi\n"
+            "- Kutipan langsung yang penting\n"
+            "- Konteks dan latar belakang yang relevan\n\n"
+            "**Format output (Markdown):**\n"
+            "- Gunakan `##` untuk sub-topik jika ada lebih dari satu topik\n"
+            "- Gunakan bullet points (`-`) untuk daftar fakta atau poin-poin\n"
+            "- Gunakan **bold** untuk nama, jabatan, angka, atau istilah kunci\n"
+            "- Gunakan paragraf prose untuk narasi yang mengalir\n"
+            "- Pisahkan bagian dengan satu baris kosong\n"
+            "- Gunakan bahasa yang sama dengan teks asli (jangan terjemahkan)\n\n"
+            "PENTING: Tulis HANYA konten Markdown. Jangan tambahkan kata pengantar, penutup, atau komentar apapun."
+        )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2500,
+            temperature=0.1,
+        )
+        formatted = response.choices[0].message.content.strip()
+        return jsonify({"status": "ok", "formatted_content": formatted})
+    except Exception as e:
+        logger.error(f"[FORMAT-TEXT] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/articles/bulk-delete", methods=["POST"])
 def api_articles_bulk_delete():
     """Hapus artikel terpilih berdasarkan daftar ID."""
