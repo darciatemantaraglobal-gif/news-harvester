@@ -1,12 +1,31 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X, Newspaper, BookOpen, FileText, List, Zap, Radio } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 
 type InputMode = "paste" | "ocr";
+type RapikanFormat = "berita" | "kitab" | "laporan" | "ringkasan" | "poin" | "briefing";
+type OcrType = "auto" | "poster" | "dokumen" | "kitab" | "screenshot";
+
+const FORMAT_OPTIONS: { value: RapikanFormat; label: string; desc: string; icon: React.ReactNode; color: string; activeColor: string; activeBg: string; activeBorder: string }[] = [
+  { value: "berita",    label: "Berita",    desc: "Artikel berita / portal", icon: <Newspaper className="w-3 h-3" />,  color: "#6b7280", activeColor: "#a78bfa", activeBg: "rgba(139,92,246,0.15)",  activeBorder: "rgba(139,92,246,0.5)" },
+  { value: "kitab",     label: "Kitab",     desc: "Teks Arab / kitab agama", icon: <BookOpen className="w-3 h-3" />,   color: "#6b7280", activeColor: "#fb923c", activeBg: "rgba(251,146,60,0.12)",  activeBorder: "rgba(251,146,60,0.5)" },
+  { value: "laporan",   label: "Laporan",   desc: "Laporan resmi / formal",  icon: <FileText className="w-3 h-3" />,   color: "#6b7280", activeColor: "#60a5fa", activeBg: "rgba(96,165,250,0.12)",  activeBorder: "rgba(96,165,250,0.5)" },
+  { value: "ringkasan", label: "Ringkasan", desc: "3-5 poin inti saja",      icon: <Zap className="w-3 h-3" />,        color: "#6b7280", activeColor: "#fbbf24", activeBg: "rgba(251,191,36,0.12)",  activeBorder: "rgba(251,191,36,0.5)" },
+  { value: "poin",      label: "Poin",      desc: "Pure bullet list",        icon: <List className="w-3 h-3" />,       color: "#6b7280", activeColor: "#34d399", activeBg: "rgba(52,211,153,0.12)",  activeBorder: "rgba(52,211,153,0.5)" },
+  { value: "briefing",  label: "Briefing",  desc: "Intelijen / diplomatik",  icon: <Radio className="w-3 h-3" />,      color: "#6b7280", activeColor: "#e879f9", activeBg: "rgba(232,121,249,0.12)", activeBorder: "rgba(232,121,249,0.5)" },
+];
+
+const OCR_TYPE_OPTIONS: { value: OcrType; label: string; icon: React.ReactNode }[] = [
+  { value: "auto",       label: "Auto-Detect",  icon: <Sparkles className="w-3 h-3" /> },
+  { value: "poster",     label: "Poster/Flyer", icon: <ImagePlus className="w-3 h-3" /> },
+  { value: "dokumen",    label: "Dokumen",       icon: <FileText className="w-3 h-3" /> },
+  { value: "kitab",      label: "Kitab Arab",    icon: <BookOpen className="w-3 h-3" /> },
+  { value: "screenshot", label: "Screenshot",    icon: <ScanText className="w-3 h-3" /> },
+];
 
 export default function PastePage() {
   const navigate = useNavigate();
@@ -24,6 +43,9 @@ export default function PastePage() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
+  const [rapikanFormat, setRapikanFormat] = useState<RapikanFormat>("berita");
+  const [ocrType, setOcrType] = useState<OcrType>("auto");
+  const [activeFormatLabel, setActiveFormatLabel] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,6 +54,8 @@ export default function PastePage() {
     setLoading(true);
     setError("");
     setResult("");
+    const fmtLabel = FORMAT_OPTIONS.find(f => f.value === rapikanFormat)?.label ?? rapikanFormat;
+    setActiveFormatLabel(fmtLabel);
     try {
       const res = await fetch(apiUrl("/api/format-text"), {
         method: "POST",
@@ -39,7 +63,7 @@ export default function PastePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({ title: title.trim(), content: content.trim() }),
+        body: JSON.stringify({ title: title.trim(), content: content.trim(), format: rapikanFormat }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memproses konten.");
@@ -97,6 +121,7 @@ export default function PastePage() {
     setOcrImage(null);
     setOcrPreview("");
     setOcrError("");
+    setActiveFormatLabel("");
     textareaRef.current?.focus();
   };
 
@@ -126,6 +151,7 @@ export default function PastePage() {
     try {
       const form = new FormData();
       form.append("image", ocrImage);
+      form.append("ocr_type", ocrType);
       const res = await fetch(apiUrl("/api/ocr-poster"), {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
@@ -229,7 +255,7 @@ export default function PastePage() {
                     borderBottom: inputMode === "ocr" ? "2px solid #6366f1" : "2px solid transparent",
                   }}
                 >
-                  <ScanText className="w-3 h-3" />OCR Poster
+                  <ScanText className="w-3 h-3" />OCR Gambar
                 </button>
                 {inputMode === "paste" && content && (
                   <span className="ml-auto text-[10px] text-slate-600 pr-2">{wordCount} kata · {charCount} karakter</span>
@@ -307,6 +333,24 @@ export default function PastePage() {
                     </div>
                   )}
 
+                  {/* OCR type selector */}
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 px-0.5">Tipe Konten</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {OCR_TYPE_OPTIONS.map(opt => (
+                        <button key={opt.value} onClick={() => setOcrType(opt.value)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all"
+                          style={{
+                            background: ocrType === opt.value ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)",
+                            color: ocrType === opt.value ? "#818cf8" : "#4b5563",
+                            border: ocrType === opt.value ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.07)",
+                          }}>
+                          {opt.icon}{opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* OCR error */}
                   {ocrError && (
                     <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-900/20 border border-red-800/30">
@@ -335,6 +379,35 @@ export default function PastePage() {
             </div>
           </div>
 
+          {/* ── Format selector ── */}
+          {inputMode === "paste" && (
+            <div className="relative overflow-hidden rounded-xl px-3 py-2.5" style={{ background: "#0d0720", border: "1px solid rgba(139,92,246,0.18)" }}>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-2">Format Output</p>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {FORMAT_OPTIONS.map(opt => {
+                  const isActive = rapikanFormat === opt.value;
+                  return (
+                    <button key={opt.value} onClick={() => setRapikanFormat(opt.value)}
+                      title={opt.desc}
+                      className="flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl text-[10px] font-bold transition-all"
+                      style={{
+                        background: isActive ? opt.activeBg : "rgba(255,255,255,0.03)",
+                        color: isActive ? opt.activeColor : "#4b5563",
+                        border: isActive ? `1px solid ${opt.activeBorder}` : "1px solid rgba(255,255,255,0.06)",
+                      }}>
+                      <span style={{ color: isActive ? opt.activeColor : "#374151" }}>{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Active format description */}
+              <p className="text-[10px] text-slate-600 mt-2 text-center">
+                {FORMAT_OPTIONS.find(f => f.value === rapikanFormat)?.desc}
+              </p>
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex items-center gap-2">
             <button
@@ -348,7 +421,7 @@ export default function PastePage() {
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Sedang Merapikan...</>
-                : <><Sparkles className="w-4 h-4" />Rapikan AI</>
+                : <><Sparkles className="w-4 h-4" />Rapikan AI{content.trim() ? ` · ${FORMAT_OPTIONS.find(f => f.value === rapikanFormat)?.label ?? ""}` : ""}</>
               }
             </button>
             {(content || title || result) && (
@@ -366,7 +439,7 @@ export default function PastePage() {
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-900/20 border border-violet-800/30">
               <ClipboardPaste className="w-3.5 h-3.5 text-violet-500 shrink-0" />
               <p className="text-[11px] text-violet-400/70">
-                Paste teks dari artikel berita, blog, atau sumber apapun — atau pakai tab <span className="text-indigo-400 font-semibold">OCR Poster</span> untuk ekstrak teks dari gambar.
+                Paste teks dari artikel berita, blog, atau sumber apapun — atau pakai tab <span className="text-indigo-400 font-semibold">OCR Gambar</span> untuk ekstrak teks dari poster, dokumen, kitab Arab, atau screenshot.
               </p>
             </div>
           )}
@@ -389,7 +462,7 @@ export default function PastePage() {
                         : <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                       }
                       <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: error ? '#f87171' : '#34d399' }}>
-                        {error ? "Error" : "Hasil Rapikan AI"}
+                        {error ? "Error" : `Hasil Rapikan AI${activeFormatLabel ? ` · ${activeFormatLabel}` : ""}`}
                       </span>
                     </div>
                     {result && !error && (

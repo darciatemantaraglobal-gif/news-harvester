@@ -795,9 +795,84 @@ def api_format_article(article_id):
         return jsonify({"error": str(e)}), 500
 
 
+FORMAT_PROMPTS = {
+    "berita": lambda title, content: (
+        "Kamu adalah editor konten berita profesional. Ekstrak dan sajikan HANYA informasi penting dalam format Markdown yang rapi.\n\n"
+        + (f"Judul: {title}\n\n" if title else "")
+        + f"Teks asli:\n{content}\n\n"
+        "INSTRUKSI:\n"
+        "- Buang: iklan, promo, navigasi, disclaimer, basa-basi, duplikasi, opini tidak berdasar fakta\n"
+        "- Pertahankan: fakta (apa/siapa/kapan/di mana/mengapa/bagaimana), angka, tanggal, nama resmi, kutipan penting\n"
+        "- Format: `##` untuk sub-topik, `-` untuk daftar fakta, **bold** untuk nama/jabatan/angka kunci, paragraf prose untuk narasi\n"
+        "- Gunakan bahasa yang sama dengan teks asli\n"
+        "Output: HANYA Markdown. Tanpa pengantar atau komentar."
+    ),
+    "kitab": lambda title, content: (
+        "Kamu adalah editor teks kitab Arab/Indonesia profesional. Rapikan dan strukturkan teks berikut.\n\n"
+        + (f"Judul/Kitab: {title}\n\n" if title else "")
+        + f"Teks asli:\n{content}\n\n"
+        "INSTRUKSI:\n"
+        "- Perbaiki kesalahan OCR: karakter aneh, spasi salah, baris terputus\n"
+        "- Pertahankan SEMUA konten asli — jangan hapus atau tambah informasi\n"
+        "- Strukturkan dengan `##` untuk Bab/Fasal/Pasal jika terdeteksi\n"
+        "- Teks Arab: pertahankan, pastikan urutan RTL, gunakan blok terpisah\n"
+        "- Terjemahan/syarah: letakkan setelah teks Arab yang relevan\n"
+        "- Rapikan paragraf dan spasi, pertahankan bahasa asli\n"
+        "Output: HANYA teks yang sudah diperbaiki dalam Markdown. Tanpa komentar."
+    ),
+    "laporan": lambda title, content: (
+        "Kamu adalah analis laporan resmi. Susun ulang teks berikut menjadi laporan terstruktur dan formal.\n\n"
+        + (f"Judul: {title}\n\n" if title else "")
+        + f"Konten:\n{content}\n\n"
+        "INSTRUKSI:\n"
+        "- Mulai dengan **Ringkasan Eksekutif** (2-3 kalimat inti)\n"
+        "- Gunakan `##` untuk: Latar Belakang, Temuan/Fakta Utama, Analisis, Rekomendasi (jika ada)\n"
+        "- Pertahankan semua data, angka, nama resmi, tanggal\n"
+        "- Bahasa: formal dan objektif\n"
+        "- Gunakan **bold** untuk istilah kunci dan poin penting\n"
+        "Output: HANYA konten laporan Markdown. Tanpa pengantar atau penutup dari kamu."
+    ),
+    "ringkasan": lambda title, content: (
+        "Buat ringkasan SANGAT SINGKAT dan padat dari teks berikut.\n\n"
+        + (f"Judul: {title}\n\n" if title else "")
+        + f"Teks:\n{content}\n\n"
+        "INSTRUKSI:\n"
+        "- Maksimal 5 poin paling penting\n"
+        "- Setiap poin: 1-2 kalimat, langsung ke inti\n"
+        "- Sertakan angka/tanggal/nama kunci yang krusial\n"
+        "- Format: bullet list `-` yang ringkas\n"
+        "- Di bagian atas, satu kalimat konteks (tanpa header)\n"
+        "Output: HANYA teks ringkasan. Tanpa kata pengantar."
+    ),
+    "poin": lambda title, content: (
+        "Ubah teks berikut menjadi daftar poin-poin informatif yang mudah dibaca.\n\n"
+        + (f"Topik: {title}\n\n" if title else "")
+        + f"Teks:\n{content}\n\n"
+        "INSTRUKSI:\n"
+        "- Setiap fakta/informasi penting = 1 bullet point `-`\n"
+        "- Poin harus mandiri dan informatif (tidak menggantung)\n"
+        "- Gunakan **bold** di awal setiap poin untuk kata kunci\n"
+        "- Kelompokkan dengan `##` jika ada kategori yang berbeda\n"
+        "- Buang semua teks yang tidak informatif (basa-basi, iklan, dll)\n"
+        "Output: HANYA daftar poin Markdown. Tanpa narasi pembuka."
+    ),
+    "briefing": lambda title, content: (
+        "Kamu adalah analis intelijen. Buat briefing ringkas dari teks berikut.\n\n"
+        + (f"Subjek: {title}\n\n" if title else "")
+        + f"Sumber:\n{content}\n\n"
+        "INSTRUKSI — format briefing diplomatik/intelijen:\n"
+        "- **SITUASI**: 1-2 kalimat gambaran keseluruhan\n"
+        "- **FAKTA KUNCI**: bullet list fakta terverifikasi (angka, nama, tanggal)\n"
+        "- **AKTOR**: siapa saja yang terlibat dan perannya\n"
+        "- **IMPLIKASI**: apa artinya / apa yang perlu diperhatikan (jika ada dalam teks)\n"
+        "- Bahasa: singkat, presisi, faktual — tidak ada opini tambahan\n"
+        "Output: HANYA konten briefing Markdown. Tanpa pengantar."
+    ),
+}
+
 @app.route("/api/format-text", methods=["POST"])
 def api_format_text():
-    """Rapikan teks artikel yang di-paste langsung oleh user."""
+    """Rapikan teks artikel yang di-paste langsung oleh user. Support multi-format."""
     from ai_services import get_openai_client, check_openai_available
     if not check_openai_available():
         return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur ini membutuhkan OPENAI_API_KEY."}), 503
@@ -805,57 +880,92 @@ def api_format_text():
     data = request.get_json(force=True) or {}
     title = data.get("title", "").strip()
     content = data.get("content", "").strip()
+    fmt = data.get("format", "berita").strip().lower()
 
     if not content:
         return jsonify({"error": "Konten tidak boleh kosong."}), 400
+    if fmt not in FORMAT_PROMPTS:
+        fmt = "berita"
 
     try:
         client = get_openai_client()
-        prompt = (
-            "Kamu adalah editor konten berita profesional. Tugasmu adalah mengekstrak dan menyajikan HANYA informasi penting dari teks berikut dalam format Markdown yang rapi dan presisi.\n\n"
-            + (f"Judul: {title}\n\n" if title else "")
-            + f"Teks asli:\n{content[:6000]}\n\n"
-            "INSTRUKSI KETAT:\n\n"
-            "**Yang HARUS dibuang (jangan masukkan sama sekali):**\n"
-            "- Iklan, promo, ajakan subscribe/follow\n"
-            "- Navigasi website, footer, cookie notice, disclaimer boilerplate\n"
-            "- Kalimat basa-basi, pembuka/penutup tidak informatif\n"
-            "- Informasi duplikat atau pengulangan\n"
-            "- Opini yang tidak didukung fakta\n"
-            "- Informasi yang tidak relevan dengan topik utama\n\n"
-            "**Yang HARUS dipertahankan:**\n"
-            "- Fakta utama: apa, siapa, kapan, di mana, mengapa, bagaimana\n"
-            "- Angka, statistik, tanggal, nama resmi\n"
-            "- Kutipan langsung yang penting\n"
-            "- Konteks dan latar belakang yang relevan\n\n"
-            "**Format output (Markdown):**\n"
-            "- Gunakan `##` untuk sub-topik jika ada lebih dari satu topik\n"
-            "- Gunakan bullet points (`-`) untuk daftar fakta atau poin-poin\n"
-            "- Gunakan **bold** untuk nama, jabatan, angka, atau istilah kunci\n"
-            "- Gunakan paragraf prose untuk narasi yang mengalir\n"
-            "- Pisahkan bagian dengan satu baris kosong\n"
-            "- Gunakan bahasa yang sama dengan teks asli (jangan terjemahkan)\n\n"
-            "PENTING: Tulis HANYA konten Markdown. Jangan tambahkan kata pengantar, penutup, atau komentar apapun."
-        )
+        prompt = FORMAT_PROMPTS[fmt](title, content[:7000])
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2500,
+            max_tokens=3000,
             temperature=0.1,
         )
         formatted = response.choices[0].message.content.strip()
-        return jsonify({"status": "ok", "formatted_content": formatted})
+        return jsonify({"status": "ok", "formatted_content": formatted, "format_used": fmt})
     except Exception as e:
         logger.error(f"[FORMAT-TEXT] Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
+OCR_TYPE_PROMPTS = {
+    "auto": (
+        "Kamu adalah OCR engine profesional multi-bahasa. Ekstrak SEMUA teks yang terlihat di gambar ini dengan akurasi tinggi.\n\n"
+        "INSTRUKSI:\n"
+        "- Deteksi otomatis tipe konten (poster, dokumen, kitab Arab, screenshot, dll.)\n"
+        "- Ekstrak semua teks: judul, isi, tanggal, angka, nama, URL, hashtag, teks kecil\n"
+        "- Pertahankan struktur & urutan (atas→bawah, kiri→kanan; untuk Arab: kanan→kiri)\n"
+        "- Teks Arab: ekstrak dengan urutan RTL yang benar, pisahkan dari teks Latin\n"
+        "- Pisahkan blok teks berbeda dengan satu baris kosong\n"
+        "- JANGAN terjemahkan, JANGAN tambah komentar atau teks yang tidak ada di gambar\n"
+        "Output: HANYA teks yang diekstrak."
+    ),
+    "poster": (
+        "Kamu adalah OCR engine untuk poster dan flyer. Ekstrak semua teks dari gambar poster ini.\n\n"
+        "INSTRUKSI:\n"
+        "- Ekstrak SEMUA teks: headline besar, subtitle, body text, tanggal/waktu, lokasi, nama, nomor, URL, hashtag, teks kecil di footer\n"
+        "- Urutkan dari elemen terbesar/terpenting ke terkecil\n"
+        "- Pertahankan hirarki visual: judul besar → sub → detail\n"
+        "- Pisahkan setiap blok elemen dengan baris kosong\n"
+        "- JANGAN terjemahkan atau tambahkan teks yang tidak ada\n"
+        "Output: HANYA teks dari poster, terstruktur."
+    ),
+    "dokumen": (
+        "Kamu adalah OCR engine presisi untuk dokumen resmi. Ekstrak teks dari dokumen ini dengan akurasi maksimum.\n\n"
+        "INSTRUKSI:\n"
+        "- Pertahankan struktur dokumen: header, paragraf, tabel (format sebagai teks), footer\n"
+        "- Ekstrak semua teks termasuk nomor dokumen, tanggal, tanda tangan tertulis, cap/stempel\n"
+        "- Pertahankan indentasi dan hierarki paragraf\n"
+        "- Angka dan kode penting (Nomor Surat, NIK, dll): pastikan akurasi 100%\n"
+        "- Tabel: format sebagai baris dengan pemisah ` | `\n"
+        "- JANGAN tambahkan interpretasi atau penjelasan\n"
+        "Output: HANYA teks dokumen yang akurat."
+    ),
+    "kitab": (
+        "Kamu adalah OCR engine spesialis teks kitab Arab dan Arab-Melayu (pegon). Ekstrak teks dari halaman kitab ini.\n\n"
+        "INSTRUKSI KRITIS:\n"
+        "- Teks Arab: ekstrak dengan urutan kata RTL yang BENAR, jaga harakat/tanda baca Arab\n"
+        "- Teks Pegon/Arab-Melayu: ekstrak sebagaimana tertulis\n"
+        "- Terjemahan/catatan Latin: ekstrak terpisah di bawah teks Arab terkait\n"
+        "- Nomor halaman, nomor hadis/ayat, judul bab: sertakan semuanya\n"
+        "- Pisahkan setiap paragraf/potongan teks dengan baris kosong\n"
+        "- Perbaiki karakter yang terpotong/rusak berdasarkan konteks Arab\n"
+        "- JANGAN terjemahkan, JANGAN tambahkan teks yang tidak ada di halaman\n"
+        "Output: HANYA teks kitab yang diekstrak, Arab dan non-Arab dipertahankan."
+    ),
+    "screenshot": (
+        "Kamu adalah OCR engine untuk screenshot digital. Ekstrak semua teks dari screenshot ini.\n\n"
+        "INSTRUKSI:\n"
+        "- Ekstrak semua teks: pesan, postingan, komentar, nama pengguna, timestamp, tombol, label\n"
+        "- Pertahankan konteks percakapan: siapa menulis apa\n"
+        "- Format: [Nama]: teks untuk percakapan/chat\n"
+        "- Sertakan metadata yang terlihat: tanggal, like/share count, dll.\n"
+        "- JANGAN tambahkan interpretasi atau teks yang tidak ada\n"
+        "Output: HANYA teks dari screenshot, terstruktur."
+    ),
+}
+
 @app.route("/api/ocr-poster", methods=["POST"])
 def api_ocr_poster():
-    """OCR gambar poster/foto menggunakan GPT-4o Vision — ekstrak semua teks yang terlihat."""
+    """OCR gambar menggunakan GPT-4o Vision — multi-tipe, akurasi tinggi."""
     from ai_services import get_openai_client, check_openai_available
     import base64
-    from PIL import Image as PILImage
+    from PIL import Image as PILImage, ImageEnhance, ImageFilter
     if not check_openai_available():
         return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur OCR membutuhkan OPENAI_API_KEY."}), 503
     if "image" not in request.files:
@@ -867,55 +977,45 @@ def api_ocr_poster():
     ext = img_file.filename.rsplit(".", 1)[-1].lower() if "." in img_file.filename else ""
     if ext not in allowed:
         return jsonify({"error": f"Format file tidak didukung: .{ext}. Gunakan JPG, PNG, atau WEBP."}), 400
+
+    ocr_type = (request.form.get("ocr_type") or "auto").strip().lower()
+    if ocr_type not in OCR_TYPE_PROMPTS:
+        ocr_type = "auto"
+
     try:
         raw = img_file.read()
-        # Resize jika terlalu besar (hemat token)
         try:
-            img = PILImage.open(io.BytesIO(raw))
-            max_side = 1200
+            img = PILImage.open(io.BytesIO(raw)).convert("RGB")
+            max_side = 1600
             if max(img.size) > max_side:
                 ratio = max_side / max(img.size)
-                new_size = (int(img.width * ratio), int(img.height * ratio))
-                img = img.resize(new_size, PILImage.LANCZOS)
+                img = img.resize((int(img.width * ratio), int(img.height * ratio)), PILImage.LANCZOS)
+            if ocr_type in ("dokumen", "kitab"):
+                img = ImageEnhance.Contrast(img).enhance(1.4)
+                img = ImageEnhance.Sharpness(img).enhance(1.6)
             buf = io.BytesIO()
-            save_fmt = "PNG" if ext == "png" else "JPEG"
-            img.convert("RGB").save(buf, format=save_fmt, quality=85)
+            img.save(buf, format="PNG", optimize=True)
             raw = buf.getvalue()
-            mime = "image/png" if save_fmt == "PNG" else "image/jpeg"
+            mime = "image/png"
         except Exception:
-            mime = f"image/{ext}" if ext in {"jpg", "jpeg", "png", "webp"} else "image/jpeg"
+            mime = "image/jpeg"
         b64 = base64.b64encode(raw).decode("utf-8")
         client = get_openai_client()
+        ocr_prompt = OCR_TYPE_PROMPTS[ocr_type]
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{
                 "role": "user",
                 "content": [
-                    {
-                        "type": "text",
-                        "text": (
-                            "Kamu adalah OCR engine profesional. Tugasmu adalah mengekstrak SEMUA teks yang terlihat di gambar ini dengan akurat.\n\n"
-                            "INSTRUKSI:\n"
-                            "- Ekstrak semua teks: judul, subjudul, isi, tanggal, nomor, nama, alamat, URL, hashtag, dll.\n"
-                            "- Pertahankan struktur dan urutan teks (atas ke bawah, kiri ke kanan)\n"
-                            "- Pisahkan blok teks yang berbeda dengan baris kosong\n"
-                            "- Jika ada teks dalam bahasa Arab, Latin, atau campuran — ekstrak semuanya\n"
-                            "- JANGAN tambahkan penjelasan, komentar, atau teks yang tidak ada di gambar\n"
-                            "- JANGAN terjemahkan — salin teks persis seperti yang tertulis\n\n"
-                            "Output: HANYA teks yang diekstrak, tidak ada yang lain."
-                        )
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "high"}
-                    }
+                    {"type": "text", "text": ocr_prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "high"}},
                 ]
             }],
-            max_tokens=2000,
+            max_tokens=3000,
             temperature=0.05,
         )
         extracted = response.choices[0].message.content.strip()
-        return jsonify({"status": "ok", "text": extracted})
+        return jsonify({"status": "ok", "text": extracted, "ocr_type": ocr_type})
     except Exception as e:
         logger.error(f"[OCR-POSTER] Error: {e}")
         return jsonify({"error": str(e)}), 500
