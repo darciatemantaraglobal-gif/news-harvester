@@ -1,13 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 
+type InputMode = "paste" | "ocr";
+
 export default function PastePage() {
   const navigate = useNavigate();
+  const [inputMode, setInputMode] = useState<InputMode>("paste");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [result, setResult] = useState("");
@@ -16,7 +19,13 @@ export default function PastePage() {
   const [copied, setCopied] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushStatus, setPushStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [ocrImage, setOcrImage] = useState<File | null>(null);
+  const [ocrPreview, setOcrPreview] = useState<string>("");
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRapikan = async () => {
     if (!content.trim()) return;
@@ -85,7 +94,52 @@ export default function PastePage() {
     setResult("");
     setError("");
     setPushStatus(null);
+    setOcrImage(null);
+    setOcrPreview("");
+    setOcrError("");
     textareaRef.current?.focus();
+  };
+
+  const setOcrFile = useCallback((file: File) => {
+    setOcrImage(file);
+    setOcrError("");
+    const url = URL.createObjectURL(file);
+    setOcrPreview(url);
+  }, []);
+
+  const handleOcrImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setOcrFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) setOcrFile(file);
+  };
+
+  const handleOcr = async () => {
+    if (!ocrImage) return;
+    setOcrLoading(true);
+    setOcrError("");
+    try {
+      const form = new FormData();
+      form.append("image", ocrImage);
+      const res = await fetch(apiUrl("/api/ocr-poster"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal ekstrak teks.");
+      setContent(prev => prev ? prev + "\n\n" + data.text : data.text);
+      setInputMode("paste");
+    } catch (e: unknown) {
+      setOcrError(e instanceof Error ? e.message : "Terjadi kesalahan.");
+    } finally {
+      setOcrLoading(false);
+    }
   };
 
   const charCount = content.length;
@@ -147,25 +201,137 @@ export default function PastePage() {
             </div>
           </div>
 
-          {/* Textarea */}
+          {/* Input mode switcher + content area */}
           <div className="relative overflow-hidden rounded-xl flex-1" style={{ background: "#0d0720", minHeight: '200px' }}>
             <div className="absolute animate-border-beam-delay pointer-events-none"
               style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.4) 300deg, rgba(196,181,253,0.8) 345deg, transparent 360deg)" }} />
             <div className="relative m-px rounded-[11px] flex flex-col h-full" style={{ background: "#0d0720" }}>
-              <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-2 border-b border-violet-900/40">
-                <label className="text-[10px] font-bold text-violet-500 uppercase tracking-widest">Konten Artikel</label>
-                {content && (
-                  <span className="text-[10px] text-slate-600">{wordCount} kata · {charCount} karakter</span>
+
+              {/* Tab bar */}
+              <div className="flex items-center gap-1 px-2 pt-2 pb-0 border-b border-violet-900/40">
+                <button
+                  onClick={() => setInputMode("paste")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+                  style={{
+                    background: inputMode === "paste" ? "rgba(139,92,246,0.2)" : "transparent",
+                    color: inputMode === "paste" ? "#a78bfa" : "#4b5563",
+                    borderBottom: inputMode === "paste" ? "2px solid #7c3aed" : "2px solid transparent",
+                  }}
+                >
+                  <ClipboardPaste className="w-3 h-3" />Paste Teks
+                </button>
+                <button
+                  onClick={() => setInputMode("ocr")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+                  style={{
+                    background: inputMode === "ocr" ? "rgba(99,102,241,0.2)" : "transparent",
+                    color: inputMode === "ocr" ? "#818cf8" : "#4b5563",
+                    borderBottom: inputMode === "ocr" ? "2px solid #6366f1" : "2px solid transparent",
+                  }}
+                >
+                  <ScanText className="w-3 h-3" />OCR Poster
+                </button>
+                {inputMode === "paste" && content && (
+                  <span className="ml-auto text-[10px] text-slate-600 pr-2">{wordCount} kata · {charCount} karakter</span>
                 )}
               </div>
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="Tempel konten artikel di sini..."
-                className="flex-1 w-full bg-transparent text-slate-300 text-sm leading-relaxed placeholder:text-slate-700 outline-none resize-none px-3 sm:px-4 py-3"
-                style={{ minHeight: '180px' }}
-              />
+
+              {/* Paste mode */}
+              {inputMode === "paste" && (
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  placeholder="Tempel konten artikel di sini..."
+                  className="flex-1 w-full bg-transparent text-slate-300 text-sm leading-relaxed placeholder:text-slate-700 outline-none resize-none px-3 sm:px-4 py-3"
+                  style={{ minHeight: '180px' }}
+                />
+              )}
+
+              {/* OCR mode */}
+              {inputMode === "ocr" && (
+                <div className="flex flex-col gap-3 p-3 sm:p-4 flex-1">
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleOcrImageSelect}
+                  />
+
+                  {/* Drop zone / preview */}
+                  {!ocrPreview ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+                      onDragLeave={() => setIsDragOver(false)}
+                      onDrop={handleDrop}
+                      className="flex-1 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed cursor-pointer transition-all py-10"
+                      style={{
+                        borderColor: isDragOver ? "#6366f1" : "rgba(99,102,241,0.3)",
+                        background: isDragOver ? "rgba(99,102,241,0.08)" : "rgba(99,102,241,0.04)",
+                      }}
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-900/50 border border-indigo-700/50 flex items-center justify-center">
+                        <ImagePlus className="w-6 h-6 text-indigo-400" strokeWidth={1.5} />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-slate-300">Upload atau drop gambar poster</p>
+                        <p className="text-xs text-slate-600 mt-0.5">JPG, PNG, WEBP · AI akan ekstrak semua teks</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3 flex-1">
+                      {/* Image preview */}
+                      <div className="relative rounded-xl overflow-hidden border border-indigo-700/40 flex-1" style={{ minHeight: '140px' }}>
+                        <img src={ocrPreview} alt="Preview poster" className="w-full h-full object-contain" style={{ maxHeight: '220px' }} />
+                        <button
+                          onClick={() => { setOcrImage(null); setOcrPreview(""); setOcrError(""); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <div className="absolute bottom-0 inset-x-0 px-3 py-1.5 text-[10px] text-slate-400 truncate"
+                          style={{ background: "rgba(0,0,0,0.6)" }}>
+                          {ocrImage?.name}
+                        </div>
+                      </div>
+                      {/* Ganti gambar */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[10px] font-semibold text-indigo-400 hover:text-indigo-200 transition-colors text-center"
+                      >
+                        Ganti gambar
+                      </button>
+                    </div>
+                  )}
+
+                  {/* OCR error */}
+                  {ocrError && (
+                    <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-900/20 border border-red-800/30">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-red-400 leading-relaxed">{ocrError}</p>
+                    </div>
+                  )}
+
+                  {/* Extract button */}
+                  <button
+                    onClick={handleOcr}
+                    disabled={!ocrImage || ocrLoading}
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{
+                      background: !ocrImage || ocrLoading ? "rgba(99,102,241,0.3)" : "linear-gradient(135deg, #4f46e5, #6366f1)",
+                      boxShadow: !ocrImage || ocrLoading ? "none" : "0 0 18px rgba(99,102,241,0.4)",
+                    }}
+                  >
+                    {ocrLoading
+                      ? <><Loader2 className="w-4 h-4 animate-spin" />Mengekstrak Teks...</>
+                      : <><ScanText className="w-4 h-4" />Ekstrak Teks dari Poster</>
+                    }
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -196,11 +362,11 @@ export default function PastePage() {
           </div>
 
           {/* Paste hint */}
-          {!content && !loading && (
+          {inputMode === "paste" && !content && !loading && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-900/20 border border-violet-800/30">
               <ClipboardPaste className="w-3.5 h-3.5 text-violet-500 shrink-0" />
               <p className="text-[11px] text-violet-400/70">
-                Paste teks dari artikel berita, blog, atau sumber apapun. AI akan menyaring info penting dan memformatnya jadi Markdown.
+                Paste teks dari artikel berita, blog, atau sumber apapun — atau pakai tab <span className="text-indigo-400 font-semibold">OCR Poster</span> untuk ekstrak teks dari gambar.
               </p>
             </div>
           )}

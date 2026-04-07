@@ -706,6 +706,77 @@ def api_format_text():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/ocr-poster", methods=["POST"])
+def api_ocr_poster():
+    """OCR gambar poster/foto menggunakan GPT-4o Vision — ekstrak semua teks yang terlihat."""
+    from ai_services import get_openai_client, check_openai_available
+    import base64
+    from PIL import Image as PILImage
+    if not check_openai_available():
+        return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur OCR membutuhkan OPENAI_API_KEY."}), 503
+    if "image" not in request.files:
+        return jsonify({"error": "Tidak ada file gambar yang dikirim."}), 400
+    img_file = request.files["image"]
+    if not img_file.filename:
+        return jsonify({"error": "Nama file kosong."}), 400
+    allowed = {"jpg", "jpeg", "png", "webp", "bmp", "gif"}
+    ext = img_file.filename.rsplit(".", 1)[-1].lower() if "." in img_file.filename else ""
+    if ext not in allowed:
+        return jsonify({"error": f"Format file tidak didukung: .{ext}. Gunakan JPG, PNG, atau WEBP."}), 400
+    try:
+        raw = img_file.read()
+        # Resize jika terlalu besar (hemat token)
+        try:
+            img = PILImage.open(io.BytesIO(raw))
+            max_side = 1200
+            if max(img.size) > max_side:
+                ratio = max_side / max(img.size)
+                new_size = (int(img.width * ratio), int(img.height * ratio))
+                img = img.resize(new_size, PILImage.LANCZOS)
+            buf = io.BytesIO()
+            save_fmt = "PNG" if ext == "png" else "JPEG"
+            img.convert("RGB").save(buf, format=save_fmt, quality=85)
+            raw = buf.getvalue()
+            mime = "image/png" if save_fmt == "PNG" else "image/jpeg"
+        except Exception:
+            mime = f"image/{ext}" if ext in {"jpg", "jpeg", "png", "webp"} else "image/jpeg"
+        b64 = base64.b64encode(raw).decode("utf-8")
+        client = get_openai_client()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Kamu adalah OCR engine profesional. Tugasmu adalah mengekstrak SEMUA teks yang terlihat di gambar ini dengan akurat.\n\n"
+                            "INSTRUKSI:\n"
+                            "- Ekstrak semua teks: judul, subjudul, isi, tanggal, nomor, nama, alamat, URL, hashtag, dll.\n"
+                            "- Pertahankan struktur dan urutan teks (atas ke bawah, kiri ke kanan)\n"
+                            "- Pisahkan blok teks yang berbeda dengan baris kosong\n"
+                            "- Jika ada teks dalam bahasa Arab, Latin, atau campuran — ekstrak semuanya\n"
+                            "- JANGAN tambahkan penjelasan, komentar, atau teks yang tidak ada di gambar\n"
+                            "- JANGAN terjemahkan — salin teks persis seperti yang tertulis\n\n"
+                            "Output: HANYA teks yang diekstrak, tidak ada yang lain."
+                        )
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "high"}
+                    }
+                ]
+            }],
+            max_tokens=2000,
+            temperature=0.05,
+        )
+        extracted = response.choices[0].message.content.strip()
+        return jsonify({"status": "ok", "text": extracted})
+    except Exception as e:
+        logger.error(f"[OCR-POSTER] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/push-paste", methods=["POST"])
 def api_push_paste():
     """Push artikel hasil Paste & Rapikan langsung ke Supabase knowledge_base."""
