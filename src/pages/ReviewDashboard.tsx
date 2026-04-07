@@ -89,6 +89,7 @@ export default function ReviewDashboard() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
   const fetchArticles = useCallback(async () => {
@@ -458,13 +459,21 @@ export default function ReviewDashboard() {
 
                             <div className="flex-1 min-w-0 space-y-2">
                               {/* Title + slug */}
-                              <div>
-                                <p className="font-semibold text-white text-sm leading-snug line-clamp-2">
-                                  {article.title || "(Tanpa Judul)"}
-                                </p>
-                                <p className="font-mono text-[10px] text-indigo-400/80 mt-0.5 truncate">
-                                  {article.slug}
-                                </p>
+                              <div className="flex items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-white text-sm leading-snug line-clamp-2">
+                                    {article.title || "(Tanpa Judul)"}
+                                  </p>
+                                  <p className="font-mono text-[10px] text-indigo-400/80 mt-0.5 truncate">
+                                    {article.slug}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => setDetailId(article.id)}
+                                  title="Lihat Detail"
+                                  className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
                               </div>
 
                               {/* Meta row */}
@@ -576,6 +585,7 @@ export default function ReviewDashboard() {
                         <th className="text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-28 sm:w-36">Status</th>
                         <th className="hidden lg:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-32">Updated</th>
                         <th className="hidden sm:table-cell text-left px-3 py-3 font-bold text-slate-400 uppercase tracking-widest w-36">Notes</th>
+                        <th className="px-3 py-3 w-10"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -688,6 +698,14 @@ export default function ReviewDashboard() {
                                 className="h-7 text-xs border-violet-700/40 bg-violet-950/30 text-slate-200 rounded-lg focus-visible:ring-violet-400 placeholder:text-slate-500"
                               />
                             </td>
+                            <td className="px-2 py-3.5 w-10">
+                              <button
+                                onClick={() => setDetailId(article.id)}
+                                title="Lihat Detail"
+                                className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-600 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -779,6 +797,163 @@ export default function ReviewDashboard() {
         )}
 
       </div>
+
+      {/* ── Detail Drawer ── */}
+      {detailId && (() => {
+        const a = articles.find(x => x.id === detailId);
+        if (!a) return null;
+        const isSaving = savingId === a.id;
+        return (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setDetailId(null)}
+            />
+            {/* Panel — full on mobile, right side on desktop */}
+            <div className="fixed inset-y-0 right-0 z-50 flex flex-col w-full sm:w-[480px] lg:w-[540px]"
+              style={{ background: "#09051a", borderLeft: "1px solid rgba(139,92,246,0.25)", boxShadow: "-8px 0 40px rgba(0,0,0,0.7)" }}>
+
+              {/* Header */}
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-violet-900/30 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-violet-900/40 flex items-center justify-center shrink-0">
+                  <Eye className="w-3.5 h-3.5 text-violet-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-bold text-white text-sm leading-snug line-clamp-1">{a.title || "(Tanpa Judul)"}</h2>
+                  <p className="font-mono text-[10px] text-indigo-400/70 truncate">{a.slug}</p>
+                </div>
+                <button onClick={() => setDetailId(null)}
+                  className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+                {/* Status + Meta */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={a.approval_status} disabled={isSaving}
+                      onValueChange={(val) => updateStatus(a.id, val as ApprovalStatus)}>
+                      <SelectTrigger className="h-7 text-xs border-0 shadow-none p-0 focus:ring-0 w-auto gap-1">
+                        <SelectValue><StatusBadge status={a.approval_status} /></SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(STATUS_CONFIG) as ApprovalStatus[]).map(s => (
+                          <SelectItem key={s} value={s}><StatusBadge status={s} /></SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isSaving && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {a.published_date && (
+                      <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                        <p className="text-[9px] text-slate-600 uppercase tracking-wide mb-0.5">Tanggal</p>
+                        <p className="text-xs text-slate-300">{a.published_date}</p>
+                      </div>
+                    )}
+                    <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                      <p className="text-[9px] text-slate-600 uppercase tracking-wide mb-0.5">Diperbarui</p>
+                      <p className="text-xs text-slate-300">{formatDate(a.last_updated)}</p>
+                    </div>
+                    {a.scrape_status && (
+                      <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                        <p className="text-[9px] text-slate-600 uppercase tracking-wide mb-0.5">Scrape</p>
+                        <p className={`text-xs font-mono font-semibold ${a.scrape_status === "success" ? "text-emerald-400" : "text-amber-400"}`}>{a.scrape_status}</p>
+                      </div>
+                    )}
+                    {a.source_url && (
+                      <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                        <p className="text-[9px] text-slate-600 uppercase tracking-wide mb-0.5">Sumber</p>
+                        <a href={a.source_url} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-indigo-400 hover:underline truncate block">
+                          Buka Link ↗
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tags */}
+                {(a.tags || []).length > 0 && (
+                  <div>
+                    <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-1.5">Tags</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(a.tags || []).map(t => (
+                        <span key={t} className="text-[10px] bg-indigo-900/40 text-indigo-300 border border-indigo-800/40 px-2 py-px rounded-full font-medium">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary */}
+                {a.summary && (
+                  <div>
+                    <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-1.5">Summary</p>
+                    <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed whitespace-pre-wrap">{a.summary}</p>
+                  </div>
+                )}
+
+                {/* Content */}
+                {a.content && (
+                  <div>
+                    <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-1.5">Konten</p>
+                    <div className="rounded-xl px-3.5 py-3 text-[11px] sm:text-xs text-slate-300 leading-relaxed whitespace-pre-wrap"
+                      style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", direction: "auto", fontFamily: "inherit" }}>
+                      {a.content}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-1.5">Catatan</p>
+                  <Input
+                    value={notesMap[a.id] ?? ""}
+                    onChange={e => setNotesMap(prev => ({ ...prev, [a.id]: e.target.value }))}
+                    onBlur={() => saveNotes(a.id)}
+                    onKeyDown={e => e.key === "Enter" && saveNotes(a.id)}
+                    placeholder="Tambah catatan reviewer..."
+                    className="h-8 text-xs border-violet-800/40 bg-violet-950/30 text-slate-300 rounded-xl focus-visible:ring-violet-400/40 placeholder:text-slate-600"
+                  />
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="shrink-0 px-4 py-3 border-t border-violet-900/30 flex items-center justify-between gap-2">
+                <div className="flex gap-1.5">
+                  {(["approved", "rejected"] as ApprovalStatus[]).map(s => {
+                    const cfg = STATUS_CONFIG[s];
+                    const isActive = a.approval_status === s;
+                    return (
+                      <button key={s} disabled={isSaving || isActive}
+                        onClick={() => updateStatus(a.id, s)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border disabled:opacity-50 disabled:cursor-default ${
+                          isActive
+                            ? `${cfg.color} opacity-80`
+                            : s === "approved"
+                              ? "text-emerald-400 bg-emerald-900/20 border-emerald-700/40 hover:bg-emerald-900/40"
+                              : "text-red-400 bg-red-900/20 border-red-700/40 hover:bg-red-900/40"
+                        }`}>
+                        {cfg.icon}{cfg.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setDetailId(null)}
+                  className="px-4 py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       <BottomNav active="review" />
     </div>
