@@ -71,7 +71,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col flex-1 px-3 sm:px-6 pb-16 pt-5 sm:pt-10">
+      <div className="relative z-10 flex flex-col flex-1 px-3 sm:px-6 pb-20 pt-5 sm:pt-10">
 
         {/* ── Hero ── */}
         <div className="flex flex-col items-center text-center mb-4 sm:mb-10">
@@ -132,65 +132,47 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
 
-            {/* Berita card */}
-            <Link to="/scraper" className="group relative rounded-xl sm:rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
-              <div className="absolute inset-0 rounded-xl sm:rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.6) 0%, rgba(139,92,246,0.3) 100%)" }} />
-              <div className="relative rounded-xl sm:rounded-2xl p-3 sm:p-5 h-full flex flex-col"
-                style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
+            {/* Berita card — solid + purple glow border */}
+            <Link to="/scraper" className="group animate-card-glow rounded-xl sm:rounded-2xl flex flex-col p-3 sm:p-5 transition-all duration-300 hover:scale-[1.02]"
+              style={{ background: "#0d0720", border: "1px solid rgba(139,92,246,0.65)" }}>
 
-                <div className="relative w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3">
-                  <div className="absolute inset-0 bg-blue-500/30 rounded-lg sm:rounded-xl blur-md group-hover:bg-blue-500/50 transition-colors duration-300" />
-                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                    <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-blue-300" strokeWidth={1.8} />
-                  </div>
-                </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
+              </div>
 
-                <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Berita Kemlu</h3>
-                <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Berita Kemlu / KBRI</h3>
-                <p className="text-purple-300/55 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
-                  Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
-                </p>
-                <p className="text-purple-300/55 text-[10px] leading-relaxed flex-1 sm:hidden">
-                  Portal berita resmi
-                </p>
+              <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Berita Kemlu</h3>
+              <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Berita Kemlu / KBRI</h3>
+              <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
+                Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
+              </p>
+              <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">Portal berita resmi</p>
 
-                <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-white/5">
-                  <span className="text-[9px] sm:text-[10px] font-bold text-blue-400/70 uppercase tracking-widest hidden sm:block">Portal Resmi</span>
-                  <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-blue-400 group-hover:text-blue-300 transition-colors ml-auto">
-                    Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
+              <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
+                <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Portal Resmi</span>
+                <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
+                  Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
             </Link>
 
-            {/* PDF card */}
-            <Link to="/pdf" className="group relative rounded-xl sm:rounded-2xl overflow-hidden" style={{ padding: "1px" }}>
-              <div className="absolute inset-0 rounded-xl sm:rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(168,85,247,0.3) 100%)" }} />
-              <div className="relative rounded-xl sm:rounded-2xl p-3 sm:p-5 h-full flex flex-col"
-                style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
+            {/* PDF card — solid + purple glow border */}
+            <Link to="/pdf" className="group animate-card-glow rounded-xl sm:rounded-2xl flex flex-col p-3 sm:p-5 transition-all duration-300 hover:scale-[1.02]"
+              style={{ background: "#0d0720", border: "1px solid rgba(139,92,246,0.65)", animationDelay: "1.2s" }}>
 
-                <div className="relative w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3">
-                  <div className="absolute inset-0 bg-violet-500/30 rounded-lg sm:rounded-xl blur-md group-hover:bg-violet-500/50 transition-colors duration-300" />
-                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
-                  </div>
-                </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
+              </div>
 
-                <h3 className="font-bold text-white text-xs sm:text-base leading-tight mb-1 sm:mb-2">Kitab PDF Arab</h3>
-                <p className="text-purple-300/55 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
-                  Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.
-                </p>
-                <p className="text-purple-300/55 text-[10px] leading-relaxed flex-1 sm:hidden">
-                  OCR kitab Arab
-                </p>
+              <h3 className="font-bold text-white text-xs sm:text-base leading-tight mb-1 sm:mb-2">Kitab PDF Arab</h3>
+              <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
+                Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.
+              </p>
+              <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">OCR kitab Arab</p>
 
-                <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-white/5">
-                  <span className="text-[9px] sm:text-[10px] font-bold text-violet-400/70 uppercase tracking-widest hidden sm:block">Kitab Arab · OCR</span>
-                  <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-300 transition-colors ml-auto">
-                    Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
+              <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
+                <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Kitab Arab · OCR</span>
+                <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
+                  Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
             </Link>
@@ -207,27 +189,23 @@ export default function HomePage() {
 
           <Link
             to="/review"
-            className="group relative rounded-xl sm:rounded-2xl overflow-hidden block"
-            style={{ padding: "1px" }}
-          >
-            <div className={`absolute inset-0 rounded-xl sm:rounded-2xl transition-opacity duration-300 ${hasPending ? "opacity-80 group-hover:opacity-100" : hasApproved ? "opacity-70 group-hover:opacity-100" : "opacity-30 group-hover:opacity-60"}`}
-              style={{ background: hasPending
-                ? "linear-gradient(135deg, rgba(245,158,11,0.6) 0%, rgba(217,119,6,0.3) 100%)"
+            className={`group rounded-xl sm:rounded-2xl block transition-all duration-300 hover:scale-[1.01] animate-card-glow`}
+            style={{
+              background: "#0d0720",
+              border: hasPending
+                ? "1px solid rgba(245,158,11,0.7)"
                 : hasApproved
-                ? "linear-gradient(135deg, rgba(16,185,129,0.6) 0%, rgba(5,150,105,0.3) 100%)"
-                : "linear-gradient(135deg, rgba(99,102,241,0.4) 0%, rgba(139,92,246,0.2) 100%)"
-              }} />
-
-            <div className="relative rounded-xl sm:rounded-2xl p-3 sm:p-5"
-              style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(16px)" }}>
+                ? "1px solid rgba(16,185,129,0.7)"
+                : "1px solid rgba(139,92,246,0.65)",
+              animationDelay: "0.6s",
+            }}
+          >
+            <div className="p-3 sm:p-5">
 
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 shrink-0">
-                    <div className={`absolute inset-0 rounded-lg sm:rounded-xl blur-lg transition-colors duration-300 ${hasPending ? "bg-amber-500/30" : hasApproved ? "bg-emerald-500/30" : "bg-indigo-500/20"}`} />
-                    <div className={`relative w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-500/20 border-amber-400/30" : hasApproved ? "bg-emerald-500/20 border-emerald-400/30" : "bg-indigo-500/10 border-indigo-400/20"}`}>
-                      <ClipboardCheck className={`w-4 h-4 sm:w-6 sm:h-6 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-indigo-400"}`} strokeWidth={1.8} />
-                    </div>
+                  <div className={`w-9 h-9 sm:w-12 sm:h-12 shrink-0 rounded-lg sm:rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-950/60 border-amber-500/50" : hasApproved ? "bg-emerald-950/60 border-emerald-500/50" : "bg-violet-950/60 border-violet-500/40"}`}>
+                    <ClipboardCheck className={`w-4 h-4 sm:w-6 sm:h-6 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-violet-400"}`} strokeWidth={1.8} />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -296,23 +274,36 @@ export default function HomePage() {
 
       </div>
 
-      {/* ── Bottom Nav — override dark style ── */}
-      <div className="fixed bottom-0 inset-x-0 z-30 border-t border-white/10"
-        style={{ background: "rgba(5,1,15,0.92)", backdropFilter: "blur(20px)" }}>
-        <div className="flex items-center justify-around h-14 px-4 max-w-screen-2xl mx-auto">
-          <div className="flex flex-col items-center gap-0.5 px-8 py-1.5 rounded-xl min-w-[80px]"
-            style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.5) 0%, rgba(91,33,182,0.3) 100%)", border: "1px solid rgba(139,92,246,0.4)" }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(196,181,253,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span className="text-[10px] font-semibold text-violet-300">Beranda</span>
+      {/* ── Bottom Nav — elegant floating pill ── */}
+      <div className="fixed bottom-4 inset-x-0 z-30 flex justify-center px-6">
+        <div
+          className="flex items-center gap-1 px-2 py-2 rounded-2xl"
+          style={{
+            background: "rgba(8,3,20,0.88)",
+            backdropFilter: "blur(24px)",
+            border: "1px solid rgba(139,92,246,0.35)",
+            boxShadow: "0 0 24px rgba(109,40,217,0.25), 0 8px 32px rgba(0,0,0,0.6)",
+          }}
+        >
+          {/* Beranda — active */}
+          <div className="flex items-center gap-2 px-5 py-2 rounded-xl"
+            style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.55) 0%, rgba(79,20,180,0.35) 100%)", border: "1px solid rgba(167,139,250,0.35)" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(221,214,254,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span className="text-[11px] font-semibold text-violet-200 tracking-wide">Beranda</span>
           </div>
-          <Link to="/review" className="relative flex flex-col items-center gap-0.5 px-8 py-1.5 rounded-xl min-w-[80px] text-purple-500/60 hover:text-purple-400 transition-colors">
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-violet-800/50 mx-1" />
+
+          {/* Review */}
+          <Link to="/review" className="relative flex items-center gap-2 px-5 py-2 rounded-xl text-violet-500/70 hover:text-violet-300 transition-all duration-200 hover:bg-white/5">
             {(stats?.pending ?? 0) > 0 && (
-              <span className="absolute -top-1 right-2 bg-amber-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+              <span className="absolute -top-1.5 right-3 bg-amber-500 text-white text-[8px] font-bold rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-1 shadow-lg">
                 {(stats?.pending ?? 0) > 99 ? "99+" : stats!.pending}
               </span>
             )}
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <span className="text-[10px] font-semibold">Review</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span className="text-[11px] font-semibold tracking-wide">Review</span>
           </Link>
         </div>
       </div>
