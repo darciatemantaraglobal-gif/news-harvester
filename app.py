@@ -249,6 +249,26 @@ USER_ACTIVITY_FILE = os.path.join(DATA_DIR, "user_activity.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
+def _ensure_data_files():
+    """Pastikan semua file data wajib ada — buat dengan nilai default jika belum ada."""
+    defaults = {
+        DATA_FILE: [],
+        SETTINGS_FILE: {},
+        LAST_JOB_FILE: {},
+        USERS_FILE: [],
+        USER_ACTIVITY_FILE: {},
+    }
+    for path, default in defaults.items():
+        if not os.path.exists(path):
+            try:
+                with open(path, "w") as f:
+                    json.dump(default, f)
+                logger.info(f"[INIT] Buat file baru: {path}")
+            except Exception as e:
+                logger.warning(f"[INIT] Gagal buat {path}: {e}")
+
+_ensure_data_files()
+
 _activity_cache: dict = {}
 _activity_dirty: dict = {}
 
