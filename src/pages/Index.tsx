@@ -797,8 +797,8 @@ const Index = () => {
             />
             <div className="leading-none min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <p className="font-bold text-white text-sm lg:text-xl tracking-tight">Scraper Berita Web</p>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] lg:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                <p className="font-bold text-white text-base lg:text-xl tracking-tight">Scraper Berita Web</p>
+                <span className="inline-flex items-center gap-1 text-[9px] lg:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
                   style={{ background: "rgba(139,92,246,0.25)", border: "1px solid rgba(167,139,250,0.4)", color: "rgba(196,181,253,0.9)" }}>
                   <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />AI
                 </span>
@@ -846,7 +846,7 @@ const Index = () => {
               </button>
             </div>
           )}
-          <Link to="/review">
+          <Link to="/review" className="hidden sm:inline-flex">
             <Button data-testid="link-review-dashboard" size="sm"
               className="gap-1.5 bg-white text-[#2e0d5e] hover:bg-white/90 h-8 lg:h-11 text-xs lg:text-sm px-3 sm:px-4 lg:px-6 font-semibold shadow-sm rounded-full">
               <CheckSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
@@ -857,7 +857,7 @@ const Index = () => {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 lg:p-6 pb-20 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-24 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── URL Input Card ── */}
           <div className="relative overflow-hidden rounded-2xl animate-fade-in-up animation-delay-100" style={{ background: "#0d0720" }}>
@@ -894,7 +894,7 @@ const Index = () => {
                     onChange={e => { setUrl(e.target.value); setUrlError(""); }}
                     onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
                     disabled={isRunning}
-                    className={`w-full h-12 lg:h-[56px] pl-11 lg:pl-13 pr-10 rounded-xl lg:rounded-2xl text-sm lg:text-[15px] border-2 outline-none transition-all duration-200 font-mono tracking-tight
+                    className={`w-full h-14 lg:h-[56px] pl-11 lg:pl-13 pr-10 rounded-xl lg:rounded-2xl text-sm lg:text-[15px] border-2 outline-none transition-all duration-200 font-mono tracking-tight
                       placeholder:text-slate-600 disabled:opacity-60 disabled:cursor-not-allowed
                       ${urlError
                         ? "border-red-500/50 bg-red-900/20 text-red-300"
@@ -930,7 +930,7 @@ const Index = () => {
                       data-testid={`mode-${value}`}
                       onClick={() => !isRunning && setMode(value)}
                       disabled={isRunning}
-                      className={`relative flex flex-col items-center justify-center gap-1 lg:gap-1.5 p-2.5 lg:p-3.5 rounded-xl border-2 transition-all duration-200 overflow-hidden
+                      className={`relative flex flex-col items-center justify-center gap-1.5 p-3.5 rounded-xl border-2 transition-all duration-200 overflow-hidden
                         ${mode === value
                           ? "border-violet-500/70 text-white"
                           : "border-white/8 text-slate-500 hover:text-slate-300 hover:border-violet-800/50"
@@ -942,9 +942,9 @@ const Index = () => {
                       {mode === value && (
                         <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-purple-400 to-violet-500" />
                       )}
-                      <Icon className={`w-4 h-4 lg:w-5 lg:h-5 relative z-10 transition-colors ${mode === value ? "text-violet-300" : ""}`} />
-                      <span className="text-[10px] lg:text-[11px] font-bold tracking-wide relative z-10 leading-none">{label}</span>
-                      <span className={`text-[9px] lg:text-[10px] relative z-10 leading-none ${mode === value ? "text-violet-400/70" : "text-slate-600"}`}>{sub}</span>
+                      <Icon className={`w-5 h-5 relative z-10 transition-colors ${mode === value ? "text-violet-300" : ""}`} />
+                      <span className="text-[11px] font-bold tracking-wide relative z-10 leading-none">{label}</span>
+                      <span className={`text-[10px] relative z-10 leading-none ${mode === value ? "text-violet-400/70" : "text-slate-600"}`}>{sub}</span>
                     </button>
                   ))}
                 </div>
@@ -960,7 +960,7 @@ const Index = () => {
                     data-testid="button-start-scrape"
                     onClick={startScrape}
                     disabled={isRunning}
-                    className={`relative w-full sm:w-auto h-10 sm:h-full px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 flex items-center justify-center
+                    className={`relative w-full sm:w-auto h-12 sm:h-full px-6 lg:px-8 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-base text-white gap-2 flex items-center justify-center
                       transition-all duration-200 overflow-hidden
                       ${isRunning
                         ? "bg-gradient-to-r from-violet-600 to-purple-600 opacity-80 cursor-not-allowed"
@@ -978,7 +978,7 @@ const Index = () => {
               </div>
 
               {/* ─ Date range ─ */}
-              <div className="flex flex-wrap items-center gap-2 pt-3 lg:pt-4 border-t border-violet-900/30">
+              <div className="flex flex-wrap items-center gap-2 pt-4 lg:pt-5 border-t border-violet-900/30">
                 <CalendarDays className="w-3.5 h-3.5 text-violet-500/50 shrink-0" />
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 shrink-0">Rentang</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -1015,38 +1015,26 @@ const Index = () => {
 
           {/* ── Stats Row ── */}
           {/* Mobile: horizontal scroll · sm+: 5-col grid */}
-          <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible pb-0.5 sm:pb-0 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
             {[
               { label: "Total",    value: statTotal, icon: BarChart3,    numColor: "text-slate-100",   iconBg: "bg-white/10",    iconColor: "text-slate-500",   top: "bg-gradient-to-r from-slate-300 to-slate-400",       testid: "stat-total",     delay: "animation-delay-150" },
               { label: "Berhasil", value: statSucc,  icon: CheckCircle2, numColor: "text-emerald-400", iconBg: "bg-emerald-900/40",  iconColor: "text-emerald-400", top: "bg-gradient-to-r from-emerald-400 to-teal-400",     testid: "stat-success",   delay: "animation-delay-200" },
               { label: "Partial",  value: statPart,  icon: AlertCircle,  numColor: "text-amber-400",   iconBg: "bg-amber-900/40",    iconColor: "text-amber-500",   top: "bg-gradient-to-r from-amber-400 to-orange-400",     testid: "stat-partial",   delay: "animation-delay-300" },
               { label: "Gagal",    value: statFail,  icon: XCircle,      numColor: "text-red-400",     iconBg: "bg-red-900/40",      iconColor: "text-red-500",     top: "bg-gradient-to-r from-red-400 to-rose-500",         testid: "stat-failed",    delay: "animation-delay-400" },
               { label: "Duplikat", value: statDupe,  icon: Copy,         numColor: "text-violet-400",  iconBg: "bg-violet-900/40",   iconColor: "text-violet-500",  top: "bg-gradient-to-r from-violet-400 to-purple-500",    testid: "stat-duplicate", delay: "animation-delay-500" },
-            ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid, delay }) => (
-              <div key={label} className={`snap-start shrink-0 w-[116px] sm:w-auto bg-[#0d0720] rounded-xl sm:rounded-2xl border border-violet-700/40 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
+            ].map(({ label, value, icon: Icon, numColor, iconBg, iconColor, top, testid, delay }, idx) => (
+              <div key={label} className={`${idx === 4 ? "col-span-2 sm:col-span-1" : ""} bg-[#0d0720] rounded-xl sm:rounded-2xl border border-violet-700/40 overflow-hidden stat-glow animate-scale-in ${delay} cursor-default`}>
                 {/* Coloured top accent */}
                 <div className={`h-[3px] w-full ${top}`} />
-
-                {/* Mobile layout: icon left, number+label right */}
-                <div className="sm:hidden flex items-center gap-2.5 px-3 py-2.5">
-                  <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
-                    <Icon className={`w-4 h-4 ${iconColor}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p data-testid={testid} className={`text-[22px] font-extrabold leading-none tabular-nums ${numColor}`}>{value}</p>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide mt-0.5 truncate">{label}</p>
-                  </div>
-                </div>
-
-                {/* Desktop layout: label+icon row, large number below */}
-                <div className="hidden sm:block px-3.5 lg:px-5 py-3 lg:py-4">
-                  <div className="flex items-center justify-between mb-2.5 lg:mb-3">
+                {/* Unified layout: label+icon top, big number bottom */}
+                <div className="px-3 sm:px-3.5 lg:px-5 py-3 lg:py-4">
+                  <div className="flex items-center justify-between mb-2 lg:mb-3">
                     <p className="text-[9px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-none">{label}</p>
-                    <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-md lg:rounded-lg ${iconBg} flex items-center justify-center`}>
+                    <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-md lg:rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-3 h-3 lg:w-4 lg:h-4 ${iconColor}`} />
                     </div>
                   </div>
-                  <p data-testid={testid} className={`text-2xl lg:text-4xl font-extrabold leading-none tabular-nums ${numColor}`} style={value > 0 ? { textShadow: "0 0 20px currentColor, 0 0 8px currentColor" } : {}}>{value}</p>
+                  <p data-testid={testid} className={`text-3xl sm:text-2xl lg:text-4xl font-extrabold leading-none tabular-nums ${numColor}`} style={value > 0 ? { textShadow: "0 0 20px currentColor, 0 0 8px currentColor" } : {}}>{value}</p>
                 </div>
               </div>
             ))}
