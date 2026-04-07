@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import ArticleDetail from "./pages/ArticleDetail.tsx";
 import ReviewDashboard from "./pages/ReviewDashboard.tsx";
 import PdfPage from "./pages/PdfPage.tsx";
+import UsersPage from "./pages/UsersPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/article/:id" element={<ProtectedRoute><ArticleDetail /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute><ReviewDashboard /></ProtectedRoute>} />
           <Route path="/pdf" element={<ProtectedRoute><PdfPage /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

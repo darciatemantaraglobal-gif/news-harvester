@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiUrl } from "@/lib/api";
 import {
   Newspaper, BookOpen, ArrowRight, ClipboardCheck,
-  CheckCircle2, Clock, Send, AlertCircle, Zap,
+  CheckCircle2, Clock, Send, AlertCircle, Zap, Users, LogOut,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { clearToken, getIsAdmin, getUsername } from "@/lib/auth";
 
 interface Stats {
   total: number;
@@ -16,7 +17,15 @@ interface Stats {
 }
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const isAdmin = getIsAdmin();
+  const username = getUsername();
   const [stats, setStats] = useState<Stats | null>(null);
+
+  const handleLogout = () => {
+    clearToken();
+    navigate("/login", { replace: true });
+  };
 
   useEffect(() => {
     fetch(apiUrl("/api/kb-draft"), { cache: "no-store" })
@@ -73,6 +82,26 @@ export default function HomePage() {
       {/* ── Content ── */}
       <div className="relative z-10 flex flex-col flex-1 pb-20 px-3 sm:px-6 items-center justify-center">
       <div className="w-full max-w-[380px] sm:max-w-xl mx-auto flex flex-col gap-0">
+
+        {/* ── User bar ── */}
+        <div className="flex items-center justify-between mb-3 sm:mb-5 px-0.5">
+          <span className="text-[11px] text-violet-400/60 font-medium">
+            {username ? <>Halo, <span className="text-violet-300 font-bold">{username}</span></> : ""}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {isAdmin && (
+              <Link to="/users">
+                <button className="flex items-center gap-1 text-[10px] font-bold text-violet-400 hover:text-violet-200 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 px-2.5 py-1 rounded-full transition-all">
+                  <Users className="w-3 h-3" /><span className="hidden sm:inline">Kelola Akun</span><span className="sm:hidden">Akun</span>
+                </button>
+              </Link>
+            )}
+            <button onClick={handleLogout}
+              className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-full transition-all">
+              <LogOut className="w-3 h-3" /><span className="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
+        </div>
 
         {/* ── Hero ── */}
         <div className="flex flex-col items-center text-center mb-4 sm:mb-10">

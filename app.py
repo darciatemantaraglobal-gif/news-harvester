@@ -4,7 +4,8 @@ from functools import wraps
 import pdfplumber
 import fitz  # PyMuPDF
 from datetime import datetime, date, timedelta
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, g
+import hashlib
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -31,6 +32,33 @@ _ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 _ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 _SESSION_SECRET = os.environ.get("SESSION_SECRET", "")
 
+def _hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def _make_user_token(username: str) -> str:
+    return hashlib.sha256(f"{_SESSION_SECRET}:{username}".encode()).hexdigest()
+
+def _load_users() -> list:
+    try:
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE) as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return []
+
+def _save_users(users: list) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
+def _get_valid_tokens() -> dict:
+    tokens = {_SESSION_SECRET: (_ADMIN_USERNAME, True)}
+    for user in _load_users():
+        tok = _make_user_token(user["username"])
+        tokens[tok] = (user["username"], False)
+    return tokens
+
 _PUBLIC_ENDPOINTS = {"login", "static"}
 
 @app.before_request
@@ -43,8 +71,10 @@ def _check_auth():
         return jsonify({"error": "Auth not configured. Set SESSION_SECRET env var."}), 500
     auth = request.headers.get("Authorization", "")
     token = auth[7:] if auth.startswith("Bearer ") else ""
-    if token != _SESSION_SECRET:
+    valid = _get_valid_tokens()
+    if token not in valid:
         return jsonify({"error": "Unauthorized"}), 401
+    g.current_user, g.is_admin = valid[token]
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -54,8 +84,48 @@ def login():
     if not _ADMIN_PASSWORD:
         return jsonify({"error": "Auth not configured. Set ADMIN_PASSWORD secret."}), 500
     if username == _ADMIN_USERNAME and password == _ADMIN_PASSWORD:
-        return jsonify({"token": _SESSION_SECRET})
+        return jsonify({"token": _SESSION_SECRET, "is_admin": True, "username": username})
+    users = _load_users()
+    pw_hash = _hash_password(password)
+    for user in users:
+        if user["username"] == username and user["password_hash"] == pw_hash:
+            return jsonify({"token": _make_user_token(username), "is_admin": False, "username": username})
     return jsonify({"error": "Username atau password salah."}), 401
+
+@app.route("/api/users", methods=["GET"])
+def list_users():
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden"}), 403
+    return jsonify([{"username": u["username"]} for u in _load_users()])
+
+@app.route("/api/users", methods=["POST"])
+def add_user():
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip().lower()
+    password = data.get("password", "").strip()
+    if not username or not password:
+        return jsonify({"error": "Username dan password wajib diisi."}), 400
+    if username == _ADMIN_USERNAME.lower():
+        return jsonify({"error": "Username sudah digunakan."}), 400
+    users = _load_users()
+    if any(u["username"].lower() == username for u in users):
+        return jsonify({"error": "Username sudah ada."}), 400
+    users.append({"username": username, "password_hash": _hash_password(password)})
+    _save_users(users)
+    return jsonify({"ok": True, "username": username})
+
+@app.route("/api/users/<username>", methods=["DELETE"])
+def delete_user(username):
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden"}), 403
+    users = _load_users()
+    new_users = [u for u in users if u["username"] != username]
+    if len(new_users) == len(users):
+        return jsonify({"error": "User tidak ditemukan."}), 404
+    _save_users(new_users)
+    return jsonify({"ok": True})
 
 
 @app.after_request
@@ -73,6 +143,7 @@ DATA_FILE = os.path.join(DATA_DIR, "scraped_articles.json")
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 SCHEDULER_FILE = os.path.join(CONFIG_DIR, "scheduler_settings.json")
 LAST_JOB_FILE = os.path.join(DATA_DIR, "last_job.json")
+USERS_FILE = os.path.join(DATA_DIR, "users.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(CONFIG_DIR, exist_ok=True)
 

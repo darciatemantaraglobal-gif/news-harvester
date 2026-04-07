@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { setToken } from "@/lib/auth";
+import { setToken, setIsAdmin, setUsername as saveUsername } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 
 export default function LoginPage() {
@@ -26,6 +26,8 @@ export default function LoginPage() {
       const data = await res.json();
       if (res.ok && data.token) {
         setToken(data.token);
+        setIsAdmin(!!data.is_admin);
+        saveUsername(data.username || "");
         navigate("/", { replace: true });
       } else {
         setError(data.error || "Login gagal.");
