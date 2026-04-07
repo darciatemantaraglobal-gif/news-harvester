@@ -20,10 +20,10 @@ function getSourceMeta(url: string): {
 } {
   try {
     const domain = new URL(url).hostname.toLowerCase();
-    if (domain.includes("kemlu.go.id") || domain.includes("kbri") || domain.includes("kemenlu")) {
+    if (domain.includes("kemlu.go.id") || domain.includes("kbri") || domain.includes("kemenlu") || domain.includes(".go.id") || domain.includes(".gov") || domain.includes("antaranews") || domain.includes("detik.com") || domain.includes("kompas.com") || domain.includes("bbc.") || domain.includes("reuters.com") || domain.includes("aljazeera")) {
       return { category: "Official", categoryColor: "bg-blue-900/40 text-blue-300", trust: "High", trustColor: "bg-emerald-900/30 text-emerald-400" };
     }
-    if (domain.includes("pcinu") || domain.includes("ppi-") || domain.includes("ppimesir") || domain.includes("indonesia")) {
+    if (domain.includes("pcinu") || domain.includes("ppi-") || domain.includes("ppimesir") || domain.includes("indonesia") || domain.includes("republika") || domain.includes("tempo.co") || domain.includes("tribun")) {
       return { category: "Community", categoryColor: "bg-violet-900/40 text-violet-300", trust: "Medium", trustColor: "bg-amber-900/40 text-amber-300" };
     }
   } catch {}
@@ -796,8 +796,8 @@ const Index = () => {
               style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(200,160,255,0.8))" }}
             />
             <div className="leading-none min-w-0">
-              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">Berita Kemlu / KBRI</p>
-              <p className="text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Scrape artikel dari portal resmi</p>
+              <p className="font-bold text-white text-sm lg:text-xl tracking-tight">Scraper Berita Web</p>
+              <p className="text-purple-300 text-[11px] lg:text-sm mt-0.5 lg:mt-1">Scrape artikel dari website manapun</p>
             </div>
           </div>
           {schedulerSettings.enabled && schedulerSettings.interval !== "manual" && (
@@ -867,7 +867,7 @@ const Index = () => {
                 <div className="w-6 h-6 lg:w-8 lg:h-8 bg-indigo-900/40 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
                   <Globe className="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px] text-indigo-500" />
                 </div>
-                <span className="text-[10px] sm:text-[11px] lg:text-sm font-bold text-indigo-400 uppercase tracking-widest">URL Halaman Berita</span>
+                <span className="text-[10px] sm:text-[11px] lg:text-sm font-bold text-indigo-400 uppercase tracking-widest">URL Sumber Berita</span>
               </div>
 
               {/* URL Input with icon + clear button */}
@@ -876,7 +876,7 @@ const Index = () => {
                 <input
                   data-testid="input-url"
                   type="url"
-                  placeholder="https://www.kemlu.go.id/cairo/berita"
+                  placeholder="https://contoh.com/kategori/berita"
                   value={url}
                   onChange={e => { setUrl(e.target.value); setUrlError(""); }}
                   onKeyDown={e => e.key === "Enter" && !isRunning && startScrape()}
@@ -1958,7 +1958,7 @@ const Index = () => {
                       <div className="space-y-1">
                         <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">URL Default</Label>
                         <Input data-testid="scheduler-url" type="url"
-                          placeholder="https://www.kemlu.go.id/cairo/berita"
+                          placeholder="https://contoh.com/kategori/berita"
                           value={schedulerSettings.url}
                           onChange={e => setSchedulerSettings(s => ({ ...s, url: e.target.value }))}
                           className="h-8 text-xs bg-white/5 border-white/15" />

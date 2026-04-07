@@ -142,14 +142,14 @@ export default function HomePage() {
                 <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                   <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
                 </div>
-                <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Berita Kemlu</h3>
-                <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Berita Kemlu / KBRI</h3>
+                <h3 className="font-bold text-white text-xs leading-tight mb-1 sm:hidden">Scraper Berita</h3>
+                <h3 className="font-bold text-white text-base leading-tight mb-2 hidden sm:block">Scraper Berita Web</h3>
                 <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed flex-1 hidden sm:block">
-                  Scrape artikel dari portal resmi. Masukkan URL, pilih mode, dan jalankan.
+                  Scrape artikel dari website berita manapun. Masukkan URL, pilih mode, dan jalankan.
                 </p>
                 <p className="text-violet-300/50 text-[10px] leading-relaxed flex-1 sm:hidden">Portal berita resmi</p>
                 <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-violet-800/40">
-                  <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Portal Resmi</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-violet-500/70 uppercase tracking-widest hidden sm:block">Web / Portal Berita</span>
                   <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors ml-auto">
                     Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </div>
