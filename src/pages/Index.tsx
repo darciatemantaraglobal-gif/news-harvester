@@ -953,8 +953,8 @@ const Index = () => {
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 -z-10 rounded-2xl pointer-events-none"
                     style={{
-                      background: "radial-gradient(ellipse 120% 160% at 50% 50%, rgba(139,92,246,0.65) 0%, rgba(109,40,217,0.35) 40%, transparent 70%)",
-                      filter: "blur(14px)", transform: "scale(1.5)",
+                      background: "radial-gradient(ellipse 100% 140% at 50% 50%, rgba(139,92,246,0.25) 0%, transparent 70%)",
+                      filter: "blur(10px)", transform: "scale(1.3)",
                     }} />
                   <button
                     data-testid="button-start-scrape"
@@ -966,7 +966,7 @@ const Index = () => {
                         ? "bg-gradient-to-r from-violet-600 to-purple-600 opacity-80 cursor-not-allowed"
                         : "bg-gradient-to-br from-violet-600 via-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 hover:scale-[1.03] active:scale-95"
                       }`}
-                    style={isRunning ? {} : { boxShadow: "0 0 20px rgba(139,92,246,0.75), 0 0 45px rgba(109,40,217,0.4), 0 4px 16px rgba(0,0,0,0.5)" }}>
+                    style={isRunning ? {} : { boxShadow: "0 0 10px rgba(139,92,246,0.35), 0 2px 10px rgba(0,0,0,0.5)" }}>
                     {isRunning && (
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
                     )}
@@ -977,35 +977,34 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* ─ Date range ─ */}
-              <div className="flex flex-wrap items-center gap-2 pt-4 lg:pt-5 border-t border-violet-900/30">
+              {/* ─ Date range dropdown ─ */}
+              <div className="flex flex-wrap items-center gap-3 pt-4 lg:pt-5 border-t border-violet-900/30">
                 <CalendarDays className="w-3.5 h-3.5 text-violet-500/50 shrink-0" />
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 shrink-0">Rentang</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {SCRAPE_RANGES.map(r => (
-                    <button
-                      key={r.value}
-                      data-testid={`range-${r.value}`}
-                      onClick={() => !isRunning && setScrapeRange(r.value)}
-                      disabled={isRunning}
-                      className={`text-[11px] px-3 py-1.5 rounded-full font-semibold transition-all duration-150
-                        ${scrapeRange === r.value
-                          ? "bg-violet-600 text-white shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-                          : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-slate-200 border border-white/8"
-                        }`}>
-                      {r.label}
-                    </button>
-                  ))}
+                <div className="relative flex-1 sm:flex-none min-w-0">
+                  <select
+                    data-testid="range-select"
+                    value={scrapeRange}
+                    onChange={e => !isRunning && setScrapeRange(e.target.value)}
+                    disabled={isRunning}
+                    className="w-full sm:w-auto appearance-none bg-[#0f0a1e] border border-violet-800/40 text-white text-xs font-semibold rounded-xl pl-3.5 pr-8 py-2 outline-none cursor-pointer transition-all duration-200 focus:border-violet-500/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ colorScheme: "dark" }}
+                  >
+                    {SCRAPE_RANGES.map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-violet-400/60 pointer-events-none" />
                 </div>
                 {scrapeRange === "custom" && (
-                  <div className="flex items-center gap-1.5 mt-1.5 w-full sm:w-auto sm:mt-0">
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto mt-0">
                     <Input data-testid="input-custom-start" type="date" value={customStart}
                       onChange={e => setCustomStart(e.target.value)} disabled={isRunning}
-                      className="w-36 h-7 text-xs bg-white/5 border-white/15 rounded-lg" />
-                    <span className="text-slate-400 text-xs shrink-0">–</span>
+                      className="flex-1 sm:w-36 h-8 text-xs bg-[#0f0a1e] border-violet-800/40 rounded-xl" />
+                    <span className="text-slate-500 text-xs shrink-0">–</span>
                     <Input data-testid="input-custom-end" type="date" value={customEnd}
                       onChange={e => setCustomEnd(e.target.value)} disabled={isRunning}
-                      className="w-36 h-7 text-xs bg-white/5 border-white/15 rounded-lg" />
+                      className="flex-1 sm:w-36 h-8 text-xs bg-[#0f0a1e] border-violet-800/40 rounded-xl" />
                   </div>
                 )}
               </div>
