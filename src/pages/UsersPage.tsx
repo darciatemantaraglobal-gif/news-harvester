@@ -82,7 +82,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white relative">
+    <div className="flex flex-col min-h-screen sm:h-screen bg-black text-white relative sm:overflow-hidden">
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">

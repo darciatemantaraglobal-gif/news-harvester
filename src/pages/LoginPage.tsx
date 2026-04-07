@@ -39,7 +39,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden px-4">
+    <div className="min-h-screen sm:h-screen bg-black flex items-center justify-center relative overflow-hidden px-4">
 
       {/* ── Background ── */}
       <div className="absolute inset-0 pointer-events-none select-none">

@@ -48,7 +48,7 @@ export default function HomePage() {
   const hasApproved = (stats?.approved ?? 0) > 0;
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
+    <div className="min-h-screen sm:h-screen bg-black relative overflow-hidden flex flex-col">
 
       {/* ── Background layer ── */}
       <div className="absolute inset-0 pointer-events-none select-none">
@@ -86,8 +86,11 @@ export default function HomePage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col flex-1 pb-20 px-3 sm:px-6 items-center justify-center">
-      <div className="w-full max-w-[380px] sm:max-w-xl mx-auto flex flex-col gap-0">
+      <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
+
+      {/* ─── MOBILE layout (< sm) ─── */}
+      <div className="sm:hidden flex flex-col flex-1 overflow-y-auto pb-20 px-3 items-center justify-center">
+      <div className="w-full max-w-[380px] mx-auto flex flex-col gap-0">
 
         {/* ── User bar ── */}
         <div className="flex items-center justify-between mb-3 sm:mb-5 px-0.5">
@@ -311,8 +314,146 @@ export default function HomePage() {
           </Link>
         </div>
 
-      </div>{/* end max-w centering wrapper */}
-      </div>
+      </div>{/* end mobile max-w wrapper */}
+      </div>{/* end mobile layout */}
+
+      {/* ─── DESKTOP layout (≥ sm) ─── */}
+      <div className="hidden sm:flex flex-col flex-1 overflow-hidden">
+
+        {/* Top strip: user bar */}
+        <div className="flex items-center justify-between px-8 lg:px-14 pt-4 pb-2 shrink-0">
+          <span className="text-xs text-violet-400/60 font-medium">
+            {username ? <>Halo, <span className="text-violet-300 font-bold">{username}</span></> : ""}
+          </span>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Link to="/users">
+                <button className="flex items-center gap-1.5 text-xs font-bold text-violet-400 hover:text-violet-200 bg-violet-900/30 hover:bg-violet-800/40 border border-violet-700/40 px-3 py-1.5 rounded-full transition-all">
+                  <Users className="w-3.5 h-3.5" />Kelola Akun
+                </button>
+              </Link>
+            )}
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-full transition-all">
+              <LogOut className="w-3.5 h-3.5" />Keluar
+            </button>
+          </div>
+        </div>
+
+        {/* Main 2-col area */}
+        <div className="flex flex-1 items-center gap-10 lg:gap-16 px-8 lg:px-14 max-w-5xl mx-auto w-full overflow-hidden pb-16">
+
+          {/* Left: Hero */}
+          <div className="flex flex-col items-center text-center shrink-0 w-64 lg:w-80">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 scale-[2.5] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
+              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-16 h-16 lg:w-20 lg:h-20 object-contain"
+                style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 12px rgba(200,160,255,1))" }} />
+            </div>
+            <div className="flex flex-col items-center leading-none mb-3" style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}>
+              <span style={{ fontSize: "clamp(2.4rem, 4vw, 4rem)", background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>AINA</span>
+              <span style={{ fontSize: "clamp(1.9rem, 3.2vw, 3.2rem)", background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>Scraper</span>
+            </div>
+            <p className="text-purple-400/60 text-xs font-medium tracking-wide mb-4">Internal Knowledge Scraping Tool</p>
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-1.5">
+              <Zap className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+              <span className="text-[11px] text-violet-300 font-semibold tracking-wider uppercase whitespace-nowrap">Pilih sumber · Review · Kirim ke Supabase</span>
+            </div>
+          </div>
+
+          {/* Right: Action cards */}
+          <div className="flex-1 flex flex-col gap-3 min-w-0">
+
+            {/* Step 1 label */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-violet-500 uppercase tracking-[0.15em]">Langkah 1</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-violet-800/60 to-transparent" />
+            </div>
+
+            {/* Step 1 cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <Link to="/scraper" className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02]" style={{ background: "#0d0720" }}>
+                <div className="absolute animate-border-beam pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+                <div className="relative m-px rounded-[15px] flex flex-col p-5 h-full" style={{ background: "#0d0720" }}>
+                  <div className="w-10 h-10 mb-3 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                    <Newspaper className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
+                  </div>
+                  <h3 className="font-bold text-white text-base leading-tight mb-2">Scraper Berita Web</h3>
+                  <p className="text-violet-300/50 text-xs leading-relaxed flex-1">Scrape artikel dari website berita manapun. Masukkan URL, pilih mode, dan jalankan.</p>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-violet-800/40">
+                    <span className="text-[10px] font-bold text-violet-500/70 uppercase tracking-widest">Web / Portal Berita</span>
+                    <div className="flex items-center gap-0.5 text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" /></div>
+                  </div>
+                </div>
+              </Link>
+              <Link to="/pdf" className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02]" style={{ background: "#0d0720" }}>
+                <div className="absolute animate-border-beam-delay pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+                <div className="relative m-px rounded-[15px] flex flex-col p-5 h-full" style={{ background: "#0d0720" }}>
+                  <div className="w-10 h-10 mb-3 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
+                  </div>
+                  <h3 className="font-bold text-white text-base leading-tight mb-2">Kitab PDF Arab</h3>
+                  <p className="text-violet-300/50 text-xs leading-relaxed flex-1">Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.</p>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-violet-800/40">
+                    <span className="text-[10px] font-bold text-violet-500/70 uppercase tracking-widest">Kitab Arab · OCR</span>
+                    <div className="flex items-center gap-0.5 text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" /></div>
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* Step 2 label */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-violet-500 uppercase tracking-[0.15em]">Langkah 2</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-violet-800/60 to-transparent" />
+            </div>
+
+            {/* Review card */}
+            <Link to="/review" className="group relative overflow-hidden rounded-2xl block transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
+              <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: hasPending ? "conic-gradient(transparent 260deg, rgba(217,119,6,0.6) 300deg, rgba(252,211,77,1) 345deg, transparent 360deg)" : hasApproved ? "conic-gradient(transparent 260deg, rgba(5,150,105,0.6) 300deg, rgba(110,231,183,1) 345deg, transparent 360deg)" : "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
+              <div className="relative m-px rounded-[15px] p-5" style={{ background: "#0d0720" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-950/60 border-amber-500/50" : hasApproved ? "bg-emerald-950/60 border-emerald-500/50" : "bg-violet-950/60 border-violet-500/40"}`}>
+                      <ClipboardCheck className={`w-6 h-6 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-violet-400"}`} strokeWidth={1.8} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-white text-sm">KB Review Dashboard</p>
+                      {stats === null ? (
+                        <div className="flex items-center gap-1.5 mt-1"><div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" /><span className="text-[10px] text-purple-400">Memuat status...</span></div>
+                      ) : stats.total === 0 ? (
+                        <p className="text-[10px] text-purple-400/70 mt-0.5">Belum ada KB Draft</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {stats.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 rounded-full"><Clock className="w-2.5 h-2.5" />{stats.pending} pending</span>}
+                          {stats.approved > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="w-2.5 h-2.5" />{stats.approved} siap push</span>}
+                          {stats.rejected > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/15 border border-red-500/25 px-1.5 py-0.5 rounded-full"><AlertCircle className="w-2.5 h-2.5" />{stats.rejected} rejected</span>}
+                          {stats.exported > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 bg-white/10 border border-white/10 px-1.5 py-0.5 rounded-full"><Send className="w-2.5 h-2.5" />{stats.exported} exported</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-white/20 shrink-0 group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                {hasPending && (
+                  <div className="mt-4 pt-4 border-t border-amber-500/20 flex items-center justify-between">
+                    <p className="text-[10px] text-amber-300/80"><strong className="text-amber-300">{stats!.pending}</strong> artikel menunggu review</p>
+                    <span className="text-[10px] font-bold text-amber-400 group-hover:text-amber-300 flex items-center gap-0.5 transition-colors">Buka Review <ArrowRight className="w-2.5 h-2.5" /></span>
+                  </div>
+                )}
+                {!hasPending && hasApproved && (
+                  <div className="mt-4 pt-4 border-t border-emerald-500/20 flex items-center justify-between">
+                    <p className="text-[10px] text-emerald-300/80"><strong className="text-emerald-300">{stats!.approved}</strong> siap di-push ke Supabase</p>
+                    <span className="text-[10px] font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-0.5 transition-colors">Push <ArrowRight className="w-2.5 h-2.5" /></span>
+                  </div>
+                )}
+              </div>
+            </Link>
+
+          </div>{/* end right col */}
+        </div>{/* end 2-col */}
+      </div>{/* end desktop layout */}
+
+      </div>{/* end outer content wrapper */}
 
       {/* ── Bottom Nav — elegant floating pill ── */}
       <div className="fixed bottom-4 inset-x-0 z-30 flex justify-center px-6">
