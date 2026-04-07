@@ -340,23 +340,23 @@ export default function HomePage() {
         </div>
 
         {/* Main 2-col area */}
-        <div className="flex flex-1 items-center gap-12 lg:gap-20 px-6 lg:px-10 w-full overflow-hidden pb-20">
+        <div className="flex flex-1 items-center gap-10 lg:gap-16 px-8 lg:px-12 max-w-6xl mx-auto w-full overflow-hidden pb-16">
 
           {/* Left: Hero */}
-          <div className="flex flex-col items-center text-center shrink-0 w-80 lg:w-[26rem]">
-            <div className="relative mb-5">
-              <div className="absolute inset-0 scale-[2.8] bg-violet-500/25 rounded-full blur-2xl pointer-events-none" />
-              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-20 h-20 lg:w-28 lg:h-28 object-contain"
-                style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 18px rgba(200,160,255,1))" }} />
+          <div className="flex flex-col items-center text-center shrink-0 w-72 lg:w-[22rem]">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 scale-[2.6] bg-violet-500/22 rounded-full blur-2xl pointer-events-none" />
+              <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-[4.5rem] h-[4.5rem] lg:w-24 lg:h-24 object-contain"
+                style={{ filter: "brightness(0) invert(1) drop-shadow(0 0 14px rgba(200,160,255,1))" }} />
             </div>
-            <div className="flex flex-col items-center leading-none mb-4" style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}>
-              <span style={{ fontSize: "clamp(3rem, 5vw, 5.5rem)", background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>AINA</span>
-              <span style={{ fontSize: "clamp(2.4rem, 4vw, 4.4rem)", background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>Scraper</span>
+            <div className="flex flex-col items-center leading-none mb-3" style={{ fontFamily: "'Sunspire', cursive", letterSpacing: "0.04em" }}>
+              <span style={{ fontSize: "clamp(2.6rem, 4.2vw, 4.5rem)", background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>AINA</span>
+              <span style={{ fontSize: "clamp(2.1rem, 3.4vw, 3.6rem)", background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.05 }}>Scraper</span>
             </div>
-            <p className="text-purple-400/60 text-sm font-medium tracking-wide mb-5">Internal Knowledge Scraping Tool</p>
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-5 py-2">
-              <Zap className="w-4 h-4 text-violet-400 shrink-0" />
-              <span className="text-xs text-violet-300 font-semibold tracking-wider uppercase whitespace-nowrap">Pilih sumber · Review · Kirim ke Supabase</span>
+            <p className="text-purple-400/60 text-xs font-medium tracking-wide mb-4">Internal Knowledge Scraping Tool</p>
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-1.5">
+              <Zap className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+              <span className="text-[11px] text-violet-300 font-semibold tracking-wider uppercase whitespace-nowrap">Pilih sumber · Review · Kirim ke Supabase</span>
             </div>
           </div>
 
@@ -370,32 +370,32 @@ export default function HomePage() {
             </div>
 
             {/* Step 1 cards */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <Link to="/scraper" className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02]" style={{ background: "#0d0720" }}>
                 <div className="absolute animate-border-beam pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
-                <div className="relative m-px rounded-[15px] flex flex-col p-6 h-full" style={{ background: "#0d0720" }}>
-                  <div className="w-12 h-12 mb-4 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
-                    <Newspaper className="w-6 h-6 text-violet-300" strokeWidth={1.8} />
+                <div className="relative m-px rounded-[15px] flex flex-col p-5 h-full" style={{ background: "#0d0720" }}>
+                  <div className="w-11 h-11 mb-3 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                    <Newspaper className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
                   </div>
-                  <h3 className="font-bold text-white text-lg leading-tight mb-2">Scraper Berita Web</h3>
-                  <p className="text-violet-300/50 text-sm leading-relaxed flex-1">Scrape artikel dari website berita manapun. Masukkan URL, pilih mode, dan jalankan.</p>
-                  <div className="flex items-center justify-between mt-5 pt-3 border-t border-violet-800/40">
+                  <h3 className="font-bold text-white text-base leading-tight mb-2">Scraper Berita Web</h3>
+                  <p className="text-violet-300/50 text-xs leading-relaxed flex-1">Scrape artikel dari website berita manapun. Masukkan URL, pilih mode, dan jalankan.</p>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-violet-800/40">
                     <span className="text-[10px] font-bold text-violet-500/70 uppercase tracking-widest">Web / Portal Berita</span>
-                    <div className="flex items-center gap-0.5 text-sm font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Mulai <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" /></div>
+                    <div className="flex items-center gap-0.5 text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Mulai <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" /></div>
                   </div>
                 </div>
               </Link>
               <Link to="/pdf" className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02]" style={{ background: "#0d0720" }}>
                 <div className="absolute animate-border-beam-delay pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
-                <div className="relative m-px rounded-[15px] flex flex-col p-6 h-full" style={{ background: "#0d0720" }}>
-                  <div className="w-12 h-12 mb-4 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-violet-300" strokeWidth={1.8} />
+                <div className="relative m-px rounded-[15px] flex flex-col p-5 h-full" style={{ background: "#0d0720" }}>
+                  <div className="w-11 h-11 mb-3 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
                   </div>
-                  <h3 className="font-bold text-white text-lg leading-tight mb-2">Kitab PDF Arab</h3>
-                  <p className="text-violet-300/50 text-sm leading-relaxed flex-1">Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.</p>
-                  <div className="flex items-center justify-between mt-5 pt-3 border-t border-violet-800/40">
+                  <h3 className="font-bold text-white text-base leading-tight mb-2">Kitab PDF Arab</h3>
+                  <p className="text-violet-300/50 text-xs leading-relaxed flex-1">Upload kitab PDF berbahasa Arab. Teks diekstrak, di-chunk, dan disimpan sebagai KB Draft.</p>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-violet-800/40">
                     <span className="text-[10px] font-bold text-violet-500/70 uppercase tracking-widest">Kitab Arab · OCR</span>
-                    <div className="flex items-center gap-0.5 text-sm font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Upload <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" /></div>
+                    <div className="flex items-center gap-0.5 text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors">Upload <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" /></div>
                   </div>
                 </div>
               </Link>
@@ -410,11 +410,11 @@ export default function HomePage() {
             {/* Review card */}
             <Link to="/review" className="group relative overflow-hidden rounded-2xl block transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
               <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: hasPending ? "conic-gradient(transparent 260deg, rgba(217,119,6,0.6) 300deg, rgba(252,211,77,1) 345deg, transparent 360deg)" : hasApproved ? "conic-gradient(transparent 260deg, rgba(5,150,105,0.6) 300deg, rgba(110,231,183,1) 345deg, transparent 360deg)" : "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
-              <div className="relative m-px rounded-[15px] p-6" style={{ background: "#0d0720" }}>
+              <div className="relative m-px rounded-[15px] p-5" style={{ background: "#0d0720" }}>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className={`w-14 h-14 shrink-0 rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-950/60 border-amber-500/50" : hasApproved ? "bg-emerald-950/60 border-emerald-500/50" : "bg-violet-950/60 border-violet-500/40"}`}>
-                      <ClipboardCheck className={`w-7 h-7 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-violet-400"}`} strokeWidth={1.8} />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center ${hasPending ? "bg-amber-950/60 border-amber-500/50" : hasApproved ? "bg-emerald-950/60 border-emerald-500/50" : "bg-violet-950/60 border-violet-500/40"}`}>
+                      <ClipboardCheck className={`w-6 h-6 ${hasPending ? "text-amber-300" : hasApproved ? "text-emerald-300" : "text-violet-400"}`} strokeWidth={1.8} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-white text-base">KB Review Dashboard</p>
