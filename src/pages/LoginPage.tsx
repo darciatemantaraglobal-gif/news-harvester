@@ -106,7 +106,7 @@ export default function LoginPage() {
       <div className="sm:hidden absolute inset-0 z-10 flex flex-col px-6 pt-0 pb-8">
 
         {/* Upper: logo */}
-        <div className="flex flex-col items-center justify-center text-center" style={{ flex: "0 0 42%" }}>
+        <div className="flex flex-col items-center justify-end text-center" style={{ flex: "0 0 42%", paddingBottom: "20px" }}>
           <div className="relative">
             <div className="absolute inset-0 scale-[3] bg-violet-500/20 rounded-full blur-2xl pointer-events-none" />
             <img src="/AIGYPT_logo.png" alt="AINA" className="relative w-40 h-40 object-contain"
