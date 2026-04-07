@@ -94,7 +94,7 @@ export default function HomePage() {
           >
             <span
               style={{
-                fontSize: "clamp(3.4rem, 20vw, 7.5rem)",
+                fontSize: "clamp(2.8rem, 16vw, 6rem)",
                 background: "linear-gradient(135deg, #ffffff 0%, #e9d5ff 60%, #c084fc 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
@@ -103,7 +103,7 @@ export default function HomePage() {
             >AINA</span>
             <span
               style={{
-                fontSize: "clamp(2.8rem, 16vw, 6.2rem)",
+                fontSize: "clamp(2.3rem, 13vw, 5rem)",
                 background: "linear-gradient(135deg, #ddd6fe 0%, #a855f7 50%, #7c3aed 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
