@@ -6,6 +6,7 @@ import {
   AlertCircle, BookOpen, CheckSquare, X,
   Sparkles, Info, ScanLine, Layers, DollarSign, ChevronDown, Wand2,
   Search, ChevronUp, Hash, Image, AlignLeft, ListCollapse,
+  GraduationCap, Brain, Tag, Globe, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
@@ -49,6 +50,27 @@ interface PdfInspectResult {
   pages: PdfPageInfo[];
 }
 
+interface PdfLearnChapter {
+  nomor: number;
+  judul: string;
+  halaman: number;
+  pembahasan: string;
+}
+
+interface PdfLearnResult {
+  title: string;
+  author: string;
+  language: string;
+  field: string;
+  total_pages: number;
+  text_pages: number;
+  scan_pages: number;
+  ai_available: boolean;
+  overview: string;
+  chapters: PdfLearnChapter[];
+  topics: string[];
+}
+
 const CATEGORIES = [
   "Fiqh", "Aqidah", "Akhlak", "Hadits", "Tafsir",
   "Sirah", "Nahwu / Sharaf", "Bahasa Arab", "Umum",
@@ -80,6 +102,12 @@ export default function PdfPage() {
   const [inspectErrorMap, setInspectErrorMap] = useState<Record<string, string>>({});
   const [inspectOpenMap, setInspectOpenMap] = useState<Record<string, boolean>>({});
   const [showAllPagesMap, setShowAllPagesMap] = useState<Record<string, boolean>>({});
+
+  // ── Pelajari PDF (AI Learn) state ──
+  const [learnMap, setLearnMap] = useState<Record<string, PdfLearnResult>>({});
+  const [learnLoadingMap, setLearnLoadingMap] = useState<Record<string, boolean>>({});
+  const [learnErrorMap, setLearnErrorMap] = useState<Record<string, string>>({});
+  const [learnOpenMap, setLearnOpenMap] = useState<Record<string, boolean>>({});
   // Page range — berlaku untuk semua file dalam batch
   const [pageStart, setPageStart] = useState(1);
   const [pageEnd, setPageEnd] = useState(0); // 0 = semua halaman
@@ -121,6 +149,25 @@ export default function PdfPage() {
       setInspectErrorMap(prev => ({ ...prev, [name]: msg }));
     }
     setInspectLoadingMap(prev => ({ ...prev, [name]: false }));
+  };
+
+  const handleLearn = async (file: File) => {
+    const name = file.name;
+    setLearnLoadingMap(prev => ({ ...prev, [name]: true }));
+    setLearnErrorMap(prev => ({ ...prev, [name]: "" }));
+    setLearnOpenMap(prev => ({ ...prev, [name]: true }));
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(apiUrl("/api/pdf/learn"), { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal analisis");
+      setLearnMap(prev => ({ ...prev, [name]: data as PdfLearnResult }));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Terjadi kesalahan";
+      setLearnErrorMap(prev => ({ ...prev, [name]: msg }));
+    }
+    setLearnLoadingMap(prev => ({ ...prev, [name]: false }));
   };
 
   const onDrop = useCallback((e: React.DragEvent) => {
@@ -463,15 +510,38 @@ export default function PdfPage() {
                             const inspError = inspectErrorMap[f.name];
                             const inspOpen = inspectOpenMap[f.name];
                             const showAll = showAllPagesMap[f.name];
+                            const learn = learnMap[f.name];
+                            const learnLoading = learnLoadingMap[f.name];
+                            const learnError = learnErrorMap[f.name];
+                            const learnOpen = learnOpenMap[f.name];
                             return (
                               <div key={f.name} className="space-y-0">
                                 {/* File row */}
-                                <div className="flex items-center gap-2.5 bg-white/4 border border-violet-800/30 rounded-xl px-3 py-2.5">
+                                <div className="flex items-center gap-2 bg-white/4 border border-violet-800/30 rounded-xl px-3 py-2.5">
                                   <FileText className="w-4 h-4 text-red-400 shrink-0" />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-medium text-slate-200 truncate">{f.name}</p>
                                     <p className="text-[10px] text-slate-500">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
                                   </div>
+                                  {/* Pelajari PDF (AI) button */}
+                                  <button
+                                    onClick={() => learn
+                                      ? setLearnOpenMap(prev => ({ ...prev, [f.name]: !learnOpen }))
+                                      : handleLearn(f)
+                                    }
+                                    disabled={learnLoading}
+                                    title="Pelajari isi PDF dengan AI"
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                                      learn
+                                        ? learnOpen
+                                          ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/50"
+                                          : "bg-emerald-900/30 text-emerald-400 border border-emerald-700/40 hover:border-emerald-500/60"
+                                        : "bg-emerald-900/30 text-emerald-400 border border-emerald-700/40 hover:border-emerald-500/60"
+                                    }`}
+                                  >
+                                    {learnLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <GraduationCap className="w-3 h-3" />}
+                                    {learnLoading ? "AI..." : learn ? (learnOpen ? "Tutup" : "Lihat Isi") : "Pelajari"}
+                                  </button>
                                   {/* Inspect button */}
                                   <button
                                     onClick={() => insp
@@ -479,6 +549,7 @@ export default function PdfPage() {
                                       : handleInspect(f)
                                     }
                                     disabled={inspLoading}
+                                    title="Lihat struktur halaman PDF"
                                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
                                       insp
                                         ? inspOpen
@@ -488,7 +559,7 @@ export default function PdfPage() {
                                     }`}
                                   >
                                     {inspLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
-                                    {inspLoading ? "Analisis..." : insp ? (inspOpen ? "Tutup" : "Lihat Detail") : "Pratinjau PDF"}
+                                    {inspLoading ? "..." : insp ? (inspOpen ? "Tutup" : "Detail") : "Pratinjau"}
                                   </button>
                                   <button onClick={e => { e.stopPropagation(); removeFile(f.name); }}
                                     className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-white/8">
@@ -657,6 +728,119 @@ export default function PdfPage() {
                                             ))}
                                           </div>
                                         </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Learn error */}
+                                {learnError && (
+                                  <div className="mt-1.5 px-3 py-2 bg-red-900/20 border border-red-700/30 rounded-xl text-[11px] text-red-400 flex items-center gap-2">
+                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />{learnError}
+                                  </div>
+                                )}
+
+                                {/* Pelajari PDF panel */}
+                                {learn && learnOpen && (
+                                  <div className="mt-1.5 rounded-xl border border-emerald-700/35 overflow-hidden" style={{ background: "#020f0a" }}>
+                                    <div className="h-[2px] bg-gradient-to-r from-emerald-600 via-teal-400 to-cyan-500" />
+
+                                    <div className="px-4 py-3 space-y-4">
+                                      {/* Header kitab */}
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-emerald-900/50 flex items-center justify-center shrink-0 mt-0.5">
+                                          <GraduationCap className="w-5 h-5 text-emerald-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-bold text-slate-100 leading-tight" dir="auto">{learn.title}</p>
+                                          {learn.author && <p className="text-[11px] text-slate-400 mt-0.5">✍️ {learn.author}</p>}
+                                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                            {learn.language && (
+                                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-900/40 text-teal-300 border border-teal-700/40">
+                                                <Globe className="w-2.5 h-2.5" />{learn.language}
+                                              </span>
+                                            )}
+                                            {learn.field && (
+                                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/40">
+                                                <Tag className="w-2.5 h-2.5" />{learn.field}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Stats halaman */}
+                                      <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                          { label: "Total Hal.", value: learn.total_pages, color: "text-slate-200" },
+                                          { label: "Teks", value: learn.text_pages, color: "text-emerald-400" },
+                                          { label: "Scan", value: learn.scan_pages, color: learn.scan_pages > 0 ? "text-amber-400" : "text-slate-500" },
+                                        ].map(({ label, value, color }) => (
+                                          <div key={label} className="bg-white/4 rounded-lg px-2.5 py-2 text-center">
+                                            <p className="text-[9px] text-slate-500 uppercase tracking-wide">{label}</p>
+                                            <p className={`text-sm font-bold ${color}`}>{value}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      {/* Overview AI */}
+                                      {learn.overview && (
+                                        <div className="bg-emerald-950/40 border border-emerald-800/30 rounded-xl p-3">
+                                          <div className="flex items-center gap-1.5 mb-1.5">
+                                            <Brain className="w-3.5 h-3.5 text-emerald-400" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-400/80">Ringkasan AI</span>
+                                          </div>
+                                          <p className="text-[12px] text-slate-300 leading-relaxed">{learn.overview}</p>
+                                        </div>
+                                      )}
+
+                                      {/* Topik utama */}
+                                      {learn.topics.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {learn.topics.map((t, ti) => (
+                                            <span key={ti} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/6 text-slate-300 border border-white/10">
+                                              {t}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* Daftar bab */}
+                                      {learn.chapters.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          <div className="flex items-center gap-1.5">
+                                            <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-400/80">
+                                              Isi Bab / Fasal ({learn.chapters.length})
+                                            </span>
+                                          </div>
+                                          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-0.5">
+                                            {learn.chapters.map((ch, ci) => (
+                                              <div key={ci} className="bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 hover:bg-emerald-900/15 hover:border-emerald-800/30 transition-colors">
+                                                <div className="flex items-start gap-2">
+                                                  <div className="w-5 h-5 rounded-md bg-emerald-900/60 flex items-center justify-center shrink-0 mt-0.5">
+                                                    <span className="text-[8px] font-black text-emerald-400">{ch.nomor}</span>
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                      <p className="text-[12px] font-semibold text-slate-200 leading-snug" dir="auto">{ch.judul}</p>
+                                                      {ch.halaman > 0 && (
+                                                        <span className="text-[9px] text-emerald-500/70 font-medium">hal. {ch.halaman}</span>
+                                                      )}
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{ch.pembahasan}</p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {learn.chapters.length === 0 && (
+                                        <p className="text-[11px] text-slate-500 italic flex items-center gap-1.5">
+                                          <Info className="w-3 h-3 shrink-0" />AI tidak dapat mendeteksi struktur bab pada PDF ini.
+                                        </p>
                                       )}
                                     </div>
                                   </div>

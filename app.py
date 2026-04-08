@@ -1587,6 +1587,175 @@ def api_pdf_inspect():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/pdf/learn", methods=["POST"])
+def api_pdf_learn():
+    """
+    Analisis isi PDF dengan AI: ringkasan keseluruhan + deskripsi tiap bab/fasal.
+    Menggunakan GPT-4o untuk membaca sampel teks dan menjelaskan pembahasannya.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "Tidak ada file yang dikirim."}), 400
+    pdf_file = request.files["file"]
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File harus berformat PDF."}), 400
+    if not check_openai_available():
+        return jsonify({"error": "OPENAI_API_KEY tidak tersedia — fitur analisis AI tidak aktif."}), 503
+
+    try:
+        pdf_bytes = pdf_file.read()
+        base_name = os.path.splitext(pdf_file.filename)[0].replace("-", " ").replace("_", " ").strip()
+
+        # ── Ekstrak teks per halaman (hingga 300 hal, hemat memori) ──
+        pages_text_raw = []   # list of (page_num, text)
+        chapters_detected = []
+
+        fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        total_pages = len(fitz_doc)
+        meta = fitz_doc.metadata or {}
+        pdf_title = (meta.get("title") or "").strip() or base_name
+        fitz_doc.close()
+
+        MAX_PAGES = min(total_pages, 300)
+
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            for i in range(MAX_PAGES):
+                page = pdf.pages[i]
+                raw = (page.extract_text() or "").strip()
+                if raw and len(raw) > 15:
+                    pages_text_raw.append((i + 1, raw))
+                    # Deteksi chapter headings
+                    arab_m = _ARAB_HEADINGS.search(raw[:400])
+                    latin_m = _LATIN_HEADINGS.search(raw[:400])
+                    heading = None
+                    if arab_m:
+                        for ln in raw.split('\n')[:6]:
+                            if _ARAB_HEADINGS.search(ln):
+                                heading = ln.strip()[:150]
+                                break
+                    elif latin_m:
+                        for ln in raw.split('\n')[:6]:
+                            if _LATIN_HEADINGS.search(ln):
+                                heading = ln.strip()[:150]
+                                break
+                    if heading:
+                        chapters_detected.append({"page": i + 1, "heading": heading, "text_sample": raw[:600]})
+
+        text_pages = len(pages_text_raw)
+        scan_pages = MAX_PAGES - text_pages
+
+        if text_pages == 0:
+            return jsonify({
+                "ok": True,
+                "title": pdf_title,
+                "total_pages": total_pages,
+                "text_pages": 0,
+                "scan_pages": scan_pages,
+                "ai_available": False,
+                "overview": "PDF ini tampaknya berisi halaman scan/gambar semua — tidak ada teks digital yang bisa dianalisis. Aktifkan OCR untuk mengekstrak teksnya terlebih dahulu.",
+                "chapters": [],
+                "topics": [],
+            })
+
+        # ── Siapkan sampel teks untuk AI ──
+        # Ambil: 5 hal pertama + 5 hal terakhir + tiap chapter + max 15 hal acak
+        sample_pages = set()
+        for i in range(min(5, len(pages_text_raw))):
+            sample_pages.add(i)
+        for i in range(max(0, len(pages_text_raw) - 5), len(pages_text_raw)):
+            sample_pages.add(i)
+        # Tiap chapter
+        ch_indices = {ch["page"] - 1 for ch in chapters_detected if ch["page"] - 1 < len(pages_text_raw)}
+        sample_pages.update(ch_indices)
+        # Tambah sampel merata
+        step = max(1, len(pages_text_raw) // 15)
+        for i in range(0, len(pages_text_raw), step):
+            sample_pages.add(i)
+
+        sampled = sorted(sample_pages)[:35]
+        sample_text_parts = []
+        for idx in sampled:
+            pnum, ptxt = pages_text_raw[idx]
+            snippet = ptxt[:500].strip()
+            sample_text_parts.append(f"[Halaman {pnum}]\n{snippet}")
+        sample_text = "\n\n---\n\n".join(sample_text_parts)
+
+        # ── Siapkan daftar bab untuk AI ──
+        chapters_for_prompt = "\n".join(
+            f"- Halaman {ch['page']}: {ch['heading']}"
+            for ch in chapters_detected[:30]
+        ) or "(tidak terdeteksi otomatis)"
+
+        # ── Bangun prompt AI ──
+        prompt = f"""Kamu adalah asisten analisis kitab/buku berbahasa Arab dan Indonesia.
+
+Berikut adalah metadata dan sampel teks dari PDF berjudul "{pdf_title}":
+- Total halaman: {total_pages} (teks digital: {text_pages}, scan: {scan_pages})
+- Bab/fasal terdeteksi otomatis:
+{chapters_for_prompt}
+
+=== SAMPEL TEKS PDF ===
+{sample_text[:6000]}
+=== AKHIR SAMPEL ===
+
+Berdasarkan informasi di atas, buatlah analisis dalam format JSON berikut (jawab HANYA JSON, tanpa markdown):
+{{
+  "judul": "judul/nama kitab yang sebenarnya (dari teks)",
+  "penulis": "nama penulis jika ditemukan, kosong jika tidak",
+  "bahasa": "Arab / Indonesia / Campuran",
+  "bidang": "bidang ilmu (misal: Fiqh, Aqidah, Tafsir, Hadits, dsb)",
+  "overview": "ringkasan 2-3 kalimat tentang isi dan tujuan kitab ini",
+  "bab": [
+    {{
+      "nomor": 1,
+      "judul": "judul bab/fasal (teks asli jika Arab)",
+      "halaman": 1,
+      "pembahasan": "1-2 kalimat tentang apa yang dibahas di bab ini"
+    }}
+  ],
+  "topik_utama": ["topik1", "topik2", "topik3"]
+}}
+
+Jika bab tidak terdeteksi otomatis, identifikasi dari konten teks. Maksimal 20 bab."""
+
+        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2000,
+            temperature=0.3,
+        )
+        raw_json = response.choices[0].message.content.strip()
+
+        # Bersihkan jika ada markdown fence
+        if raw_json.startswith("```"):
+            raw_json = re.sub(r"^```[a-z]*\n?", "", raw_json)
+            raw_json = re.sub(r"\n?```$", "", raw_json)
+
+        ai_result = json.loads(raw_json)
+
+        return jsonify({
+            "ok": True,
+            "title": ai_result.get("judul") or pdf_title,
+            "author": ai_result.get("penulis", ""),
+            "language": ai_result.get("bahasa", ""),
+            "field": ai_result.get("bidang", ""),
+            "total_pages": total_pages,
+            "text_pages": text_pages,
+            "scan_pages": scan_pages,
+            "ai_available": True,
+            "overview": ai_result.get("overview", ""),
+            "chapters": ai_result.get("bab", []),
+            "topics": ai_result.get("topik_utama", []),
+        })
+
+    except json.JSONDecodeError as je:
+        logger.error(f"[PDF LEARN] JSON parse error: {je}")
+        return jsonify({"error": "AI mengembalikan format tidak valid. Coba lagi."}), 500
+    except Exception as e:
+        logger.error(f"[PDF LEARN] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 def _safe_pdf_slug(filename: str, suffix: str = "") -> str:
     """Buat slug aman dari nama file PDF (bisa non-ASCII/Arab)."""
     base = os.path.splitext(filename)[0]
