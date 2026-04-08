@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import {
   Youtube, FileText, Rss, Send, ChevronLeft, Loader2,
   CheckCircle2, AlertCircle, ArrowRight, Upload, X, Hash,
-  RefreshCw, ExternalLink,
+  RefreshCw, ExternalLink, Wand2, Sparkles,
+  Newspaper, BookOpen, Zap, List, Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ type Tab = "youtube" | "docx" | "rss" | "telegram";
 interface KbResult {
   id: string;
   title: string;
+  content?: string;
   source_url: string;
   approval_status: string;
   scrape_status: string;
@@ -28,6 +30,24 @@ interface ScrapeResult {
   article?: KbResult;
   error?: string;
 }
+
+type AiFormat = "berita" | "kitab" | "laporan" | "ringkasan" | "poin" | "briefing";
+
+interface AiItemState {
+  open: boolean;
+  loading: boolean;
+  done: boolean;
+  error: string;
+}
+
+const AI_FORMATS: { value: AiFormat; label: string; icon: React.ReactNode; color: string; activeBg: string; activeBorder: string; activeColor: string }[] = [
+  { value: "berita",    label: "Berita",    icon: <Newspaper className="w-2.5 h-2.5" />, color: "text-slate-400",   activeColor: "text-violet-300",  activeBg: "rgba(139,92,246,0.18)",  activeBorder: "rgba(139,92,246,0.5)" },
+  { value: "kitab",     label: "Kitab",     icon: <BookOpen className="w-2.5 h-2.5" />,  color: "text-slate-400",   activeColor: "text-orange-300",  activeBg: "rgba(251,146,60,0.15)",  activeBorder: "rgba(251,146,60,0.5)" },
+  { value: "laporan",   label: "Laporan",   icon: <FileText className="w-2.5 h-2.5" />,  color: "text-slate-400",   activeColor: "text-blue-300",    activeBg: "rgba(96,165,250,0.15)",  activeBorder: "rgba(96,165,250,0.5)" },
+  { value: "ringkasan", label: "Ringkasan", icon: <Zap className="w-2.5 h-2.5" />,       color: "text-slate-400",   activeColor: "text-yellow-300",  activeBg: "rgba(251,191,36,0.15)",  activeBorder: "rgba(251,191,36,0.5)" },
+  { value: "poin",      label: "Poin",      icon: <List className="w-2.5 h-2.5" />,      color: "text-slate-400",   activeColor: "text-emerald-300", activeBg: "rgba(52,211,153,0.15)",  activeBorder: "rgba(52,211,153,0.5)" },
+  { value: "briefing",  label: "Briefing",  icon: <Radio className="w-2.5 h-2.5" />,     color: "text-slate-400",   activeColor: "text-pink-300",    activeBg: "rgba(232,121,249,0.15)", activeBorder: "rgba(232,121,249,0.5)" },
+];
 
 const TAB_CONFIG: { id: Tab; label: string; icon: React.ReactNode; color: string; accent: string }[] = [
   { id: "youtube", label: "YouTube",  icon: <Youtube className="w-3.5 h-3.5" />,  color: "text-red-400",    accent: "bg-red-900/20 border-red-700/40" },
@@ -62,6 +82,10 @@ export default function MoreSourcesPage() {
   const [tgLimit, setTgLimit] = useState(20);
   const [tgLoading, setTgLoading] = useState(false);
   const [tgResult, setTgResult] = useState<ScrapeResult | null>(null);
+
+  // ── AI Fix state (keyed by article ID) ──
+  const [aiState, setAiState] = useState<Record<string, AiItemState>>({});
+  const [aiFormatPicker, setAiFormatPicker] = useState<Record<string, boolean>>({});
 
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` };
 
@@ -131,9 +155,120 @@ export default function MoreSourcesPage() {
     });
   };
 
+  const toggleAiPicker = (id: string) => {
+    setAiFormatPicker(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const doAiFix = async (article: KbResult, format: AiFormat) => {
+    const id = article.id;
+    setAiFormatPicker(prev => ({ ...prev, [id]: false }));
+    setAiState(prev => ({ ...prev, [id]: { open: true, loading: true, done: false, error: "" } }));
+    try {
+      const fmtRes = await fetch(apiUrl("/api/format-text"), {
+        method: "POST", headers,
+        body: JSON.stringify({
+          title: article.title || "",
+          content: article.content || article.title || "",
+          format,
+        }),
+      });
+      const fmtData = await fmtRes.json();
+      if (!fmtRes.ok) throw new Error(fmtData.error || "AI format gagal");
+
+      const saveRes = await fetch(apiUrl("/kb/update-status"), {
+        method: "POST", headers,
+        body: JSON.stringify({
+          id,
+          status: "pending",
+          content: fmtData.formatted_content,
+        }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || "Gagal menyimpan ke KB");
+
+      setAiState(prev => ({ ...prev, [id]: { open: true, loading: false, done: true, error: "" } }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Terjadi kesalahan";
+      setAiState(prev => ({ ...prev, [id]: { open: true, loading: false, done: false, error: msg } }));
+    }
+  };
+
+  function AiFixSection({ article }: { article: KbResult }) {
+    const state = aiState[article.id];
+    const pickerOpen = aiFormatPicker[article.id] ?? false;
+
+    if (state?.loading) {
+      return (
+        <div className="mt-2 flex items-center gap-2 px-2 py-1.5 bg-violet-900/20 border border-violet-700/30 rounded-lg">
+          <Loader2 className="w-3 h-3 text-violet-400 animate-spin shrink-0" />
+          <span className="text-[11px] text-violet-300">AI sedang memproses...</span>
+        </div>
+      );
+    }
+
+    if (state?.done) {
+      return (
+        <div className="mt-2 flex items-center gap-2 px-2 py-1.5 bg-emerald-900/20 border border-emerald-700/30 rounded-lg">
+          <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+          <span className="text-[11px] text-emerald-300 font-semibold">AI selesai — konten diperbarui di KB</span>
+        </div>
+      );
+    }
+
+    if (state?.error) {
+      return (
+        <div className="mt-2 space-y-1.5">
+          <div className="flex items-start gap-2 px-2 py-1.5 bg-red-900/20 border border-red-700/30 rounded-lg">
+            <AlertCircle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+            <span className="text-[11px] text-red-300">{state.error}</span>
+          </div>
+          <button onClick={() => toggleAiPicker(article.id)}
+            className="flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300 transition-colors">
+            <Wand2 className="w-3 h-3" />Coba lagi
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-2 space-y-1.5">
+        <button
+          onClick={() => toggleAiPicker(article.id)}
+          className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+            pickerOpen
+              ? "bg-violet-700/25 border-violet-500/50 text-violet-300"
+              : "bg-violet-900/15 border-violet-700/30 text-violet-400 hover:bg-violet-800/20 hover:text-violet-300"
+          }`}>
+          <Wand2 className="w-3 h-3" />
+          Perbaiki dengan AI
+        </button>
+
+        {pickerOpen && (
+          <div className="bg-[#0a061a] border border-violet-800/40 rounded-xl p-2.5 space-y-2">
+            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider px-0.5">Pilih format output</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {AI_FORMATS.map(fmt => (
+                <button key={fmt.value} onClick={() => doAiFix(article, fmt.value)}
+                  className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg border text-[11px] font-semibold transition-all hover:opacity-90 active:scale-95"
+                  style={{ background: fmt.activeBg, borderColor: fmt.activeBorder, color: fmt.activeColor }}>
+                  {fmt.icon}{fmt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-600 px-0.5 leading-relaxed">
+              AI akan memformat ulang konten dan menyimpannya ke KB. Mendukung teks Arab, Latin, dan campuran.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function ResultBox({ result }: { result: ScrapeResult | null }) {
     if (!result) return null;
-    const count = result.count ?? (result.article ? 1 : 0);
+    const articles = result.articles ?? (result.article ? [result.article] : []);
+    const count = result.count ?? articles.length;
+
     return (
       <div className={`rounded-xl border p-3.5 space-y-2 ${
         result.status === "ok"
@@ -154,28 +289,41 @@ export default function MoreSourcesPage() {
             )}
           </div>
         </div>
+
         {result.status === "ok" && count > 0 && (
-          <div className="space-y-1.5">
-            {(result.articles ?? (result.article ? [result.article] : [])).slice(0, 5).map((a, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5">
-                <Hash className="w-3 h-3 text-violet-400 shrink-0" />
-                <p className="text-xs text-slate-300 truncate flex-1">{a.title || "(Tanpa Judul)"}</p>
-                {a.source_url && (
-                  <a href={a.source_url} target="_blank" rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 shrink-0">
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+          <div className="space-y-2">
+            {articles.slice(0, 5).map((a, i) => (
+              <div key={i} className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Hash className="w-3 h-3 text-violet-400 shrink-0" />
+                  <p className="text-xs text-slate-300 truncate flex-1 font-medium">{a.title || "(Tanpa Judul)"}</p>
+                  {a.source_url && (
+                    <a href={a.source_url} target="_blank" rel="noopener noreferrer"
+                      className="text-indigo-400 hover:text-indigo-300 shrink-0 ml-1">
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <AiFixSection article={a} />
               </div>
             ))}
             {count > 5 && (
-              <p className="text-xs text-slate-500 pl-2">...dan {count - 5} lainnya</p>
+              <p className="text-xs text-slate-500 pl-2">...dan {count - 5} lainnya tersimpan di KB</p>
             )}
-            <Link to="/review">
-              <button className="mt-1 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 hover:bg-emerald-900/30 transition-colors">
-                Buka Review Dashboard <ArrowRight className="w-3 h-3" />
-              </button>
-            </Link>
+
+            <div className="pt-1 space-y-1.5">
+              <div className="flex items-start gap-2 px-2.5 py-2 bg-violet-900/15 border border-violet-700/25 rounded-lg">
+                <Sparkles className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-violet-300/80 leading-relaxed">
+                  Klik <span className="font-semibold text-violet-300">Perbaiki dengan AI</span> pada tiap artikel untuk memformat ulang kontennya — mendukung semua jenis teks dan output berbagai format tulisan.
+                </p>
+              </div>
+              <Link to="/review">
+                <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 hover:bg-emerald-900/30 transition-colors">
+                  Buka Review Dashboard <ArrowRight className="w-3 h-3" />
+                </button>
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -453,24 +601,24 @@ export default function MoreSourcesPage() {
 
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Username Channel</label>
+                      <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Username Channel Telegram</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">@</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold select-none">@</span>
                         <Input
                           value={tgChannel}
                           onChange={e => setTgChannel(e.target.value.replace(/^@/, ""))}
                           onKeyDown={e => e.key === "Enter" && doTelegram()}
-                          placeholder="kemlu_ri"
-                          className="h-9 pl-7 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-sky-400/40"
+                          placeholder="namachannel"
+                          className="h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-sky-400/40 pl-7"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Maks. Postingan</label>
+                      <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Jumlah Postingan</label>
                       <div className="flex items-center gap-3 bg-[#0f0a1e] border border-violet-800/40 rounded-xl px-3.5 py-2.5">
-                        <span className="text-xs text-slate-500 flex-1">Postingan per fetch</span>
+                        <span className="text-xs text-slate-500 flex-1">Post yang diambil</span>
                         <span className="text-sm font-bold text-sky-300 tabular-nums w-8 text-right">{tgLimit}</span>
-                        <input type="range" min={5} max={100} step={5} value={tgLimit}
+                        <input type="range" min={5} max={50} step={5} value={tgLimit}
                           onChange={e => setTgLimit(Number(e.target.value))}
                           className="w-28 accent-sky-500 cursor-pointer" />
                       </div>
@@ -481,12 +629,6 @@ export default function MoreSourcesPage() {
                     </Button>
                   </div>
 
-                  {tgLoading && (
-                    <div className="flex items-center gap-2 text-xs text-slate-400 bg-white/5 rounded-xl px-3 py-2.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
-                      Mengambil postingan dari t.me/{tgChannel}...
-                    </div>
-                  )}
                   <ResultBox result={tgResult} />
                   {tgResult && (
                     <button onClick={() => { setTgChannel(""); setTgResult(null); }}
@@ -502,7 +644,7 @@ export default function MoreSourcesPage() {
         </div>
       </div>
 
-      <BottomNav active="home" />
+      <BottomNav />
     </div>
   );
 }

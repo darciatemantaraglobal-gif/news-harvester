@@ -25,7 +25,7 @@ Full-stack monorepo:
 - `src/pages/Index.tsx` — Scraper page at `/scraper` (Berita Kemlu/KBRI)
 - `src/pages/PdfPage.tsx` — PDF upload page at `/pdf` (Kitab Arab)
 - `src/pages/PastePage.tsx` — Paste & AI format at `/paste`
-- `src/pages/MoreSourcesPage.tsx` — Extra sources at `/sources` (YouTube, DOCX, RSS, Telegram)
+- `src/pages/MoreSourcesPage.tsx` — Extra sources at `/sources` (YouTube, DOCX, RSS, Telegram) with inline "Perbaiki dengan AI" per article
 - `src/pages/ReviewDashboard.tsx` — KB Review & approval interface at `/review`
 - `src/components/BottomNav.tsx` — Shared bottom nav (Beranda | Review), consistent across all pages
 - `src/components/ui/` — shadcn/ui components
