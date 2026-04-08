@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X, Newspaper, BookOpen, FileText, List, Zap, Radio } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X, Newspaper, BookOpen, FileText, List, Zap, Radio, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
@@ -49,6 +49,23 @@ export default function PastePage() {
   const [arabicMode, setArabicMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hasContent = !!(title || content || result || ocrImage);
+
+  const handleReset = () => {
+    setTitle("");
+    setContent("");
+    setResult("");
+    setError("");
+    setOcrImage(null);
+    setOcrPreview("");
+    setOcrError("");
+    setPushStatus(null);
+    setActiveFormatLabel("");
+    setArabicMode(false);
+    setCopied(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleRapikan = async () => {
     if (!content.trim()) return;
@@ -199,6 +216,17 @@ export default function PastePage() {
           <p className="text-violet-400/60 text-[10px] sm:text-xs">Tempel artikel, rapikan otomatis dengan AI</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {hasContent && !loading && !ocrLoading && (
+            <button
+              onClick={handleReset}
+              title="Mulai dari awal"
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all"
+              style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+          )}
           <div className="flex items-center gap-1.5 bg-violet-900/30 border border-violet-700/40 rounded-full px-2.5 py-1">
             <Sparkles className="w-3 h-3 text-violet-400" />
             <span className="text-[10px] font-semibold text-violet-300">Rapikan AI</span>

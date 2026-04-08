@@ -6,7 +6,7 @@ import {
   AlertCircle, BookOpen, CheckSquare, X,
   Sparkles, Info, ScanLine, Layers, DollarSign, ChevronDown, Wand2,
   Search, ChevronUp, Hash, Image, AlignLeft, ListCollapse,
-  GraduationCap, Brain, Tag, Globe, ChevronRight,
+  GraduationCap, Brain, Tag, Globe, ChevronRight, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
@@ -130,6 +130,25 @@ export default function PdfPage() {
     setFiles(prev => prev.filter(f => f.name !== name));
     setInspectMap(prev => { const n = { ...prev }; delete n[name]; return n; });
     setInspectOpenMap(prev => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  const handleReset = () => {
+    setFiles([]);
+    setResults([]);
+    setUploadProgress("");
+    setRapikanState({});
+    setInspectMap({});
+    setInspectLoadingMap({});
+    setInspectErrorMap({});
+    setInspectOpenMap({});
+    setShowAllPagesMap({});
+    setLearnMap({});
+    setLearnLoadingMap({});
+    setLearnErrorMap({});
+    setLearnOpenMap({});
+    setPageStart(1);
+    setPageEnd(0);
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleInspect = async (file: File) => {
@@ -333,13 +352,26 @@ export default function PdfPage() {
               <p className="text-violet-300/70 text-[11px] lg:text-[13px]">Upload kitab PDF, chunk per bab</p>
             </div>
           </div>
-          {okResults.length > 0 && (
-            <Link to="/review" className="hidden sm:inline-flex">
-              <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white h-8 lg:h-10 px-3 lg:px-4 text-xs lg:text-sm rounded-full">
-                <CheckSquare className="w-3.5 h-3.5" />Review KB ({totalChunks})
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {(files.length > 0 || results.length > 0) && !uploading && (
+              <button
+                onClick={handleReset}
+                title="Mulai dari awal"
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all"
+                style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+            )}
+            {okResults.length > 0 && (
+              <Link to="/review" className="hidden sm:inline-flex">
+                <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white h-8 lg:h-10 px-3 lg:px-4 text-xs lg:text-sm rounded-full">
+                  <CheckSquare className="w-3.5 h-3.5" />Review KB ({totalChunks})
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* ─── Scrollable Content ─── */}
