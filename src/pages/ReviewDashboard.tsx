@@ -5,7 +5,7 @@ import {
   Newspaper, CheckCircle2, XCircle, Clock, Eye, Send, Download,
   Loader2, ChevronLeft, RefreshCw, FileJson, CheckSquare,
   AlertCircle, Filter, BarChart3, FileText, Upload, X, ChevronDown,
-  Sparkles, Copy, Check, Save, RotateCcw,
+  Sparkles, Copy, Check, Save, RotateCcw, Trash2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { getToken } from "@/lib/auth";
@@ -112,6 +112,8 @@ export default function ReviewDashboard() {
   const [rapikanSaving, setRapikanSaving] = useState(false);
   const [rapikanSaved, setRapikanSaved] = useState(false);
   const [rapikanArabicMode, setRapikanArabicMode] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -269,6 +271,39 @@ export default function ReviewDashboard() {
     setTimeout(() => setPushResult(null), 6000);
   };
 
+  const deleteArticle = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(apiUrl("/kb/delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setArticles(prev => prev.filter(a => a.id !== id));
+        setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
+        if (detailId === id) setDetailId(null);
+        fetchStats();
+      }
+    } catch {}
+    setDeletingId(null);
+  };
+
+  const doReset = async () => {
+    if (!window.confirm("Reset semua KB draft? Semua artikel (pending, reviewed, approved, exported) akan dihapus permanen.")) return;
+    setResetLoading(true);
+    try {
+      const res = await fetch(apiUrl("/kb/reset"), { method: "POST" });
+      if (res.ok) {
+        setArticles([]);
+        setSelected(new Set());
+        setDetailId(null);
+        setStats({ total: 0, pending: 0, reviewed: 0, approved: 0, rejected: 0, exported: 0 });
+      }
+    } catch {}
+    setResetLoading(false);
+  };
+
   const openDetail = (id: string) => {
     setDetailId(id);
     setRapikanResult("");
@@ -353,6 +388,12 @@ export default function ReviewDashboard() {
                 <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline text-xs">Approved</span>
               </Button>
             </a>
+            <Button variant="ghost" size="sm" onClick={doReset} disabled={resetLoading || stats.total === 0}
+              title="Reset semua KB draft"
+              className="gap-1 text-red-400/70 hover:text-red-300 hover:bg-red-900/20 h-8 px-2 sm:px-3 text-xs rounded-full border border-red-500/20 disabled:opacity-30">
+              {resetLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline text-xs">Reset</span>
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => { fetchArticles(); fetchStats(); }}
               className="h-8 w-8 p-0 text-white/60 hover:text-white hover:bg-white/10 rounded-full shrink-0">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -553,12 +594,21 @@ export default function ReviewDashboard() {
                                     {article.slug}
                                   </p>
                                 </div>
-                                <button
-                                  onClick={() => openDetail(article.id)}
-                                  title="Lihat Detail"
-                                  className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => openDetail(article.id)}
+                                    title="Lihat Detail"
+                                    className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteArticle(article.id)}
+                                    disabled={deletingId === article.id}
+                                    title="Hapus artikel"
+                                    className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-900/20 transition-all border border-transparent hover:border-red-700/30 disabled:opacity-40">
+                                    {deletingId === article.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Meta row */}
@@ -783,13 +833,22 @@ export default function ReviewDashboard() {
                                 className="h-7 text-xs border-violet-700/40 bg-violet-950/30 text-slate-200 rounded-lg focus-visible:ring-violet-400 placeholder:text-slate-500"
                               />
                             </td>
-                            <td className="px-2 py-3.5 w-10">
-                              <button
-                                onClick={() => openDetail(article.id)}
-                                title="Lihat Detail"
-                                className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-600 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
+                            <td className="px-2 py-3.5 w-20">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openDetail(article.id)}
+                                  title="Lihat Detail"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-600 hover:text-violet-300 hover:bg-violet-900/30 transition-all border border-transparent hover:border-violet-700/40">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => deleteArticle(article.id)}
+                                  disabled={deletingId === article.id}
+                                  title="Hapus artikel"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-900/20 transition-all border border-transparent hover:border-red-700/30 disabled:opacity-40">
+                                  {deletingId === article.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1163,6 +1222,14 @@ export default function ReviewDashboard() {
                       </button>
                     );
                   })}
+                  <button
+                    disabled={deletingId === a.id}
+                    onClick={() => deleteArticle(a.id)}
+                    title="Hapus artikel"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-red-400/70 hover:text-red-300 bg-red-900/10 hover:bg-red-900/25 border border-red-700/20 transition-all disabled:opacity-40">
+                    {deletingId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    Hapus
+                  </button>
                 </div>
                 <button onClick={() => closeDetail()}
                   className="px-4 py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all">

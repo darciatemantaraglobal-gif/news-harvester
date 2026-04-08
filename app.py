@@ -2486,6 +2486,48 @@ def kb_stats():
     return jsonify(counts)
 
 
+@app.route("/kb/delete", methods=["POST"])
+def kb_delete():
+    """Hapus satu artikel KB berdasarkan id."""
+    data = request.get_json(force=True)
+    article_id = (data.get("id") or "").strip()
+    if not article_id:
+        return jsonify({"error": "id wajib diisi"}), 400
+
+    kb = _load_kb()
+    new_kb = [a for a in kb if a.get("id") != article_id]
+    if len(new_kb) == len(kb):
+        return jsonify({"error": "Artikel tidak ditemukan"}), 404
+
+    _save_kb(new_kb)
+
+    # Hapus dari file approved/exported juga
+    for fpath in [KB_APPROVED_FILE, KB_EXPORTED_FILE]:
+        try:
+            items = _load_file(fpath)
+            filtered = [a for a in items if a.get("id") != article_id]
+            if len(filtered) != len(items):
+                with open(fpath, "w", encoding="utf-8") as f:
+                    json.dump(filtered, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    return jsonify({"status": "ok", "deleted": article_id})
+
+
+@app.route("/kb/reset", methods=["POST"])
+def kb_reset():
+    """Hapus semua KB draft (reset total)."""
+    _save_kb([])
+    for fpath in [KB_APPROVED_FILE, KB_EXPORTED_FILE]:
+        try:
+            with open(fpath, "w", encoding="utf-8") as f:
+                json.dump([], f)
+        except Exception:
+            pass
+    return jsonify({"status": "ok"})
+
+
 @app.route("/export/kb-approved")
 def export_kb_approved():
     items = _load_file(KB_APPROVED_FILE)
