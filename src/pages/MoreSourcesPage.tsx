@@ -177,7 +177,7 @@ export default function MoreSourcesPage() {
   const addDocxFiles = (files: FileList | null) => {
     if (!files) return;
     const valid = Array.from(files).filter(f =>
-      f.name.toLowerCase().endsWith(".docx") || f.name.toLowerCase().endsWith(".doc")
+      f.name.toLowerCase().endsWith(".docx")
     );
     setDocxFiles(prev => {
       const names = new Set(prev.map(f => f.name));
@@ -643,7 +643,7 @@ export default function MoreSourcesPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-white text-sm">Word / DOCX Parser</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Upload .docx/.doc → KB Draft → Approve → Push Supabase.</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Upload file .docx → KB Draft → Approve → Push Supabase.</p>
                     </div>
                   </div>
                   <div
@@ -656,8 +656,8 @@ export default function MoreSourcesPage() {
                     }`}>
                     <Upload className="w-5 h-5 text-blue-400" />
                     <p className="text-xs text-blue-300/70 font-medium">Drag & drop atau klik untuk pilih</p>
-                    <p className="text-[10px] text-slate-600">.docx, .doc — bisa banyak file</p>
-                    <input ref={docxRef} type="file" className="hidden" multiple accept=".docx,.doc"
+                    <p className="text-[10px] text-slate-600">.docx — bisa banyak file sekaligus</p>
+                    <input ref={docxRef} type="file" className="hidden" multiple accept=".docx"
                       onChange={e => addDocxFiles(e.target.files)} />
                   </div>
                   {docxFiles.length > 0 && (

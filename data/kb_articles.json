@@ -26,5 +26,61 @@
     ],
     "scrape_status": "success",
     "approval_status": "pending"
+  },
+  {
+    "id": "extra-docx-1775671210763-767fa8",
+    "title": "Judul Dokumen Test",
+    "slug": "judul-dokumen-test",
+    "source_url": "",
+    "published_date": "2026-04-08T18:00:10",
+    "content": "Ini adalah paragraf pertama dari dokumen test. Paragraf kedua berisi informasi tambahan.",
+    "summary": "Ini adalah paragraf pertama dari dokumen test. Paragraf kedua berisi informasi tambahan.",
+    "tags": [
+      "docx"
+    ],
+    "scrape_status": "success",
+    "approval_status": "pending"
+  },
+  {
+    "id": "extra-docx-1775671364862-1c6ea8",
+    "title": "Judul Dokumen Test",
+    "slug": "judul-dokumen-test",
+    "source_url": "",
+    "published_date": "2026-04-08T18:02:44",
+    "content": "Ini adalah paragraf pertama dari dokumen test. Paragraf kedua berisi informasi tambahan.",
+    "summary": "Ini adalah paragraf pertama dari dokumen test. Paragraf kedua berisi informasi tambahan.",
+    "tags": [
+      "docx"
+    ],
+    "scrape_status": "success",
+    "approval_status": "pending"
+  },
+  {
+    "id": "extra-docx-1775671365452-6f3c6f",
+    "title": "Laporan Bulanan",
+    "slug": "laporan-bulanan",
+    "source_url": "",
+    "published_date": "2026-04-08T18:02:45",
+    "content": "Kategori\nJumlah\nArtikel scrape\nArtikel push Supabase",
+    "summary": "Kategori\nJumlah\nArtikel scrape\nArtikel push Supabase",
+    "tags": [
+      "docx"
+    ],
+    "scrape_status": "success",
+    "approval_status": "pending"
+  },
+  {
+    "id": "extra-docx-1775671402579-b011d2",
+    "title": "Analisis Kebijakan Luar Negeri",
+    "slug": "analisis-kebijakan-luar-negeri",
+    "source_url": "",
+    "published_date": "2026-04-08T18:03:22",
+    "content": "Paragraf pertama tentang kebijakan. Paragraf kedua tentang implementasi.",
+    "summary": "Paragraf pertama tentang kebijakan. Paragraf kedua tentang implementasi.",
+    "tags": [
+      "docx"
+    ],
+    "scrape_status": "success",
+    "approval_status": "pending"
   }
 ]

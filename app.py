@@ -2841,67 +2841,108 @@ def api_youtube_scrape():
 @app.route("/api/docx/upload", methods=["POST"])
 def api_docx_upload():
     """Upload dan parse satu atau lebih file .docx/.doc menjadi KB drafts."""
+    import tempfile as _tempfile, os as _os
+
     files = request.files.getlist("files")
     if not files:
         return jsonify({"error": "Tidak ada file yang diupload."}), 400
 
     try:
         import docx as _docx
+        from docx.opc.exceptions import PackageNotFoundError as _PkgNotFound
     except ImportError:
         return jsonify({"error": "Library python-docx tidak tersedia."}), 500
+
+    def _extract_text_from_doc(doc):
+        """Ekstrak semua teks dari paragraf + sel tabel."""
+        blocks = []
+        # Paragraf biasa
+        for para in doc.paragraphs:
+            t = para.text.strip()
+            if t:
+                blocks.append((para.style.name if para.style else "", t))
+        # Teks di dalam tabel
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        t = para.text.strip()
+                        if t and t not in [b[1] for b in blocks]:
+                            blocks.append(("Normal", t))
+        return blocks
 
     articles = []
     errors = []
 
     for f in files:
         fname = f.filename or "unknown.docx"
+        fname_lower = fname.lower()
+        tmp_path = None
         try:
-            # Simpan ke file temp lalu baca
-            import tempfile, os as _os
-            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
-                f.save(tmp.name)
-                tmp_path = tmp.name
+            # Tolak .doc lama — python-docx hanya support .docx (Office Open XML)
+            if fname_lower.endswith(".doc") and not fname_lower.endswith(".docx"):
+                errors.append(
+                    f"{fname}: Format .doc (Word lama) tidak didukung. "
+                    "Buka di Word/LibreOffice lalu Save As → .docx, kemudian upload ulang."
+                )
+                continue
 
-            doc = _docx.Document(tmp_path)
-            _os.unlink(tmp_path)
+            # Simpan ke file temp
+            tmp_fd, tmp_path = _tempfile.mkstemp(suffix=".docx")
+            _os.close(tmp_fd)
+            f.save(tmp_path)
 
-            # Cari judul: Title style, Heading 1, atau baris pertama yang panjang
+            try:
+                doc = _docx.Document(tmp_path)
+            except _PkgNotFound:
+                errors.append(
+                    f"{fname}: File tidak bisa dibaca. Pastikan file adalah .docx yang valid "
+                    "(bukan .doc lama, bukan file yang rusak/terenkripsi)."
+                )
+                continue
+
+            blocks = _extract_text_from_doc(doc)
+
+            # Cari judul: Title style, Heading 1, atau baris pertama yang pendek
             title = ""
             paragraphs = []
-            for para in doc.paragraphs:
-                text = para.text.strip()
-                if not text:
-                    continue
-                style_name = para.style.name if para.style else ""
-                is_title_style = style_name in ("Title", "Subtitle") or style_name.startswith("Heading")
-                if not title and is_title_style:
+            for style_name, text in blocks:
+                is_heading = style_name in ("Title", "Subtitle") or style_name.startswith("Heading")
+                if not title and is_heading:
                     title = text
                 else:
                     paragraphs.append(text)
 
-            # Fallback: pakai baris pertama sebagai judul jika cukup panjang
+            # Fallback: baris pertama pendek → jadikan judul
             if not title and paragraphs:
-                first = paragraphs[0]
-                if len(first) <= 120:
-                    title = first
+                if len(paragraphs[0]) <= 150:
+                    title = paragraphs[0]
                     paragraphs = paragraphs[1:]
 
+            # Fallback terakhir: nama file
             if not title:
-                # Pakai nama file sebagai fallback
                 title = _os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").title()
 
             content = "\n\n".join(paragraphs)
             if not content.strip():
-                errors.append(f"{fname}: konten kosong")
+                errors.append(f"{fname}: Tidak ada teks yang dapat diekstrak dari dokumen ini.")
                 continue
 
             draft = _make_kb_draft(title, content, source_tag="docx")
             articles.append(draft)
+
         except Exception as e:
             errors.append(f"{fname}: {str(e)}")
+        finally:
+            if tmp_path and _os.path.exists(tmp_path):
+                try:
+                    _os.unlink(tmp_path)
+                except Exception:
+                    pass
 
     if not articles:
-        return jsonify({"error": "Tidak ada file yang berhasil diproses. " + "; ".join(errors)}), 400
+        err_detail = " | ".join(errors)
+        return jsonify({"error": f"Tidak ada file yang berhasil diproses. {err_detail}"}), 400
 
     return jsonify({
         "status": "ok",
