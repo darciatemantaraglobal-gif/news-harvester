@@ -10,6 +10,7 @@ from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+import openai
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
 from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch
@@ -1790,156 +1791,183 @@ def _pdf_job_worker(job_id: str, files_data: list, category: str, chunk_size: in
             _pdf_jobs[job_id]["progress"] = msg
             _pdf_jobs[job_id]["done_files"] = done_files
 
+    # Jika OCR diminta tapi API key tidak tersedia, langsung beri tahu
+    if use_ocr and not ocr_available:
+        with _pdf_jobs_lock:
+            _pdf_jobs[job_id].update({
+                "status": "done",
+                "progress": "OCR tidak bisa dijalankan — OPENAI_API_KEY belum diset.",
+                "done_files": 0,
+                "results": {
+                    "status": "ok",
+                    "processed": 0,
+                    "total": total_files,
+                    "total_chunks": 0,
+                    "results": [{"filename": f, "status": "error",
+                                 "error": "OPENAI_API_KEY tidak ditemukan. Set secret OPENAI_API_KEY di environment untuk menggunakan OCR."}
+                                for f, _ in files_data],
+                },
+            })
+        logger.warning(f"[PDF JOB] {job_id} dibatalkan — OPENAI_API_KEY tidak ada")
+        return
+
     _set_progress(f"Memulai pemrosesan {total_files} file...")
 
-    for fi, (fname, pdf_bytes) in enumerate(files_data):
-        _set_progress(f"[{fi+1}/{total_files}] Membaca {fname}...", fi)
-        try:
-            pages_text = []
-            scan_page_indices = []
-            text_pages = 0
+    try:
+        for fi, (fname, pdf_bytes) in enumerate(files_data):
+            _set_progress(f"[{fi+1}/{total_files}] Membaca {fname}...", fi)
+            try:
+                pages_text = []
+                scan_page_indices = []
+                text_pages = 0
 
-            fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            total_pages = len(fitz_doc)
-            p_start_idx = max(0, page_start_g - 1)
-            p_end_idx = min(total_pages - 1, page_end_g - 1) if page_end_g > 0 else total_pages - 1
+                fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                total_pages = len(fitz_doc)
+                p_start_idx = max(0, page_start_g - 1)
+                p_end_idx = min(total_pages - 1, page_end_g - 1) if page_end_g > 0 else total_pages - 1
 
-            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                for i, page in enumerate(pdf.pages):
-                    if i < p_start_idx or i > p_end_idx:
+                with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                    for i, page in enumerate(pdf.pages):
+                        if i < p_start_idx or i > p_end_idx:
+                            continue
+                        raw_text = (page.extract_text() or "").strip()
+                        if raw_text and len(raw_text) > 20:
+                            pages_text.append((i + 1, raw_text, False))
+                            text_pages += 1
+                        else:
+                            pages_text.append((i + 1, "", True))
+                            scan_page_indices.append(i)
+
+                scan_pages = len(scan_page_indices)
+
+                if use_ocr and ocr_available and scan_page_indices:
+                    ocr_indices = scan_page_indices[:max_ocr_pages]
+                    ocr_skipped = len(scan_page_indices) - len(ocr_indices)
+                    total_batches = (len(ocr_indices) + OCR_BATCH - 1) // OCR_BATCH
+
+                    if ocr_skipped > 0:
+                        logger.info(f"[PDF OCR] Cap: {ocr_skipped} hal. skip (limit {max_ocr_pages})")
+
+                    mat = fitz.Matrix(1.5, 1.5)
+                    scan_imgs = {}
+                    for i in ocr_indices:
+                        pix = fitz_doc[i].get_pixmap(matrix=mat)
+                        scan_imgs[i] = pix.tobytes("png")
+
+                    idx_list = list(scan_imgs.keys())
+                    for bn, batch_start_idx in enumerate(range(0, len(idx_list), OCR_BATCH)):
+                        batch_end_idx = min(batch_start_idx + OCR_BATCH - 1, len(idx_list) - 1)
+                        _set_progress(
+                            f"[{fi+1}/{total_files}] OCR {fname}: batch {bn+1}/{total_batches} "
+                            f"(hal. {idx_list[batch_start_idx]+1}–{idx_list[batch_end_idx]+1})",
+                            fi,
+                        )
+                        batch_idx = idx_list[batch_start_idx:batch_start_idx + OCR_BATCH]
+                        batch_imgs = [scan_imgs[j] for j in batch_idx]
+                        try:
+                            ocr_texts = ocr_arabic_pages_batch(batch_imgs)
+                            for j, ocr_text in zip(batch_idx, ocr_texts):
+                                for k, (pnum, _, is_scan) in enumerate(pages_text):
+                                    if pnum == j + 1 and is_scan:
+                                        pages_text[k] = (pnum, ocr_text or "", True)
+                                        break
+                        except Exception as ocr_err:
+                            logger.warning(f"[PDF OCR] Batch error: {ocr_err}")
+
+                fitz_doc.close()
+
+                _set_progress(f"[{fi+1}/{total_files}] Menyimpan chunk KB untuk {fname}...", fi)
+                base_title = os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").strip()
+                extra_tags = [category] if category else []
+                chunks_created = 0
+                ts = int(time.time())
+                now = _now_iso()
+                kb = _load_kb()
+
+                for _ci, start in enumerate(range(0, len(pages_text), chunk_size)):
+                    chunk_pages = pages_text[start:start + chunk_size]
+                    pg_start = chunk_pages[0][0]
+                    pg_end = chunk_pages[-1][0]
+                    chunk_text = "\n\n".join(t for _, t, _ in chunk_pages if t).strip()
+                    if not chunk_text:
                         continue
-                    raw_text = (page.extract_text() or "").strip()
-                    if raw_text and len(raw_text) > 20:
-                        pages_text.append((i + 1, raw_text, False))
-                        text_pages += 1
+
+                    if total_pages > chunk_size:
+                        chunk_title = f"{base_title} — Hal. {pg_start}–{pg_end}"
+                        slug_suffix = f"hal{pg_start}-{pg_end}-{ts}"
                     else:
-                        pages_text.append((i + 1, "", True))
-                        scan_page_indices.append(i)
+                        chunk_title = base_title
+                        slug_suffix = str(ts)
 
-            scan_pages = len(scan_page_indices)
+                    slug = _safe_pdf_slug(fname, slug_suffix)
+                    tags = list(set(extra_tags + generate_tags(chunk_title, chunk_text[:600])))
+                    summary = generate_summary(chunk_title, chunk_text)
+                    article_id = f"pdf-{slug}"
 
-            if use_ocr and ocr_available and scan_page_indices:
-                ocr_indices = scan_page_indices[:max_ocr_pages]
-                ocr_skipped = len(scan_page_indices) - len(ocr_indices)
-                total_batches = (len(ocr_indices) + OCR_BATCH - 1) // OCR_BATCH
+                    kb_article = {
+                        "id": article_id,
+                        "title": chunk_title,
+                        "slug": slug,
+                        "source_url": f"pdf://{fname}",
+                        "published_date": now[:10],
+                        "content": chunk_text,
+                        "summary": summary,
+                        "tags": tags,
+                        "scrape_status": "success",
+                        "approval_status": "pending",
+                        "last_updated": now,
+                        "notes": f"Sumber: {fname}, Hal. {pg_start}-{pg_end}",
+                        "source_type": "pdf",
+                    }
 
-                if ocr_skipped > 0:
-                    logger.info(f"[PDF OCR] Cap: {ocr_skipped} hal. skip (limit {max_ocr_pages})")
+                    idx = next((j for j, a in enumerate(kb) if a.get("id") == article_id), None)
+                    if idx is not None:
+                        kb[idx] = kb_article
+                    else:
+                        kb.append(kb_article)
+                    chunks_created += 1
 
-                mat = fitz.Matrix(1.5, 1.5)
-                scan_imgs = {}
-                for i in ocr_indices:
-                    pix = fitz_doc[i].get_pixmap(matrix=mat)
-                    scan_imgs[i] = pix.tobytes("png")
+                _save_kb(kb)
 
-                idx_list = list(scan_imgs.keys())
-                for bn, batch_start in enumerate(range(0, len(idx_list), OCR_BATCH)):
-                    _set_progress(
-                        f"[{fi+1}/{total_files}] OCR {fname}: batch {bn+1}/{total_batches} "
-                        f"(hal. {idx_list[batch_start]+1}–{idx_list[min(batch_start+OCR_BATCH-1, len(idx_list)-1)]+1})",
-                        fi,
-                    )
-                    batch_idx = idx_list[batch_start:batch_start + OCR_BATCH]
-                    batch_imgs = [scan_imgs[j] for j in batch_idx]
-                    try:
-                        ocr_texts = ocr_arabic_pages_batch(batch_imgs)
-                        for j, ocr_text in zip(batch_idx, ocr_texts):
-                            for k, (pnum, _, is_scan) in enumerate(pages_text):
-                                if pnum == j + 1 and is_scan:
-                                    pages_text[k] = (pnum, ocr_text or "", True)
-                                    break
-                    except Exception as ocr_err:
-                        logger.warning(f"[PDF OCR] Batch error: {ocr_err}")
+                ocr_pages_done = len(scan_page_indices[:max_ocr_pages]) if (use_ocr and ocr_available) else 0
+                all_results.append({
+                    "filename": fname,
+                    "status": "ok" if chunks_created > 0 else "error",
+                    "error": "Tidak ada teks yang bisa diekstrak." if chunks_created == 0 else None,
+                    "title": base_title,
+                    "total_pages": total_pages,
+                    "text_pages": text_pages,
+                    "scan_pages": scan_pages,
+                    "ocr_pages_done": ocr_pages_done,
+                    "chunks": chunks_created,
+                })
 
-            fitz_doc.close()
+            except Exception as e:
+                logger.error(f"[PDF JOB] Error on {fname}: {e}", exc_info=True)
+                all_results.append({"filename": fname, "status": "error", "error": str(e)[:300]})
 
-            _set_progress(f"[{fi+1}/{total_files}] Menyimpan chunk KB untuk {fname}...", fi)
-            base_title = os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").strip()
-            extra_tags = [category] if category else []
-            chunks_created = 0
-            ts = int(time.time())
-            now = _now_iso()
-            kb = _load_kb()
+    except Exception as outer_e:
+        logger.error(f"[PDF JOB] Outer error: {outer_e}", exc_info=True)
+        all_results.append({"filename": "—", "status": "error", "error": f"Error tak terduga: {str(outer_e)[:200]}"})
 
-            for chunk_idx, start in enumerate(range(0, len(pages_text), chunk_size)):
-                chunk_pages = pages_text[start:start + chunk_size]
-                pg_start = chunk_pages[0][0]
-                pg_end = chunk_pages[-1][0]
-                chunk_text = "\n\n".join(t for _, t, _ in chunk_pages if t).strip()
-                if not chunk_text:
-                    continue
+    finally:
+        ok_count = sum(1 for r in all_results if r.get("status") == "ok")
+        total_chunks = sum(r.get("chunks", 0) for r in all_results)
 
-                if total_pages > chunk_size:
-                    chunk_title = f"{base_title} — Hal. {pg_start}–{pg_end}"
-                    slug_suffix = f"hal{pg_start}-{pg_end}-{ts}"
-                else:
-                    chunk_title = base_title
-                    slug_suffix = str(ts)
-
-                slug = _safe_pdf_slug(fname, slug_suffix)
-                tags = list(set(extra_tags + generate_tags(chunk_title, chunk_text[:600])))
-                summary = generate_summary(chunk_title, chunk_text)
-                article_id = f"pdf-{slug}"
-
-                kb_article = {
-                    "id": article_id,
-                    "title": chunk_title,
-                    "slug": slug,
-                    "source_url": f"pdf://{fname}",
-                    "published_date": now[:10],
-                    "content": chunk_text,
-                    "summary": summary,
-                    "tags": tags,
-                    "scrape_status": "success",
-                    "approval_status": "pending",
-                    "last_updated": now,
-                    "notes": f"Sumber: {fname}, Hal. {pg_start}-{pg_end}",
-                    "source_type": "pdf",
-                }
-
-                idx = next((j for j, a in enumerate(kb) if a.get("id") == article_id), None)
-                if idx is not None:
-                    kb[idx] = kb_article
-                else:
-                    kb.append(kb_article)
-                chunks_created += 1
-
-            _save_kb(kb)
-
-            ocr_pages_done = len(scan_page_indices[:max_ocr_pages]) if (use_ocr and ocr_available) else 0
-            all_results.append({
-                "filename": fname,
-                "status": "ok" if chunks_created > 0 else "error",
-                "error": "Tidak ada teks yang bisa diekstrak." if chunks_created == 0 else None,
-                "title": base_title,
-                "total_pages": total_pages,
-                "text_pages": text_pages,
-                "scan_pages": scan_pages,
-                "ocr_pages_done": ocr_pages_done,
-                "chunks": chunks_created,
+        with _pdf_jobs_lock:
+            _pdf_jobs[job_id].update({
+                "status": "done",
+                "progress": f"Selesai — {ok_count}/{total_files} file berhasil, {total_chunks} chunk disimpan.",
+                "done_files": total_files,
+                "results": {
+                    "status": "ok",
+                    "processed": ok_count,
+                    "total": total_files,
+                    "total_chunks": total_chunks,
+                    "results": all_results,
+                },
             })
-
-        except Exception as e:
-            logger.error(f"[PDF JOB] Error on {fname}: {e}")
-            all_results.append({"filename": fname, "status": "error", "error": str(e)[:300]})
-
-    ok_count = sum(1 for r in all_results if r.get("status") == "ok")
-    total_chunks = sum(r.get("chunks", 0) for r in all_results)
-
-    with _pdf_jobs_lock:
-        _pdf_jobs[job_id].update({
-            "status": "done",
-            "progress": f"Selesai — {ok_count}/{total_files} file berhasil, {total_chunks} chunk disimpan.",
-            "done_files": total_files,
-            "results": {
-                "status": "ok",
-                "processed": ok_count,
-                "total": total_files,
-                "total_chunks": total_chunks,
-                "results": all_results,
-            },
-        })
-    logger.info(f"[PDF JOB] {job_id} selesai — {ok_count}/{total_files} ok, {total_chunks} chunks")
+        logger.info(f"[PDF JOB] {job_id} selesai — {ok_count}/{total_files} ok, {total_chunks} chunks")
 
 
 @app.route("/api/pdf/upload", methods=["POST"])
