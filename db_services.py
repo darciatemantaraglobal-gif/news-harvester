@@ -191,6 +191,39 @@ def check_supabase_available() -> bool:
     return url and key
 
 
+def save_user_activity(username: str, last_login: str | None = None, last_seen: str | None = None) -> bool:
+    """
+    Simpan/update aktivitas user (last_login dan/atau last_seen) ke tabel user_activity di Supabase.
+    Return True jika berhasil.
+    """
+    try:
+        sb = get_supabase()
+        payload: dict = {"username": username}
+        if last_login is not None:
+            payload["last_login"] = last_login
+        if last_seen is not None:
+            payload["last_seen"] = last_seen
+        sb.table("user_activity").upsert(payload, on_conflict="username").execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[USER-ACTIVITY-DB] Gagal simpan aktivitas '{username}': {e}")
+        return False
+
+
+def fetch_user_activity() -> dict:
+    """
+    Ambil semua aktivitas user dari tabel user_activity di Supabase.
+    Return dict {username: {last_login, last_seen}}.
+    """
+    try:
+        sb = get_supabase()
+        result = sb.table("user_activity").select("username, last_login, last_seen").execute()
+        return {row["username"]: row for row in (result.data or [])}
+    except Exception as e:
+        logger.warning(f"[USER-ACTIVITY-DB] Gagal fetch aktivitas: {e}")
+        return {}
+
+
 def fetch_app_users() -> list:
     """
     Ambil semua user dari tabel app_users di Supabase.

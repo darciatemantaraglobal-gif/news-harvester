@@ -199,8 +199,14 @@ def get_users_activity():
     _load_activity()
     users_list = _load_users()
 
+    # Baca push log dari Supabase, fallback ke file lokal
     push_log = []
-    if os.path.exists(PUSH_LOG_FILE):
+    try:
+        from db_services import fetch_push_logs_from_supabase
+        push_log = fetch_push_logs_from_supabase(limit=5000) or []
+    except Exception:
+        pass
+    if not push_log and os.path.exists(PUSH_LOG_FILE):
         try:
             with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
                 push_log = json.load(f)
@@ -321,6 +327,23 @@ def _load_activity() -> dict:
                 _activity_cache = json.load(f)
     except Exception:
         _activity_cache = {}
+    # Sinkronisasi dari Supabase — override data JSON lokal
+    try:
+        from db_services import fetch_user_activity
+        remote = fetch_user_activity()
+        if remote:
+            for uname, row in remote.items():
+                if uname not in _activity_cache:
+                    _activity_cache[uname] = {}
+                if row.get("last_login"):
+                    _activity_cache[uname]["last_login"] = row["last_login"]
+                # last_seen dari Supabase hanya dipakai jika lebih baru dari lokal
+                remote_ls = row.get("last_seen")
+                local_ls = _activity_cache[uname].get("last_seen")
+                if remote_ls and (not local_ls or remote_ls > local_ls):
+                    _activity_cache[uname]["last_seen"] = remote_ls
+    except Exception as e:
+        logger.warning(f"[ACTIVITY] Gagal sinkron dari Supabase: {e}")
     return _activity_cache
 
 def _save_activity() -> None:
@@ -347,8 +370,15 @@ def _record_login(username: str) -> None:
         _load_activity()
     if username not in _activity_cache:
         _activity_cache[username] = {}
-    _activity_cache[username]["last_login"] = _now_iso()
+    now = _now_iso()
+    _activity_cache[username]["last_login"] = now
     _save_activity()
+    # Persist login ke Supabase
+    try:
+        from db_services import save_user_activity
+        save_user_activity(username, last_login=now)
+    except Exception as e:
+        logger.warning(f"[ACTIVITY] Gagal simpan login ke Supabase: {e}")
 
 _load_activity()
 
