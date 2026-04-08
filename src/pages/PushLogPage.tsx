@@ -11,6 +11,7 @@ interface PushEntry {
   username: string;
   source: string;
   count: number;
+  skipped: number;
   titles: string[];
 }
 
@@ -35,6 +36,7 @@ export default function PushLogPage() {
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState("");
+  const [dataSource, setDataSource] = useState<"supabase" | "local" | null>(null);
 
   const fetchLog = async () => {
     setLoading(true);
@@ -45,8 +47,10 @@ export default function PushLogPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memuat laporan.");
-      setLog(data.log || []);
+      const entries = (data.log || []).map((e: PushEntry) => ({ ...e, skipped: e.skipped ?? 0 }));
+      setLog(entries);
       setTotal(data.total || 0);
+      setDataSource(data.source || "local");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Terjadi kesalahan.");
     } finally {
@@ -93,7 +97,17 @@ export default function PushLogPage() {
         </button>
         <div>
           <h1 className="font-bold text-white text-sm sm:text-base leading-tight">Laporan Push Supabase</h1>
-          <p className="text-violet-400/60 text-[10px] sm:text-xs">Riwayat siapa yang mengirim ke Supabase</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-violet-400/60 text-[10px] sm:text-xs">Riwayat siapa yang mengirim ke Supabase</p>
+            {dataSource && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                style={dataSource === "supabase"
+                  ? { background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }
+                  : { background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.25)" }}>
+                {dataSource === "supabase" ? "☁ Supabase" : "⚠ Lokal"}
+              </span>
+            )}
+          </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={fetchLog} disabled={loading}
@@ -127,6 +141,33 @@ export default function PushLogPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Info: tabel push_logs belum dibuat di Supabase */}
+        {!loading && dataSource === "local" && (
+          <div className="flex items-start gap-3 px-3.5 py-3 rounded-xl border"
+            style={{ background: "rgba(251,191,36,0.07)", borderColor: "rgba(251,191,36,0.25)" }}>
+            <span className="text-amber-400 text-base shrink-0">⚠</span>
+            <div>
+              <p className="text-[11px] font-semibold text-amber-300">Log tersimpan lokal — tidak permanen di production</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Buat tabel <code className="text-amber-400">push_logs</code> di Supabase agar log tersimpan permanen.
+                Jalankan SQL ini di Supabase SQL Editor:
+              </p>
+              <pre className="text-[9px] text-slate-300 bg-black/40 rounded-lg px-2.5 py-2 mt-1.5 overflow-x-auto">
+{`create table push_logs (
+  id text primary key,
+  timestamp text,
+  username text,
+  source text,
+  count int default 0,
+  skipped int default 0,
+  titles jsonb default '[]'::jsonb,
+  created_at timestamptz default now()
+);`}
+              </pre>
+            </div>
           </div>
         )}
 
@@ -166,9 +207,17 @@ export default function PushLogPage() {
                         {src.icon}
                         {src.label}
                       </div>
-                      <div className="flex items-center gap-1 ml-auto">
-                        <span className="text-xs font-bold text-emerald-400">{entry.count}</span>
-                        <span className="text-[10px] text-slate-500">artikel</span>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-emerald-400">{entry.count}</span>
+                          <span className="text-[10px] text-slate-500">baru</span>
+                        </div>
+                        {entry.skipped > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-amber-400">{entry.skipped}</span>
+                            <span className="text-[10px] text-slate-500">skip</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 

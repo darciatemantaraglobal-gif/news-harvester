@@ -189,3 +189,45 @@ def check_supabase_available() -> bool:
     url = bool(os.environ.get("SUPABASE_URL"))
     key = bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_KEY"))
     return url and key
+
+
+def save_push_log_to_supabase(entry: dict) -> bool:
+    """
+    Simpan satu entri push log ke tabel push_logs di Supabase.
+    Return True jika berhasil, False jika gagal (tabel belum ada / Supabase tidak tersedia).
+    """
+    try:
+        sb = get_supabase()
+        payload = {
+            "id": entry["id"],
+            "timestamp": entry.get("timestamp"),
+            "username": entry.get("username", "unknown"),
+            "source": entry.get("source", "unknown"),
+            "count": entry.get("count", 0),
+            "titles": entry.get("titles", []),
+        }
+        sb.table("push_logs").upsert(payload, on_conflict="id").execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[PUSH-LOG-DB] Gagal simpan ke Supabase: {e}")
+        return False
+
+
+def fetch_push_logs_from_supabase(limit: int = 200) -> list:
+    """
+    Ambil push log dari tabel push_logs di Supabase, urut terbaru duluan.
+    Return list kosong jika tabel belum ada atau Supabase tidak tersedia.
+    """
+    try:
+        sb = get_supabase()
+        result = (
+            sb.table("push_logs")
+            .select("id, timestamp, username, source, count, titles")
+            .order("timestamp", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return result.data or []
+    except Exception as e:
+        logger.warning(f"[PUSH-LOG-DB] Gagal fetch dari Supabase: {e}")
+        return []

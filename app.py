@@ -1169,12 +1169,14 @@ def api_push_paste():
     article = {"title": title, "content": content, "tags": tags, "summary": ""}
     try:
         result = push_kb_articles([article])
-        if result.get("inserted", 0) > 0:
-            _record_push(username=g.current_user, source="paste", count=result["inserted"], titles=[title])
+        inserted = result.get("inserted", 0)
+        skipped = result.get("skipped", 0)
+        if inserted > 0 or skipped > 0:
+            _record_push(username=g.current_user, source="paste", count=inserted, titles=[title], skipped=skipped)
         return jsonify({
             "status": "ok",
-            "inserted": result["inserted"],
-            "skipped": result.get("skipped", 0),
+            "inserted": inserted,
+            "skipped": skipped,
             "errors": result.get("errors", []),
         })
     except Exception as e:
@@ -1289,25 +1291,34 @@ KB_EXPORTED_FILE = os.path.join(DATA_DIR, "kb_exported.json")
 PUSH_LOG_FILE = os.path.join(DATA_DIR, "push_log.json")
 
 
-def _record_push(username: str, source: str, count: int, titles: list):
-    """Catat aktivitas push ke Supabase ke push_log.json."""
+def _record_push(username: str, source: str, count: int, titles: list, skipped: int = 0):
+    """Catat aktivitas push ke push_log.json DAN ke Supabase (push_logs table)."""
+    entry = {
+        "id": f"push-{int(time.time()*1000)}",
+        "timestamp": _now_iso(),
+        "username": username,
+        "source": source,
+        "count": count,
+        "skipped": skipped,
+        "titles": titles[:10],
+    }
+    # 1. Simpan ke JSON lokal (fallback)
     try:
         log = []
         if os.path.exists(PUSH_LOG_FILE):
             with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
                 log = json.load(f)
-        log.append({
-            "id": f"push-{int(time.time()*1000)}",
-            "timestamp": _now_iso(),
-            "username": username,
-            "source": source,
-            "count": count,
-            "titles": titles[:10],
-        })
+        log.append(entry)
         with open(PUSH_LOG_FILE, "w", encoding="utf-8") as f:
             json.dump(log, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.warning(f"[PUSH-LOG] Gagal mencatat push log: {e}")
+        logger.warning(f"[PUSH-LOG] Gagal tulis JSON: {e}")
+    # 2. Simpan ke Supabase (persistent, untuk production)
+    try:
+        from db_services import save_push_log_to_supabase
+        save_push_log_to_supabase(entry)
+    except Exception as e:
+        logger.warning(f"[PUSH-LOG] Gagal simpan ke Supabase: {e}")
 
 VALID_STATUSES = {"pending", "reviewed", "approved", "rejected", "exported"}
 BULK_ACTION_MAP = {
@@ -1484,17 +1495,20 @@ def api_push_supabase():
         return jsonify({"error": "KB kosong."}), 400
     try:
         result = push_kb_articles(kb_articles)
-        if result.get("inserted", 0) > 0:
+        inserted = result.get("inserted", 0)
+        skipped = result.get("skipped", 0)
+        if inserted > 0 or skipped > 0:
             _record_push(
                 username=g.current_user,
                 source="review-all",
-                count=result["inserted"],
+                count=inserted,
                 titles=[a.get("title", "") for a in kb_articles[:10]],
+                skipped=skipped,
             )
         return jsonify({
             "status": "ok",
-            "inserted": result["inserted"],
-            "skipped": result.get("skipped", 0),
+            "inserted": inserted,
+            "skipped": skipped,
             "errors": result.get("errors", []),
         })
     except Exception as e:
@@ -1515,14 +1529,18 @@ def api_push_approved():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    inserted = result.get("inserted", 0)
+    skipped = result.get("skipped", 0)
     # Mark successfully-pushed articles as exported in the main KB file
-    if result.get("inserted", 0) > 0:
+    if inserted > 0 or skipped > 0:
         _record_push(
             username=g.current_user,
             source="review-approved",
-            count=result["inserted"],
+            count=inserted,
             titles=[a.get("title", "") for a in approved[:10]],
+            skipped=skipped,
         )
+    if inserted > 0:
         pushed_ids = {a["id"] for a in approved}
         kb = _load_kb()
         now = _now_iso()
@@ -1550,11 +1568,31 @@ def api_push_log():
     """Laporan history push ke Supabase. Hanya admin."""
     if not g.get("is_admin", False):
         return jsonify({"error": "Forbidden — hanya admin"}), 403
+
+    # 1. Coba ambil dari Supabase dulu (persistent, tidak hilang saat redeploy)
+    try:
+        from db_services import fetch_push_logs_from_supabase
+        supabase_log = fetch_push_logs_from_supabase(limit=200)
+    except Exception:
+        supabase_log = []
+
+    if supabase_log:
+        # Pastikan field skipped ada (untuk log lama yang belum punya field ini)
+        for e in supabase_log:
+            e.setdefault("skipped", 0)
+        return jsonify({"log": supabase_log, "total": len(supabase_log), "source": "supabase"})
+
+    # 2. Fallback ke JSON lokal (untuk dev / jika tabel push_logs belum dibuat)
     log = []
     if os.path.exists(PUSH_LOG_FILE):
-        with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
-            log = json.load(f)
-    return jsonify({"log": list(reversed(log)), "total": len(log)})
+        try:
+            with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
+                log = json.load(f)
+        except Exception:
+            log = []
+    for e in log:
+        e.setdefault("skipped", 0)
+    return jsonify({"log": list(reversed(log)), "total": len(log), "source": "local"})
 
 
 @app.route("/api/push-log/clear", methods=["POST"])
