@@ -1551,7 +1551,7 @@ def api_convert_kb():
 def api_kb_draft():
     """Ambil KB draft yang sudah dibuat."""
     kb = _load_kb()
-    return jsonify(kb)
+    return jsonify({"articles": kb})
 
 
 @app.route("/api/push-supabase", methods=["POST"])
@@ -2723,7 +2723,8 @@ _log_startup_info()
 def _make_kb_draft(title: str, content: str, source_url: str = "",
                    published_date: str = "", source_tag: str = "") -> dict:
     """Helper: buat KB draft object dan simpan ke kb_articles.json."""
-    article_id = f"extra-{int(time.time()*1000)}-{hash(title) & 0xFFFF:04x}"
+    import uuid as _uuid_m
+    article_id = f"extra-{source_tag}-{int(time.time()*1000)}-{_uuid_m.uuid4().hex[:6]}"
     draft = convert_to_kb_format({
         "id": article_id,
         "title": title,
@@ -2774,30 +2775,32 @@ def api_youtube_scrape():
     except Exception:
         pass
 
-    # Ambil transkrip
+    # Ambil transkrip — pakai instance API (youtube-transcript-api >= 0.6)
     try:
-        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+        from youtube_transcript_api import YouTubeTranscriptApi
+        _yt_api = YouTubeTranscriptApi()
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            # Coba bahasa Indonesia atau Inggris dulu, fallback ke apapun
+            transcript_list = _yt_api.list(video_id)
+            # Coba bahasa Indonesia atau Inggris dulu, fallback ke transcript apapun
             try:
                 transcript = transcript_list.find_transcript(["id", "en"])
             except Exception:
-                transcript = transcript_list.find_generated_transcript(["id", "en"])
+                try:
+                    transcript = transcript_list.find_generated_transcript(["id", "en"])
+                except Exception:
+                    # Ambil transcript pertama yang tersedia
+                    transcript = next(iter(transcript_list))
+            raw = transcript.fetch()
         except Exception:
-            # Fallback: ambil transkrip apapun yang tersedia
-            transcripts = YouTubeTranscriptApi.get_transcript(video_id)
-            full_text = " ".join(t["text"] for t in transcripts)
-            draft = _make_kb_draft(title, full_text, url, source_tag="youtube")
-            return jsonify({"status": "ok", "count": 1, "article": draft})
+            # Fallback: langsung fetch dengan bahasa default
+            raw = _yt_api.fetch(video_id)
 
-        raw = transcript.fetch()
-        full_text = " ".join(t["text"] for t in raw)
+        full_text = " ".join(s.text for s in raw)
         if not full_text.strip():
             return jsonify({"error": "Transkrip kosong atau tidak tersedia."}), 400
     except Exception as e:
         err = str(e)
-        if "No transcripts" in err or "Could not retrieve" in err:
+        if "No transcripts" in err or "Could not retrieve" in err or "disabled" in err.lower():
             return jsonify({"error": "Video ini tidak memiliki subtitle/CC yang tersedia."}), 400
         return jsonify({"error": f"Gagal mengambil transkrip: {err}"}), 500
 
@@ -2832,17 +2835,26 @@ def api_docx_upload():
             doc = _docx.Document(tmp_path)
             _os.unlink(tmp_path)
 
-            # Cari judul: cari paragraf Heading 1 pertama atau pakai nama file
+            # Cari judul: Title style, Heading 1, atau baris pertama yang panjang
             title = ""
             paragraphs = []
             for para in doc.paragraphs:
                 text = para.text.strip()
                 if not text:
                     continue
-                if not title and para.style.name.startswith("Heading"):
+                style_name = para.style.name if para.style else ""
+                is_title_style = style_name in ("Title", "Subtitle") or style_name.startswith("Heading")
+                if not title and is_title_style:
                     title = text
                 else:
                     paragraphs.append(text)
+
+            # Fallback: pakai baris pertama sebagai judul jika cukup panjang
+            if not title and paragraphs:
+                first = paragraphs[0]
+                if len(first) <= 120:
+                    title = first
+                    paragraphs = paragraphs[1:]
 
             if not title:
                 # Pakai nama file sebagai fallback
