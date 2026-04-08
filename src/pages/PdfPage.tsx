@@ -236,18 +236,33 @@ export default function PdfPage() {
       const jobId = data.job_id;
       setUploadProgress("Memproses PDF di background...");
 
+      let notFoundRetries = 0;
+      const MAX_NOT_FOUND_RETRIES = 4;  // tunggu sampai ~16 detik sebelum menyerah
+
       const poll = async (): Promise<void> => {
         try {
           const jobRes = await fetch(apiUrl(`/api/pdf/job/${jobId}`));
           const jobData = await jobRes.json();
 
           if (!jobRes.ok) {
-            setResults([{ filename: "—", status: "error", error: jobData.error || "Job error" }]);
+            if (jobRes.status === 404 && notFoundRetries < MAX_NOT_FOUND_RETRIES) {
+              // Job belum terdaftar atau server sempat restart — coba lagi
+              notFoundRetries++;
+              setUploadProgress(`Menunggu server... (${notFoundRetries}/${MAX_NOT_FOUND_RETRIES})`);
+              setTimeout(poll, 4000);
+              return;
+            }
+            // Setelah beberapa retry tetap gagal — tampilkan pesan yang jelas
+            const errMsg = jobRes.status === 404
+              ? "Server sempat restart saat memproses. Silakan tekan tombol Proses lagi."
+              : (jobData.error || "Terjadi kesalahan saat memproses.");
+            setResults([{ filename: "—", status: "error", error: errMsg }]);
             setUploading(false);
             setUploadProgress("");
             return;
           }
 
+          notFoundRetries = 0;  // reset jika sudah ketemu job-nya
           setUploadProgress(jobData.progress || "Memproses...");
 
           if (jobData.status === "done") {
@@ -1011,7 +1026,14 @@ export default function PdfPage() {
                               ))}
                             </div>
                           ) : (
-                            <p className="text-[11px] text-red-400 mt-1">{r.error}</p>
+                            <div className="mt-1 space-y-1.5">
+                              <p className="text-[11px] text-red-400">{r.error}</p>
+                              {r.error?.includes("restart") && (
+                                <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                                  <span>↑</span> Pilih file lagi dan tekan tombol Proses di atas.
+                                </p>
+                              )}
+                            </div>
                           )}
 
                           {r.status === "ok" && (r.ocr_pages_done ?? 0) > 0 && (
