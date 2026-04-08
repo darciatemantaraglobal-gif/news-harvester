@@ -24,15 +24,19 @@ Full-stack monorepo:
 - `src/pages/HomePage.tsx` — Hub/landing page (Step 1: pick source, Step 2: Review)
 - `src/pages/Index.tsx` — Scraper page at `/scraper` (Berita Kemlu/KBRI)
 - `src/pages/PdfPage.tsx` — PDF upload page at `/pdf` (Kitab Arab)
+- `src/pages/PastePage.tsx` — Paste & AI format at `/paste`
+- `src/pages/MoreSourcesPage.tsx` — Extra sources at `/sources` (YouTube, DOCX, RSS, Telegram)
 - `src/pages/ReviewDashboard.tsx` — KB Review & approval interface at `/review`
 - `src/components/BottomNav.tsx` — Shared bottom nav (Beranda | Review), consistent across all pages
 - `src/components/ui/` — shadcn/ui components
 - `src/lib/api.ts` — API helper (uses VITE_API_URL env var, falls back to relative URLs)
 
 ## Navigation / Routes
-- `/` → HomePage (hub: choose Berita or PDF, then Review)
+- `/` → HomePage (hub: choose source, then Review)
 - `/scraper` → Index (news scraper)
 - `/pdf` → PdfPage (PDF kitab upload + OCR)
+- `/paste` → PastePage (paste + AI format)
+- `/sources` → MoreSourcesPage (YouTube, DOCX, RSS, Telegram)
 - `/review` → ReviewDashboard (approval workflow + push to Supabase)
 - `/article/:id` → ArticleDetail
 
@@ -52,7 +56,7 @@ Two workflows run in parallel:
 ## Dependencies
 
 ### Python
-flask, flask-cors, requests, beautifulsoup4, lxml, apscheduler, openai, supabase, gunicorn
+flask, flask-cors, requests, beautifulsoup4, lxml, apscheduler, openai, supabase, gunicorn, youtube-transcript-api, python-docx, feedparser
 
 ### Node.js
 react, react-dom, react-router-dom, @tanstack/react-query, tailwindcss, shadcn/ui components, vite

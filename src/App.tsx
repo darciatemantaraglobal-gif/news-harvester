@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import SplashScreen from "./components/SplashScreen.tsx";
 import PushLogPage from "./pages/PushLogPage.tsx";
+import MoreSourcesPage from "./pages/MoreSourcesPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => {
               <Route path="/paste" element={<ProtectedRoute><PastePage /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
               <Route path="/push-log" element={<ProtectedRoute><PushLogPage /></ProtectedRoute>} />
+              <Route path="/sources" element={<ProtectedRoute><MoreSourcesPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

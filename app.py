@@ -2718,6 +2718,311 @@ def _log_startup_info():
 _log_startup_info()
 
 
+# ─── Extra Sources ────────────────────────────────────────────────────────────
+
+def _make_kb_draft(title: str, content: str, source_url: str = "",
+                   published_date: str = "", source_tag: str = "") -> dict:
+    """Helper: buat KB draft object dan simpan ke kb_articles.json."""
+    article_id = f"extra-{int(time.time()*1000)}-{hash(title) & 0xFFFF:04x}"
+    draft = convert_to_kb_format({
+        "id": article_id,
+        "title": title,
+        "content": content,
+        "url": source_url,
+        "date": published_date or _now_iso(),
+        "status": "success",
+        "summary": "",
+        "tags": [source_tag] if source_tag else [],
+    })
+    kb = _load_kb()
+    if not any(a.get("id") == article_id for a in kb):
+        kb.append(draft)
+        _save_kb(kb)
+    return draft
+
+
+@app.route("/api/youtube/scrape", methods=["POST"])
+def api_youtube_scrape():
+    """Ambil transkrip YouTube dan simpan sebagai KB draft."""
+    data = request.get_json(force=True)
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "URL YouTube wajib diisi."}), 400
+
+    # Ekstrak video ID dari berbagai format URL
+    import re as _re
+    vid_match = _re.search(
+        r"(?:v=|youtu\.be/|/embed/|/v/|shorts/)([A-Za-z0-9_-]{11})", url
+    )
+    if not vid_match:
+        return jsonify({"error": "URL YouTube tidak valid. Pastikan URL mengandung ID video (11 karakter)."}), 400
+    video_id = vid_match.group(1)
+
+    # Ambil judul video dari halaman YouTube
+    title = f"YouTube Video {video_id}"
+    try:
+        import requests as _req
+        r = _req.get(
+            f"https://www.youtube.com/watch?v={video_id}",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10,
+        )
+        og_match = _re.search(r'<meta property="og:title" content="([^"]+)"', r.text)
+        if og_match:
+            import html as _html
+            title = _html.unescape(og_match.group(1))
+    except Exception:
+        pass
+
+    # Ambil transkrip
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            # Coba bahasa Indonesia atau Inggris dulu, fallback ke apapun
+            try:
+                transcript = transcript_list.find_transcript(["id", "en"])
+            except Exception:
+                transcript = transcript_list.find_generated_transcript(["id", "en"])
+        except Exception:
+            # Fallback: ambil transkrip apapun yang tersedia
+            transcripts = YouTubeTranscriptApi.get_transcript(video_id)
+            full_text = " ".join(t["text"] for t in transcripts)
+            draft = _make_kb_draft(title, full_text, url, source_tag="youtube")
+            return jsonify({"status": "ok", "count": 1, "article": draft})
+
+        raw = transcript.fetch()
+        full_text = " ".join(t["text"] for t in raw)
+        if not full_text.strip():
+            return jsonify({"error": "Transkrip kosong atau tidak tersedia."}), 400
+    except Exception as e:
+        err = str(e)
+        if "No transcripts" in err or "Could not retrieve" in err:
+            return jsonify({"error": "Video ini tidak memiliki subtitle/CC yang tersedia."}), 400
+        return jsonify({"error": f"Gagal mengambil transkrip: {err}"}), 500
+
+    draft = _make_kb_draft(title, full_text, url, source_tag="youtube")
+    return jsonify({"status": "ok", "count": 1, "article": draft})
+
+
+@app.route("/api/docx/upload", methods=["POST"])
+def api_docx_upload():
+    """Upload dan parse satu atau lebih file .docx/.doc menjadi KB drafts."""
+    files = request.files.getlist("files")
+    if not files:
+        return jsonify({"error": "Tidak ada file yang diupload."}), 400
+
+    try:
+        import docx as _docx
+    except ImportError:
+        return jsonify({"error": "Library python-docx tidak tersedia."}), 500
+
+    articles = []
+    errors = []
+
+    for f in files:
+        fname = f.filename or "unknown.docx"
+        try:
+            # Simpan ke file temp lalu baca
+            import tempfile, os as _os
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+                f.save(tmp.name)
+                tmp_path = tmp.name
+
+            doc = _docx.Document(tmp_path)
+            _os.unlink(tmp_path)
+
+            # Cari judul: cari paragraf Heading 1 pertama atau pakai nama file
+            title = ""
+            paragraphs = []
+            for para in doc.paragraphs:
+                text = para.text.strip()
+                if not text:
+                    continue
+                if not title and para.style.name.startswith("Heading"):
+                    title = text
+                else:
+                    paragraphs.append(text)
+
+            if not title:
+                # Pakai nama file sebagai fallback
+                title = _os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").title()
+
+            content = "\n\n".join(paragraphs)
+            if not content.strip():
+                errors.append(f"{fname}: konten kosong")
+                continue
+
+            draft = _make_kb_draft(title, content, source_tag="docx")
+            articles.append(draft)
+        except Exception as e:
+            errors.append(f"{fname}: {str(e)}")
+
+    if not articles:
+        return jsonify({"error": "Tidak ada file yang berhasil diproses. " + "; ".join(errors)}), 400
+
+    return jsonify({
+        "status": "ok",
+        "count": len(articles),
+        "articles": articles,
+        "errors": errors,
+    })
+
+
+@app.route("/api/rss/fetch", methods=["POST"])
+def api_rss_fetch():
+    """Fetch dan parse RSS/Atom feed, simpan setiap item sebagai KB draft."""
+    data = request.get_json(force=True)
+    url = (data.get("url") or "").strip()
+    max_items = int(data.get("max_items") or 10)
+    if not url:
+        return jsonify({"error": "URL feed RSS wajib diisi."}), 400
+    if max_items < 1:
+        max_items = 10
+    if max_items > 100:
+        max_items = 100
+
+    try:
+        import feedparser as _fp
+    except ImportError:
+        return jsonify({"error": "Library feedparser tidak tersedia."}), 500
+
+    try:
+        feed = _fp.parse(url)
+    except Exception as e:
+        return jsonify({"error": f"Gagal fetch feed: {str(e)}"}), 500
+
+    if feed.get("bozo") and not feed.get("entries"):
+        return jsonify({"error": "URL bukan feed RSS/Atom yang valid atau tidak dapat diakses."}), 400
+
+    entries = feed.get("entries", [])[:max_items]
+    if not entries:
+        return jsonify({"error": "Feed tidak memiliki entri / artikel."}), 400
+
+    articles = []
+    for entry in entries:
+        title = entry.get("title", "").strip() or "(Tanpa Judul)"
+        link = entry.get("link", "")
+        # Coba content dulu, fallback ke summary
+        content_raw = ""
+        if entry.get("content"):
+            content_raw = entry["content"][0].get("value", "")
+        if not content_raw:
+            content_raw = entry.get("summary", "") or entry.get("description", "")
+
+        # Strip HTML dari content
+        try:
+            from bs4 import BeautifulSoup as _BS
+            content = _BS(content_raw, "html.parser").get_text(separator="\n").strip()
+        except Exception:
+            import re as _re
+            content = _re.sub(r"<[^>]+>", " ", content_raw).strip()
+
+        if not content:
+            content = title
+
+        # Parse tanggal
+        pub_date = ""
+        if entry.get("published_parsed"):
+            import time as _t
+            try:
+                from datetime import datetime as _dt
+                pub_date = _dt(*entry["published_parsed"][:6]).strftime("%Y-%m-%dT%H:%M:%S")
+            except Exception:
+                pass
+
+        draft = _make_kb_draft(title, content, link, pub_date, source_tag="rss")
+        articles.append(draft)
+
+    return jsonify({
+        "status": "ok",
+        "count": len(articles),
+        "articles": articles,
+        "feed_title": feed.feed.get("title", ""),
+    })
+
+
+@app.route("/api/telegram/scrape", methods=["POST"])
+def api_telegram_scrape():
+    """Scrape postingan dari Telegram channel publik via t.me/s/<channel>."""
+    data = request.get_json(force=True)
+    channel = (data.get("channel") or "").strip().lstrip("@")
+    limit = int(data.get("limit") or 20)
+    if not channel:
+        return jsonify({"error": "Username channel Telegram wajib diisi."}), 400
+    if limit < 1:
+        limit = 20
+    if limit > 200:
+        limit = 200
+
+    import requests as _req
+    from bs4 import BeautifulSoup as _BS
+    import re as _re
+
+    preview_url = f"https://t.me/s/{channel}"
+    try:
+        r = _req.get(
+            preview_url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; AINA-Scraper/1.0)"},
+            timeout=15,
+        )
+        if r.status_code == 404:
+            return jsonify({"error": f"Channel @{channel} tidak ditemukan atau privat."}), 404
+        if r.status_code != 200:
+            return jsonify({"error": f"Gagal akses channel: HTTP {r.status_code}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Gagal terhubung ke Telegram: {str(e)}"}), 500
+
+    soup = _BS(r.text, "html.parser")
+    messages = soup.select(".tgme_widget_message_wrap")
+
+    if not messages:
+        return jsonify({"error": f"Tidak ada pesan publik yang ditemukan di @{channel}. Pastikan channel bisa diakses di t.me/s/{channel}"}), 400
+
+    articles = []
+    seen_texts: set = set()
+
+    for msg in messages[:limit]:
+        # Teks pesan
+        text_el = msg.select_one(".tgme_widget_message_text")
+        text = text_el.get_text(separator="\n").strip() if text_el else ""
+        if not text or len(text) < 20:
+            continue  # Skip pesan terlalu pendek (foto tanpa caption, dll)
+
+        # Deduplicate
+        text_key = text[:100]
+        if text_key in seen_texts:
+            continue
+        seen_texts.add(text_key)
+
+        # Tanggal
+        time_el = msg.select_one(".tgme_widget_message_date time")
+        pub_date = ""
+        if time_el and time_el.get("datetime"):
+            pub_date = time_el["datetime"][:19].replace(" ", "T")
+
+        # Link ke pesan
+        link_el = msg.select_one(".tgme_widget_message_date")
+        msg_url = link_el.get("href", "") if link_el else ""
+
+        # Judul: ambil baris pertama yang cukup panjang
+        lines = [l.strip() for l in text.splitlines() if len(l.strip()) > 10]
+        title = lines[0][:120] if lines else text[:80]
+
+        draft = _make_kb_draft(title, text, msg_url or preview_url, pub_date, source_tag="telegram")
+        articles.append(draft)
+
+    if not articles:
+        return jsonify({"error": "Tidak ada postingan teks yang berhasil diambil dari channel ini."}), 400
+
+    return jsonify({
+        "status": "ok",
+        "count": len(articles),
+        "articles": articles,
+        "channel": channel,
+    })
+
+
 if __name__ == "__main__":
     # use_reloader=False: prevents Werkzeug stat reloader from restarting the process
     # mid-scrape (which would wipe in-memory scrape_state and cause progress log to blank out)

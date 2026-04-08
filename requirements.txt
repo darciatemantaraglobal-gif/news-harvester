@@ -33,3 +33,6 @@ pymupdf
 requests
 supabase
 PyMuPDF
+feedparser
+python-docx
+youtube-transcript-api
