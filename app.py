@@ -2775,33 +2775,63 @@ def api_youtube_scrape():
     except Exception:
         pass
 
-    # Ambil transkrip — pakai instance API (youtube-transcript-api >= 0.6)
+    # Ambil transkrip — pakai instance API (youtube-transcript-api >= 1.x)
+    LANG_PREF = ["id", "en", "ar", "ms", "en-US", "en-GB"]
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
+        from youtube_transcript_api._errors import (
+            TranscriptsDisabled, NoTranscriptFound, VideoUnavailable,
+            IpBlocked, RequestBlocked, PoTokenRequired,
+        )
         _yt_api = YouTubeTranscriptApi()
+        raw = None
         try:
             transcript_list = _yt_api.list(video_id)
-            # Coba bahasa Indonesia atau Inggris dulu, fallback ke transcript apapun
+            # 1) Cari manual transcript dalam bahasa yang diinginkan
             try:
-                transcript = transcript_list.find_transcript(["id", "en"])
-            except Exception:
+                transcript = transcript_list.find_transcript(LANG_PREF)
+            except NoTranscriptFound:
                 try:
-                    transcript = transcript_list.find_generated_transcript(["id", "en"])
-                except Exception:
-                    # Ambil transcript pertama yang tersedia
+                    # 2) Cari auto-generated transcript
+                    transcript = transcript_list.find_generated_transcript(LANG_PREF)
+                except NoTranscriptFound:
+                    # 3) Ambil transcript pertama yang tersedia (bahasa apapun)
                     transcript = next(iter(transcript_list))
             raw = transcript.fetch()
+        except (TranscriptsDisabled, VideoUnavailable, NoTranscriptFound):
+            raise
+        except (IpBlocked, RequestBlocked, PoTokenRequired):
+            raise
         except Exception:
-            # Fallback: langsung fetch dengan bahasa default
-            raw = _yt_api.fetch(video_id)
+            # Fallback: coba langsung fetch multi-bahasa
+            try:
+                raw = _yt_api.fetch(video_id, languages=LANG_PREF)
+            except Exception:
+                raw = _yt_api.fetch(video_id)
 
         full_text = " ".join(s.text for s in raw)
         if not full_text.strip():
-            return jsonify({"error": "Transkrip kosong atau tidak tersedia."}), 400
+            return jsonify({"error": "Transkrip kosong atau tidak tersedia untuk video ini."}), 400
+
+    except (IpBlocked, RequestBlocked, PoTokenRequired) as e:
+        app.logger.warning(f"[YOUTUBE] IP/token block: {e}")
+        return jsonify({"error": (
+            "YouTube memblokir permintaan dari server ini. "
+            "Coba lagi dalam beberapa menit, atau gunakan video lain."
+        )}), 503
+    except TranscriptsDisabled:
+        return jsonify({"error": "Subtitle/CC dinonaktifkan oleh pemilik video ini."}), 400
+    except VideoUnavailable:
+        return jsonify({"error": "Video tidak tersedia (privat, dihapus, atau ID tidak valid)."}), 400
+    except NoTranscriptFound:
+        return jsonify({"error": "Tidak ada transkrip yang tersedia untuk video ini dalam bahasa apapun."}), 400
     except Exception as e:
         err = str(e)
         if "No transcripts" in err or "Could not retrieve" in err or "disabled" in err.lower():
             return jsonify({"error": "Video ini tidak memiliki subtitle/CC yang tersedia."}), 400
+        if "unavailable" in err.lower() or "not available" in err.lower():
+            return jsonify({"error": "Video tidak tersedia atau bersifat privat."}), 400
+        app.logger.error(f"[YOUTUBE] transcript error: {e}")
         return jsonify({"error": f"Gagal mengambil transkrip: {err}"}), 500
 
     draft = _make_kb_draft(title, full_text, url, source_tag="youtube")
