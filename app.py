@@ -2818,17 +2818,24 @@ def api_youtube_scrape():
         return jsonify({"error": (
             "YouTube memblokir permintaan dari server ini. "
             "Coba lagi dalam beberapa menit, atau gunakan video lain."
-        )}), 503
+        ), "hint": "ip_block"}), 503
     except TranscriptsDisabled:
-        return jsonify({"error": "Subtitle/CC dinonaktifkan oleh pemilik video ini."}), 400
+        return jsonify({"error": (
+            "Video ini tidak memiliki subtitle/CC yang aktif. "
+            "Pemilik video menonaktifkan fitur subtitle, atau YouTube belum men-generate "
+            "auto-subtitle untuk video ini."
+        ), "hint": "no_cc"}), 400
     except VideoUnavailable:
-        return jsonify({"error": "Video tidak tersedia (privat, dihapus, atau ID tidak valid)."}), 400
+        return jsonify({"error": "Video tidak tersedia — kemungkinan privat, dihapus, atau ID tidak valid."}), 400
     except NoTranscriptFound:
-        return jsonify({"error": "Tidak ada transkrip yang tersedia untuk video ini dalam bahasa apapun."}), 400
+        return jsonify({"error": (
+            "Tidak ditemukan transkrip untuk video ini dalam bahasa apapun "
+            "(Indonesia, Inggris, Arab, Melayu)."
+        ), "hint": "no_cc"}), 400
     except Exception as e:
         err = str(e)
         if "No transcripts" in err or "Could not retrieve" in err or "disabled" in err.lower():
-            return jsonify({"error": "Video ini tidak memiliki subtitle/CC yang tersedia."}), 400
+            return jsonify({"error": "Video ini tidak memiliki subtitle/CC yang tersedia.", "hint": "no_cc"}), 400
         if "unavailable" in err.lower() or "not available" in err.lower():
             return jsonify({"error": "Video tidak tersedia atau bersifat privat."}), 400
         app.logger.error(f"[YOUTUBE] transcript error: {e}")

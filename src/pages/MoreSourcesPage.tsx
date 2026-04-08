@@ -31,6 +31,7 @@ interface ScrapeResult {
   articles?: KbResult[];
   article?: KbResult;
   error?: string;
+  hint?: "no_cc" | "ip_block";
 }
 
 type AiFormat = "berita" | "kitab" | "laporan" | "ringkasan" | "poin" | "briefing";
@@ -614,7 +615,27 @@ export default function MoreSourcesPage() {
                         {ytLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Ambil"}
                       </Button>
                     </div>
+                    {/* Syarat video yang bisa diambil transkrip */}
+                    <div className="flex items-start gap-2 px-3 py-2 bg-amber-950/25 border border-amber-800/30 rounded-lg">
+                      <AlertCircle className="w-3 h-3 text-amber-500/80 shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-amber-300/60 leading-relaxed">
+                        Hanya video yang memiliki <span className="font-semibold text-amber-300/80">subtitle/CC aktif</span> yang bisa diambil transkrip-nya. Video tanpa CC (kebanyakan konten Indonesia/live/musik) tidak didukung.
+                      </p>
+                    </div>
                   </div>
+                  {/* Tip saat error CC tidak tersedia */}
+                  {ytResult?.status === "error" && ytResult.hint === "no_cc" && (
+                    <div className="bg-amber-950/30 border border-amber-700/40 rounded-xl px-3 py-2.5 space-y-1">
+                      <p className="text-[11px] font-semibold text-amber-300">Tips: Video yang biasanya punya CC</p>
+                      <ul className="text-[10px] text-amber-300/70 space-y-0.5 list-disc list-inside">
+                        <li>Channel berita internasional (BBC, Al Jazeera, DW)</li>
+                        <li>TED Talks & konferensi akademik</li>
+                        <li>Ceramah/kajian dengan subtitle manual</li>
+                        <li>Video berbahasa Inggris umumnya punya auto-CC</li>
+                        <li>Cek ikon <span className="font-semibold">CC</span> di player YouTube sebelum ambil</li>
+                      </ul>
+                    </div>
+                  )}
                   {ytLoading && (
                     <div className="flex items-center gap-2 text-xs text-slate-400 bg-white/5 rounded-xl px-3 py-2.5">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />Mengambil transkrip YouTube...
