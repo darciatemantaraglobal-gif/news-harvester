@@ -20,3 +20,16 @@ pdfplumber
 pymupdf
 requests
 supabase
+apscheduler
+beautifulsoup4
+fitz
+flask
+flask-cors
+gunicorn
+lxml
+openai
+pdfplumber
+pymupdf
+requests
+supabase
+PyMuPDF
