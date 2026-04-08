@@ -5,7 +5,8 @@ import {
   Youtube, FileText, Rss, Send, ChevronLeft, Loader2,
   CheckCircle2, AlertCircle, ArrowRight, Upload, X, Hash,
   RefreshCw, ExternalLink, Wand2, Sparkles,
-  Newspaper, BookOpen, Zap, List, Radio,
+  Newspaper, BookOpen, Zap, List, Radio, ThumbsUp, ThumbsDown,
+  CloudUpload, Clock, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { getToken } from "@/lib/auth";
 
 type Tab = "youtube" | "docx" | "rss" | "telegram";
+type ArticleStatus = "pending" | "approved" | "rejected" | "exported";
 
 interface KbResult {
   id: string;
@@ -40,20 +42,32 @@ interface AiItemState {
   error: string;
 }
 
-const AI_FORMATS: { value: AiFormat; label: string; icon: React.ReactNode; color: string; activeBg: string; activeBorder: string; activeColor: string }[] = [
-  { value: "berita",    label: "Berita",    icon: <Newspaper className="w-2.5 h-2.5" />, color: "text-slate-400",   activeColor: "text-violet-300",  activeBg: "rgba(139,92,246,0.18)",  activeBorder: "rgba(139,92,246,0.5)" },
-  { value: "kitab",     label: "Kitab",     icon: <BookOpen className="w-2.5 h-2.5" />,  color: "text-slate-400",   activeColor: "text-orange-300",  activeBg: "rgba(251,146,60,0.15)",  activeBorder: "rgba(251,146,60,0.5)" },
-  { value: "laporan",   label: "Laporan",   icon: <FileText className="w-2.5 h-2.5" />,  color: "text-slate-400",   activeColor: "text-blue-300",    activeBg: "rgba(96,165,250,0.15)",  activeBorder: "rgba(96,165,250,0.5)" },
-  { value: "ringkasan", label: "Ringkasan", icon: <Zap className="w-2.5 h-2.5" />,       color: "text-slate-400",   activeColor: "text-yellow-300",  activeBg: "rgba(251,191,36,0.15)",  activeBorder: "rgba(251,191,36,0.5)" },
-  { value: "poin",      label: "Poin",      icon: <List className="w-2.5 h-2.5" />,      color: "text-slate-400",   activeColor: "text-emerald-300", activeBg: "rgba(52,211,153,0.15)",  activeBorder: "rgba(52,211,153,0.5)" },
-  { value: "briefing",  label: "Briefing",  icon: <Radio className="w-2.5 h-2.5" />,     color: "text-slate-400",   activeColor: "text-pink-300",    activeBg: "rgba(232,121,249,0.15)", activeBorder: "rgba(232,121,249,0.5)" },
+interface PushState {
+  loading: boolean;
+  result: { ok: boolean; msg: string } | null;
+}
+
+const AI_FORMATS: { value: AiFormat; label: string; icon: React.ReactNode; activeBg: string; activeBorder: string; activeColor: string }[] = [
+  { value: "berita",    label: "Berita",    icon: <Newspaper className="w-2.5 h-2.5" />, activeColor: "text-violet-300",  activeBg: "rgba(139,92,246,0.18)",  activeBorder: "rgba(139,92,246,0.5)" },
+  { value: "kitab",     label: "Kitab",     icon: <BookOpen className="w-2.5 h-2.5" />,  activeColor: "text-orange-300",  activeBg: "rgba(251,146,60,0.15)",  activeBorder: "rgba(251,146,60,0.5)" },
+  { value: "laporan",   label: "Laporan",   icon: <FileText className="w-2.5 h-2.5" />,  activeColor: "text-blue-300",    activeBg: "rgba(96,165,250,0.15)",  activeBorder: "rgba(96,165,250,0.5)" },
+  { value: "ringkasan", label: "Ringkasan", icon: <Zap className="w-2.5 h-2.5" />,       activeColor: "text-yellow-300",  activeBg: "rgba(251,191,36,0.15)",  activeBorder: "rgba(251,191,36,0.5)" },
+  { value: "poin",      label: "Poin",      icon: <List className="w-2.5 h-2.5" />,      activeColor: "text-emerald-300", activeBg: "rgba(52,211,153,0.15)",  activeBorder: "rgba(52,211,153,0.5)" },
+  { value: "briefing",  label: "Briefing",  icon: <Radio className="w-2.5 h-2.5" />,     activeColor: "text-pink-300",    activeBg: "rgba(232,121,249,0.15)", activeBorder: "rgba(232,121,249,0.5)" },
 ];
 
-const TAB_CONFIG: { id: Tab; label: string; icon: React.ReactNode; color: string; accent: string }[] = [
-  { id: "youtube", label: "YouTube",  icon: <Youtube className="w-3.5 h-3.5" />,  color: "text-red-400",    accent: "bg-red-900/20 border-red-700/40" },
-  { id: "docx",    label: "DOCX",     icon: <FileText className="w-3.5 h-3.5" />,  color: "text-blue-400",   accent: "bg-blue-900/20 border-blue-700/40" },
-  { id: "rss",     label: "RSS Feed", icon: <Rss className="w-3.5 h-3.5" />,       color: "text-orange-400", accent: "bg-orange-900/20 border-orange-700/40" },
-  { id: "telegram",label: "Telegram", icon: <Send className="w-3.5 h-3.5" />,      color: "text-sky-400",    accent: "bg-sky-900/20 border-sky-700/40" },
+const STATUS_UI: Record<ArticleStatus, { label: string; icon: React.ReactNode; cls: string }> = {
+  pending:  { label: "Pending",  icon: <Clock className="w-2.5 h-2.5" />,       cls: "text-yellow-300 bg-yellow-900/25 border-yellow-600/30" },
+  approved: { label: "Approved", icon: <CheckCircle2 className="w-2.5 h-2.5" />, cls: "text-emerald-300 bg-emerald-900/25 border-emerald-600/30" },
+  rejected: { label: "Rejected", icon: <XCircle className="w-2.5 h-2.5" />,      cls: "text-red-300 bg-red-900/25 border-red-600/30" },
+  exported: { label: "Exported", icon: <CloudUpload className="w-2.5 h-2.5" />,  cls: "text-indigo-300 bg-indigo-900/25 border-indigo-600/30" },
+};
+
+const TAB_CONFIG: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "youtube", label: "YouTube",  icon: <Youtube className="w-3.5 h-3.5" /> },
+  { id: "docx",    label: "DOCX",     icon: <FileText className="w-3.5 h-3.5" /> },
+  { id: "rss",     label: "RSS Feed", icon: <Rss className="w-3.5 h-3.5" /> },
+  { id: "telegram",label: "Telegram", icon: <Send className="w-3.5 h-3.5" /> },
 ];
 
 export default function MoreSourcesPage() {
@@ -87,8 +101,16 @@ export default function MoreSourcesPage() {
   const [aiState, setAiState] = useState<Record<string, AiItemState>>({});
   const [aiFormatPicker, setAiFormatPicker] = useState<Record<string, boolean>>({});
 
+  // ── Approve/Reject state (keyed by article ID) ──
+  const [articleStatus, setArticleStatus] = useState<Record<string, ArticleStatus>>({});
+  const [approveLoading, setApproveLoading] = useState<Record<string, boolean>>({});
+
+  // ── Push to Supabase state ──
+  const [pushState, setPushState] = useState<PushState>({ loading: false, result: null });
+
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` };
 
+  // ── Scrape handlers ──
   const doYoutube = async () => {
     if (!ytUrl.trim()) return;
     setYtLoading(true); setYtResult(null);
@@ -97,7 +119,9 @@ export default function MoreSourcesPage() {
         method: "POST", headers,
         body: JSON.stringify({ url: ytUrl.trim() }),
       });
-      setYtResult(await res.json());
+      const data = await res.json();
+      setYtResult(data);
+      initArticleStatus(data);
     } catch { setYtResult({ status: "error", error: "Gagal terhubung ke server." }); }
     setYtLoading(false);
   };
@@ -113,7 +137,9 @@ export default function MoreSourcesPage() {
         headers: { Authorization: `Bearer ${getToken()}` },
         body: fd,
       });
-      setDocxResult(await res.json());
+      const data = await res.json();
+      setDocxResult(data);
+      initArticleStatus(data);
     } catch { setDocxResult({ status: "error", error: "Gagal terhubung ke server." }); }
     setDocxLoading(false);
   };
@@ -126,7 +152,9 @@ export default function MoreSourcesPage() {
         method: "POST", headers,
         body: JSON.stringify({ url: rssUrl.trim(), max_items: rssMax }),
       });
-      setRssResult(await res.json());
+      const data = await res.json();
+      setRssResult(data);
+      initArticleStatus(data);
     } catch { setRssResult({ status: "error", error: "Gagal terhubung ke server." }); }
     setRssLoading(false);
   };
@@ -139,7 +167,9 @@ export default function MoreSourcesPage() {
         method: "POST", headers,
         body: JSON.stringify({ channel: tgChannel.trim(), limit: tgLimit }),
       });
-      setTgResult(await res.json());
+      const data = await res.json();
+      setTgResult(data);
+      initArticleStatus(data);
     } catch { setTgResult({ status: "error", error: "Gagal terhubung ke server." }); }
     setTgLoading(false);
   };
@@ -155,6 +185,34 @@ export default function MoreSourcesPage() {
     });
   };
 
+  // ── Helpers ──
+  const initArticleStatus = (result: ScrapeResult) => {
+    if (result.status !== "ok") return;
+    const arts = result.articles ?? (result.article ? [result.article] : []);
+    setArticleStatus(prev => {
+      const next = { ...prev };
+      arts.forEach(a => { next[a.id] = (a.approval_status as ArticleStatus) || "pending"; });
+      return next;
+    });
+  };
+
+  // ── Approve / Reject ──
+  const doApprove = async (id: string, newStatus: ArticleStatus) => {
+    setApproveLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      const res = await fetch(apiUrl("/kb/update-status"), {
+        method: "POST", headers,
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        setArticleStatus(prev => ({ ...prev, [id]: newStatus }));
+      }
+    } catch { /* silently ignore */ }
+    setApproveLoading(prev => ({ ...prev, [id]: false }));
+  };
+
+  // ── AI Fix ──
   const toggleAiPicker = (id: string) => {
     setAiFormatPicker(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -177,11 +235,7 @@ export default function MoreSourcesPage() {
 
       const saveRes = await fetch(apiUrl("/kb/update-status"), {
         method: "POST", headers,
-        body: JSON.stringify({
-          id,
-          status: "pending",
-          content: fmtData.formatted_content,
-        }),
+        body: JSON.stringify({ id, status: articleStatus[id] || "pending", content: fmtData.formatted_content }),
       });
       const saveData = await saveRes.json();
       if (!saveRes.ok) throw new Error(saveData.error || "Gagal menyimpan ke KB");
@@ -192,6 +246,42 @@ export default function MoreSourcesPage() {
       setAiState(prev => ({ ...prev, [id]: { open: true, loading: false, done: false, error: msg } }));
     }
   };
+
+  // ── Push to Supabase ──
+  const doPushApproved = async () => {
+    setPushState({ loading: true, result: null });
+    try {
+      const res = await fetch(apiUrl("/api/push-approved"), { method: "POST", headers });
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        const inserted = data.inserted ?? 0;
+        const skipped = data.skipped ?? 0;
+        const msg = inserted > 0
+          ? `${inserted} artikel berhasil di-push ke Supabase.${skipped > 0 ? ` ${skipped} dilewati.` : ""}`
+          : skipped > 0
+          ? `${skipped} artikel sudah ada di Supabase (dilewati).`
+          : "Tidak ada artikel yang di-push.";
+        setPushState({ loading: false, result: { ok: true, msg } });
+        // Mark exported articles in local state
+        if (inserted > 0) {
+          setArticleStatus(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(id => {
+              if (next[id] === "approved") next[id] = "exported";
+            });
+            return next;
+          });
+        }
+      } else {
+        setPushState({ loading: false, result: { ok: false, msg: data.error || "Push ke Supabase gagal." } });
+      }
+    } catch {
+      setPushState({ loading: false, result: { ok: false, msg: "Gagal terhubung ke server." } });
+    }
+    setTimeout(() => setPushState(prev => ({ ...prev, result: null })), 7000);
+  };
+
+  // ── Sub-components (defined inside to access closures) ──
 
   function AiFixSection({ article }: { article: KbResult }) {
     const state = aiState[article.id];
@@ -208,16 +298,16 @@ export default function MoreSourcesPage() {
 
     if (state?.done) {
       return (
-        <div className="mt-2 flex items-center gap-2 px-2 py-1.5 bg-emerald-900/20 border border-emerald-700/30 rounded-lg">
+        <div className="mt-1 flex items-center gap-2 px-2 py-1 bg-emerald-900/15 border border-emerald-700/25 rounded-lg">
           <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
-          <span className="text-[11px] text-emerald-300 font-semibold">AI selesai — konten diperbarui di KB</span>
+          <span className="text-[11px] text-emerald-300 font-semibold">AI selesai — konten diperbarui</span>
         </div>
       );
     }
 
     if (state?.error) {
       return (
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-1 space-y-1">
           <div className="flex items-start gap-2 px-2 py-1.5 bg-red-900/20 border border-red-700/30 rounded-lg">
             <AlertCircle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
             <span className="text-[11px] text-red-300">{state.error}</span>
@@ -231,21 +321,18 @@ export default function MoreSourcesPage() {
     }
 
     return (
-      <div className="mt-2 space-y-1.5">
-        <button
-          onClick={() => toggleAiPicker(article.id)}
-          className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+      <div className="mt-1 space-y-1.5">
+        <button onClick={() => toggleAiPicker(article.id)}
+          className={`flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-lg border transition-all ${
             pickerOpen
               ? "bg-violet-700/25 border-violet-500/50 text-violet-300"
-              : "bg-violet-900/15 border-violet-700/30 text-violet-400 hover:bg-violet-800/20 hover:text-violet-300"
+              : "bg-violet-900/10 border-violet-700/25 text-violet-500 hover:text-violet-300 hover:bg-violet-900/20"
           }`}>
-          <Wand2 className="w-3 h-3" />
-          Perbaiki dengan AI
+          <Wand2 className="w-3 h-3" />Perbaiki dengan AI
         </button>
-
         {pickerOpen && (
           <div className="bg-[#0a061a] border border-violet-800/40 rounded-xl p-2.5 space-y-2">
-            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider px-0.5">Pilih format output</p>
+            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Pilih format output</p>
             <div className="grid grid-cols-3 gap-1.5">
               {AI_FORMATS.map(fmt => (
                 <button key={fmt.value} onClick={() => doAiFix(article, fmt.value)}
@@ -255,8 +342,8 @@ export default function MoreSourcesPage() {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-600 px-0.5 leading-relaxed">
-              AI akan memformat ulang konten dan menyimpannya ke KB. Mendukung teks Arab, Latin, dan campuran.
+            <p className="text-[10px] text-slate-600 leading-relaxed">
+              Mendukung teks Arab, Latin, dan campuran.
             </p>
           </div>
         )}
@@ -264,17 +351,84 @@ export default function MoreSourcesPage() {
     );
   }
 
-  function ResultBox({ result }: { result: ScrapeResult | null }) {
+  function ArticleCard({ article }: { article: KbResult }) {
+    const status = articleStatus[article.id] || "pending";
+    const loading = approveLoading[article.id] ?? false;
+    const statusUi = STATUS_UI[status];
+    const isExported = status === "exported";
+
+    return (
+      <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 space-y-2">
+        {/* Title row */}
+        <div className="flex items-start gap-2">
+          <Hash className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-300 flex-1 font-medium leading-snug">{article.title || "(Tanpa Judul)"}</p>
+          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${statusUi.cls}`}>
+              {statusUi.icon}{statusUi.label}
+            </span>
+            {article.source_url && (
+              <a href={article.source_url} target="_blank" rel="noopener noreferrer"
+                className="text-indigo-400 hover:text-indigo-300">
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Approve / Reject buttons */}
+        {!isExported && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => doApprove(article.id, status === "approved" ? "pending" : "approved")}
+              disabled={loading}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all disabled:opacity-50 ${
+                status === "approved"
+                  ? "bg-emerald-900/35 border-emerald-600/50 text-emerald-300"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:bg-emerald-900/20 hover:border-emerald-700/40 hover:text-emerald-300"
+              }`}>
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsUp className="w-3 h-3" />}
+              {status === "approved" ? "Approved" : "Approve"}
+            </button>
+            <button
+              onClick={() => doApprove(article.id, status === "rejected" ? "pending" : "rejected")}
+              disabled={loading}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all disabled:opacity-50 ${
+                status === "rejected"
+                  ? "bg-red-900/35 border-red-600/50 text-red-300"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:bg-red-900/20 hover:border-red-700/40 hover:text-red-300"
+              }`}>
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsDown className="w-3 h-3" />}
+              {status === "rejected" ? "Rejected" : "Reject"}
+            </button>
+          </div>
+        )}
+        {isExported && (
+          <div className="flex items-center gap-1.5 text-[11px] text-indigo-300">
+            <CloudUpload className="w-3 h-3" />
+            <span>Berhasil di-push ke Supabase</span>
+          </div>
+        )}
+
+        <AiFixSection article={article} />
+      </div>
+    );
+  }
+
+  function ResultBox({ result, label }: { result: ScrapeResult | null; label: string }) {
     if (!result) return null;
     const articles = result.articles ?? (result.article ? [result.article] : []);
     const count = result.count ?? articles.length;
+    const approvedCount = articles.filter(a => (articleStatus[a.id] || "pending") === "approved").length;
+    const hasApproved = approvedCount > 0;
 
     return (
-      <div className={`rounded-xl border p-3.5 space-y-2 ${
+      <div className={`rounded-xl border p-3.5 space-y-3 ${
         result.status === "ok"
           ? "bg-emerald-900/15 border-emerald-700/30"
           : "bg-red-900/15 border-red-700/30"
       }`}>
+        {/* Status header */}
         <div className="flex items-start gap-2">
           {result.status === "ok"
             ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -282,7 +436,7 @@ export default function MoreSourcesPage() {
           <div className="flex-1 min-w-0">
             {result.status === "ok" ? (
               <p className="text-sm font-semibold text-emerald-300">
-                {count} artikel berhasil disimpan ke KB Draft
+                {count} artikel dari {label} disimpan ke KB Draft
               </p>
             ) : (
               <p className="text-sm font-semibold text-red-300">{result.error}</p>
@@ -291,46 +445,84 @@ export default function MoreSourcesPage() {
         </div>
 
         {result.status === "ok" && count > 0 && (
-          <div className="space-y-2">
-            {articles.slice(0, 5).map((a, i) => (
-              <div key={i} className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Hash className="w-3 h-3 text-violet-400 shrink-0" />
-                  <p className="text-xs text-slate-300 truncate flex-1 font-medium">{a.title || "(Tanpa Judul)"}</p>
-                  {a.source_url && (
-                    <a href={a.source_url} target="_blank" rel="noopener noreferrer"
-                      className="text-indigo-400 hover:text-indigo-300 shrink-0 ml-1">
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+          <>
+            {/* Workflow guide */}
+            <div className="flex items-center gap-3 px-3 py-2 bg-black/30 border border-white/8 rounded-lg overflow-x-auto">
+              {[
+                { n: "1", txt: "Simpan", done: true },
+                { n: "2", txt: "AI Fix", done: false },
+                { n: "3", txt: "Approve", done: hasApproved },
+                { n: "4", txt: "Push", done: false },
+              ].map((step, i) => (
+                <div key={i} className="flex items-center gap-1.5 shrink-0">
+                  {i > 0 && <ArrowRight className="w-2.5 h-2.5 text-slate-700 shrink-0" />}
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${
+                    step.done ? "bg-emerald-600 text-white" : "bg-white/10 text-slate-500"
+                  }`}>{step.done ? "✓" : step.n}</div>
+                  <span className={`text-[11px] font-medium ${step.done ? "text-emerald-300" : "text-slate-500"}`}>{step.txt}</span>
                 </div>
-                <AiFixSection article={a} />
-              </div>
-            ))}
-            {count > 5 && (
-              <p className="text-xs text-slate-500 pl-2">...dan {count - 5} lainnya tersimpan di KB</p>
-            )}
+              ))}
+            </div>
 
-            <div className="pt-1 space-y-1.5">
-              <div className="flex items-start gap-2 px-2.5 py-2 bg-violet-900/15 border border-violet-700/25 rounded-lg">
-                <Sparkles className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-violet-300/80 leading-relaxed">
-                  Klik <span className="font-semibold text-violet-300">Perbaiki dengan AI</span> pada tiap artikel untuk memformat ulang kontennya — mendukung semua jenis teks dan output berbagai format tulisan.
+            {/* Article list */}
+            <div className="space-y-2">
+              {articles.slice(0, 5).map((a, i) => (
+                <ArticleCard key={i} article={a} />
+              ))}
+              {count > 5 && (
+                <p className="text-xs text-slate-500 pl-2">...dan {count - 5} lainnya tersimpan di KB</p>
+              )}
+            </div>
+
+            {/* Push to Supabase section */}
+            <div className="space-y-2 pt-1">
+              {/* Push result banner */}
+              {pushState.result && (
+                <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium ${
+                  pushState.result.ok
+                    ? "bg-emerald-900/25 border-emerald-600/40 text-emerald-300"
+                    : "bg-red-900/25 border-red-600/40 text-red-300"
+                }`}>
+                  {pushState.result.ok
+                    ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    : <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />}
+                  {pushState.result.msg}
+                </div>
+              )}
+
+              {/* Approve hint if none approved yet */}
+              {!hasApproved && !pushState.result && (
+                <p className="text-[11px] text-slate-500 text-center px-2">
+                  Klik <span className="font-semibold text-emerald-400">Approve</span> pada artikel yang ingin dipush, lalu tekan tombol di bawah.
                 </p>
-              </div>
+              )}
+
+              {/* Push button */}
+              <button
+                onClick={doPushApproved}
+                disabled={pushState.loading || !hasApproved}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                  hasApproved
+                    ? "bg-indigo-700/30 border-indigo-600/50 text-indigo-200 hover:bg-indigo-700/40"
+                    : "bg-white/5 border-white/10 text-slate-600"
+                }`}>
+                {pushState.loading
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Mendorong ke Supabase...</>
+                  : <><CloudUpload className="w-3.5 h-3.5" />Push {hasApproved ? `${approvedCount} Artikel` : ""} ke Supabase</>
+                }
+              </button>
+
               <Link to="/review">
-                <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 hover:bg-emerald-900/30 transition-colors">
+                <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 border border-white/8 hover:border-white/15 transition-colors">
                   Buka Review Dashboard <ArrowRight className="w-3 h-3" />
                 </button>
               </Link>
             </div>
-          </div>
+          </>
         )}
       </div>
     );
   }
-
-  const tab = TAB_CONFIG.find(t => t.id === activeTab)!;
 
   return (
     <div className="flex flex-col bg-black text-white relative" style={{ minHeight: "100dvh" }}>
@@ -377,7 +569,7 @@ export default function MoreSourcesPage() {
           </Link>
         </div>
 
-        {/* Scrollable */}
+        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-24">
           <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
 
@@ -401,44 +593,34 @@ export default function MoreSourcesPage() {
                 style={{ boxShadow: "0 0 24px rgba(109,40,217,0.14)" }}>
                 <div className="h-[3px] bg-gradient-to-r from-red-600 via-red-400 to-red-600" />
                 <div className="p-4 sm:p-5 space-y-4">
-
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-red-900/40 border border-red-500/30 flex items-center justify-center shrink-0">
                       <Youtube className="w-4 h-4 text-red-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-white text-sm">YouTube Transcript</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Ambil transkrip dari video YouTube dan simpan sebagai KB Draft. Video harus punya subtitle/CC.</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Ambil transkrip video YouTube → KB Draft → Approve → Push Supabase.</p>
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">URL Video YouTube</label>
                     <div className="flex gap-2">
-                      <Input
-                        value={ytUrl}
-                        onChange={e => setYtUrl(e.target.value)}
+                      <Input value={ytUrl} onChange={e => setYtUrl(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && doYoutube()}
                         placeholder="https://www.youtube.com/watch?v=..."
-                        className="flex-1 h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-red-400/40"
-                      />
+                        className="flex-1 h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-red-400/40" />
                       <Button onClick={doYoutube} disabled={ytLoading || !ytUrl.trim()}
                         className="h-9 px-4 bg-red-700 hover:bg-red-600 text-white text-xs rounded-xl shrink-0 disabled:opacity-50">
                         {ytLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Ambil"}
                       </Button>
                     </div>
-                    {ytUrl.trim() && !ytLoading && !ytResult && (
-                      <p className="text-[10px] text-slate-600">Pastikan video memiliki subtitle/CC (otomatis atau manual).</p>
-                    )}
                   </div>
-
                   {ytLoading && (
                     <div className="flex items-center gap-2 text-xs text-slate-400 bg-white/5 rounded-xl px-3 py-2.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
-                      Mengambil transkrip YouTube...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />Mengambil transkrip YouTube...
                     </div>
                   )}
-                  <ResultBox result={ytResult} />
+                  <ResultBox result={ytResult} label="YouTube" />
                   {ytResult && (
                     <button onClick={() => { setYtUrl(""); setYtResult(null); }}
                       className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
@@ -455,27 +637,22 @@ export default function MoreSourcesPage() {
                 style={{ boxShadow: "0 0 24px rgba(109,40,217,0.14)" }}>
                 <div className="h-[3px] bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600" />
                 <div className="p-4 sm:p-5 space-y-4">
-
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-900/40 border border-blue-500/30 flex items-center justify-center shrink-0">
                       <FileText className="w-4 h-4 text-blue-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-white text-sm">Word / DOCX Parser</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Upload dokumen .docx atau .doc. Teks akan diekstrak dan disimpan sebagai KB Draft.</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Upload .docx/.doc → KB Draft → Approve → Push Supabase.</p>
                     </div>
                   </div>
-
-                  {/* Drop zone */}
                   <div
                     onDragOver={e => { e.preventDefault(); setDocxDrag(true); }}
                     onDragLeave={() => setDocxDrag(false)}
                     onDrop={e => { e.preventDefault(); setDocxDrag(false); addDocxFiles(e.dataTransfer.files); }}
                     onClick={() => docxRef.current?.click()}
                     className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer transition-colors ${
-                      docxDrag
-                        ? "border-blue-500/70 bg-blue-900/20"
-                        : "border-blue-800/40 bg-blue-950/20 hover:border-blue-600/50 hover:bg-blue-900/15"
+                      docxDrag ? "border-blue-500/70 bg-blue-900/20" : "border-blue-800/40 bg-blue-950/20 hover:border-blue-600/50 hover:bg-blue-900/15"
                     }`}>
                     <Upload className="w-5 h-5 text-blue-400" />
                     <p className="text-xs text-blue-300/70 font-medium">Drag & drop atau klik untuk pilih</p>
@@ -483,8 +660,6 @@ export default function MoreSourcesPage() {
                     <input ref={docxRef} type="file" className="hidden" multiple accept=".docx,.doc"
                       onChange={e => addDocxFiles(e.target.files)} />
                   </div>
-
-                  {/* File list */}
                   {docxFiles.length > 0 && (
                     <div className="space-y-1.5">
                       {docxFiles.map(f => (
@@ -504,14 +679,12 @@ export default function MoreSourcesPage() {
                       </Button>
                     </div>
                   )}
-
                   {docxLoading && (
                     <div className="flex items-center gap-2 text-xs text-slate-400 bg-white/5 rounded-xl px-3 py-2.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                      Mengekstrak konten dokumen...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />Mengekstrak konten dokumen...
                     </div>
                   )}
-                  <ResultBox result={docxResult} />
+                  <ResultBox result={docxResult} label="DOCX" />
                   {docxResult && (
                     <button onClick={() => { setDocxFiles([]); setDocxResult(null); }}
                       className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
@@ -528,27 +701,22 @@ export default function MoreSourcesPage() {
                 style={{ boxShadow: "0 0 24px rgba(109,40,217,0.14)" }}>
                 <div className="h-[3px] bg-gradient-to-r from-orange-600 via-orange-400 to-orange-600" />
                 <div className="p-4 sm:p-5 space-y-4">
-
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-orange-900/40 border border-orange-500/30 flex items-center justify-center shrink-0">
                       <Rss className="w-4 h-4 text-orange-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-white text-sm">RSS / Atom Feed</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Ambil artikel terbaru dari feed RSS/Atom sebuah situs. Setiap item jadi satu KB Draft.</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Ambil artikel dari feed RSS/Atom → KB Draft → Approve → Push Supabase.</p>
                     </div>
                   </div>
-
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">URL Feed RSS / Atom</label>
-                      <Input
-                        value={rssUrl}
-                        onChange={e => setRssUrl(e.target.value)}
+                      <Input value={rssUrl} onChange={e => setRssUrl(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && doRss()}
                         placeholder="https://example.com/feed.xml"
-                        className="h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-orange-400/40"
-                      />
+                        className="h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-orange-400/40" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Maks. Artikel</label>
@@ -565,8 +733,7 @@ export default function MoreSourcesPage() {
                       {rssLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />Mengambil Feed...</> : "Fetch RSS Feed"}
                     </Button>
                   </div>
-
-                  <ResultBox result={rssResult} />
+                  <ResultBox result={rssResult} label="RSS" />
                   {rssResult && (
                     <button onClick={() => { setRssUrl(""); setRssResult(null); }}
                       className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
@@ -583,34 +750,29 @@ export default function MoreSourcesPage() {
                 style={{ boxShadow: "0 0 24px rgba(109,40,217,0.14)" }}>
                 <div className="h-[3px] bg-gradient-to-r from-sky-600 via-sky-400 to-sky-600" />
                 <div className="p-4 sm:p-5 space-y-4">
-
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-sky-900/40 border border-sky-500/30 flex items-center justify-center shrink-0">
                       <Send className="w-4 h-4 text-sky-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-white text-sm">Telegram Channel Scraper</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Scrape postingan dari channel Telegram publik. Masukkan username channel (tanpa @).</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Scrape channel Telegram publik → KB Draft → Approve → Push Supabase.</p>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-2 text-[11px] text-sky-300 bg-sky-900/20 border border-sky-700/30 rounded-xl px-3 py-2.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>Hanya bekerja untuk <strong>channel publik</strong>. Channel privat tidak bisa diakses.</span>
                   </div>
-
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Username Channel Telegram</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold select-none">@</span>
-                        <Input
-                          value={tgChannel}
+                        <Input value={tgChannel}
                           onChange={e => setTgChannel(e.target.value.replace(/^@/, ""))}
                           onKeyDown={e => e.key === "Enter" && doTelegram()}
                           placeholder="namachannel"
-                          className="h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-sky-400/40 pl-7"
-                        />
+                          className="h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-sky-400/40 pl-7" />
                       </div>
                     </div>
                     <div className="space-y-1.5">
@@ -628,8 +790,7 @@ export default function MoreSourcesPage() {
                       {tgLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />Scraping Channel...</> : "Scrape Channel"}
                     </Button>
                   </div>
-
-                  <ResultBox result={tgResult} />
+                  <ResultBox result={tgResult} label="Telegram" />
                   {tgResult && (
                     <button onClick={() => { setTgChannel(""); setTgResult(null); }}
                       className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
