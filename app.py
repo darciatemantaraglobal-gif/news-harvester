@@ -1769,92 +1769,81 @@ def _safe_pdf_slug(filename: str, suffix: str = "") -> str:
     return slug[:80]
 
 
-@app.route("/api/pdf/upload", methods=["POST"])
-def api_pdf_upload():
-    """
-    Upload satu atau lebih PDF, ekstrak teks (+ opsional OCR untuk scan),
-    chunk per N halaman, simpan tiap chunk sebagai KB draft terpisah.
-    """
-    files = request.files.getlist("files")
-    if not files or all(f.filename == "" for f in files):
-        return jsonify({"error": "Tidak ada file PDF yang diupload."}), 400
+# ── PDF Job store (in-memory, background processing) ──────────────────────────
+import threading as _threading
+import uuid as _uuid
 
-    # Form params
-    category = request.form.get("category", "").strip()
-    chunk_size = max(5, min(100, int(request.form.get("chunk_size", "20"))))
-    use_ocr = request.form.get("use_ocr", "false").lower() == "true"
-    # Max scan pages to OCR per file — caps cost (default 150, user-configurable)
-    max_ocr_pages = max(10, min(500, int(request.form.get("max_ocr_pages", "150"))))
-    # Page range (1-based, inclusive) — 0 = tidak dibatasi
-    page_start = max(1, int(request.form.get("page_start", "1") or "1"))
-    page_end_raw = request.form.get("page_end", "0") or "0"
-    page_end = int(page_end_raw) if page_end_raw.isdigit() and int(page_end_raw) > 0 else 0
+_pdf_jobs: dict = {}           # job_id → job dict
+_pdf_jobs_lock = _threading.Lock()
+
+
+def _pdf_job_worker(job_id: str, files_data: list, category: str, chunk_size: int,
+                    use_ocr: bool, max_ocr_pages: int, page_start_g: int, page_end_g: int):
+    """Background thread: process PDF files and store results in _pdf_jobs."""
+    OCR_BATCH = 4
     ocr_available = check_openai_available()
-    OCR_BATCH = 4  # Halaman per API call — 4x lebih sedikit calls
-
-    kb = _load_kb()
-    now = _now_iso()
     all_results = []
+    total_files = len(files_data)
 
-    for file in files:
-        fname = file.filename or ""
-        if not fname.lower().endswith(".pdf"):
-            all_results.append({"filename": fname, "status": "error", "error": "Bukan file PDF"})
-            continue
+    def _set_progress(msg: str, done_files: int = 0):
+        with _pdf_jobs_lock:
+            _pdf_jobs[job_id]["progress"] = msg
+            _pdf_jobs[job_id]["done_files"] = done_files
 
+    _set_progress(f"Memulai pemrosesan {total_files} file...")
+
+    for fi, (fname, pdf_bytes) in enumerate(files_data):
+        _set_progress(f"[{fi+1}/{total_files}] Membaca {fname}...", fi)
         try:
-            pdf_bytes = file.read()
-
-            # ── Phase 1: Extract text per page ──
-            # First pass: pdfplumber for text, collect scan page indices
-            pages_text = []   # list of (page_num, text, is_scan)
+            pages_text = []
             scan_page_indices = []
             text_pages = 0
 
             fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             total_pages = len(fitz_doc)
-
-            # Hitung range halaman yang akan diproses (1-based → 0-based index)
-            p_start_idx = max(0, page_start - 1)
-            p_end_idx = min(total_pages - 1, page_end - 1) if page_end > 0 else total_pages - 1
+            p_start_idx = max(0, page_start_g - 1)
+            p_end_idx = min(total_pages - 1, page_end_g - 1) if page_end_g > 0 else total_pages - 1
 
             with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
                 for i, page in enumerate(pdf.pages):
                     if i < p_start_idx or i > p_end_idx:
-                        continue  # Skip halaman di luar range
+                        continue
                     raw_text = (page.extract_text() or "").strip()
                     if raw_text and len(raw_text) > 20:
                         pages_text.append((i + 1, raw_text, False))
                         text_pages += 1
                     else:
-                        pages_text.append((i + 1, "", True))  # placeholder
+                        pages_text.append((i + 1, "", True))
                         scan_page_indices.append(i)
 
             scan_pages = len(scan_page_indices)
 
-            # Second pass: batch OCR for scan pages (if enabled and under cap)
             if use_ocr and ocr_available and scan_page_indices:
                 ocr_indices = scan_page_indices[:max_ocr_pages]
                 ocr_skipped = len(scan_page_indices) - len(ocr_indices)
-                if ocr_skipped > 0:
-                    logger.info(f"[PDF OCR] Cap: {ocr_skipped} halaman scan di-skip (limit {max_ocr_pages})")
+                total_batches = (len(ocr_indices) + OCR_BATCH - 1) // OCR_BATCH
 
-                # Render scan pages at 1.5x (cheaper/faster than 2x, still readable)
+                if ocr_skipped > 0:
+                    logger.info(f"[PDF OCR] Cap: {ocr_skipped} hal. skip (limit {max_ocr_pages})")
+
                 mat = fitz.Matrix(1.5, 1.5)
-                scan_imgs = {}  # page_idx → png bytes
+                scan_imgs = {}
                 for i in ocr_indices:
                     pix = fitz_doc[i].get_pixmap(matrix=mat)
                     scan_imgs[i] = pix.tobytes("png")
 
-                # Batch OCR (4 pages per API call)
                 idx_list = list(scan_imgs.keys())
-                for batch_start in range(0, len(idx_list), OCR_BATCH):
+                for bn, batch_start in enumerate(range(0, len(idx_list), OCR_BATCH)):
+                    _set_progress(
+                        f"[{fi+1}/{total_files}] OCR {fname}: batch {bn+1}/{total_batches} "
+                        f"(hal. {idx_list[batch_start]+1}–{idx_list[min(batch_start+OCR_BATCH-1, len(idx_list)-1)]+1})",
+                        fi,
+                    )
                     batch_idx = idx_list[batch_start:batch_start + OCR_BATCH]
                     batch_imgs = [scan_imgs[j] for j in batch_idx]
                     try:
                         ocr_texts = ocr_arabic_pages_batch(batch_imgs)
                         for j, ocr_text in zip(batch_idx, ocr_texts):
-                            # Update the placeholder in pages_text
                             for k, (pnum, _, is_scan) in enumerate(pages_text):
                                 if pnum == j + 1 and is_scan:
                                     pages_text[k] = (pnum, ocr_text or "", True)
@@ -1864,26 +1853,25 @@ def api_pdf_upload():
 
             fitz_doc.close()
 
-            # ── Phase 2: Build display title from filename ──
+            _set_progress(f"[{fi+1}/{total_files}] Menyimpan chunk KB untuk {fname}...", fi)
             base_title = os.path.splitext(fname)[0].replace("-", " ").replace("_", " ").strip()
             extra_tags = [category] if category else []
-
-            # ── Phase 3: Chunk pages into KB articles ──
             chunks_created = 0
             ts = int(time.time())
+            now = _now_iso()
+            kb = _load_kb()
 
             for chunk_idx, start in enumerate(range(0, len(pages_text), chunk_size)):
                 chunk_pages = pages_text[start:start + chunk_size]
-                page_start = chunk_pages[0][0]
-                page_end = chunk_pages[-1][0]
-
+                pg_start = chunk_pages[0][0]
+                pg_end = chunk_pages[-1][0]
                 chunk_text = "\n\n".join(t for _, t, _ in chunk_pages if t).strip()
                 if not chunk_text:
-                    continue  # skip empty chunks (all-scan with no OCR)
+                    continue
 
                 if total_pages > chunk_size:
-                    chunk_title = f"{base_title} — Hal. {page_start}–{page_end}"
-                    slug_suffix = f"hal{page_start}-{page_end}-{ts}"
+                    chunk_title = f"{base_title} — Hal. {pg_start}–{pg_end}"
+                    slug_suffix = f"hal{pg_start}-{pg_end}-{ts}"
                 else:
                     chunk_title = base_title
                     slug_suffix = str(ts)
@@ -1905,7 +1893,7 @@ def api_pdf_upload():
                     "scrape_status": "success",
                     "approval_status": "pending",
                     "last_updated": now,
-                    "notes": f"Sumber: {fname}, Hal. {page_start}-{page_end}",
+                    "notes": f"Sumber: {fname}, Hal. {pg_start}-{pg_end}",
                     "source_type": "pdf",
                 }
 
@@ -1914,14 +1902,15 @@ def api_pdf_upload():
                     kb[idx] = kb_article
                 else:
                     kb.append(kb_article)
-
                 chunks_created += 1
+
+            _save_kb(kb)
 
             ocr_pages_done = len(scan_page_indices[:max_ocr_pages]) if (use_ocr and ocr_available) else 0
             all_results.append({
                 "filename": fname,
                 "status": "ok" if chunks_created > 0 else "error",
-                "error": "Tidak ada teks yang bisa diekstrak dari PDF ini." if chunks_created == 0 else None,
+                "error": "Tidak ada teks yang bisa diekstrak." if chunks_created == 0 else None,
                 "title": base_title,
                 "total_pages": total_pages,
                 "text_pages": text_pages,
@@ -1931,18 +1920,98 @@ def api_pdf_upload():
             })
 
         except Exception as e:
-            logger.error(f"[PDF] Error processing {fname}: {e}")
+            logger.error(f"[PDF JOB] Error on {fname}: {e}")
             all_results.append({"filename": fname, "status": "error", "error": str(e)[:300]})
 
-    _save_kb(kb)
     ok_count = sum(1 for r in all_results if r.get("status") == "ok")
     total_chunks = sum(r.get("chunks", 0) for r in all_results)
+
+    with _pdf_jobs_lock:
+        _pdf_jobs[job_id].update({
+            "status": "done",
+            "progress": f"Selesai — {ok_count}/{total_files} file berhasil, {total_chunks} chunk disimpan.",
+            "done_files": total_files,
+            "results": {
+                "status": "ok",
+                "processed": ok_count,
+                "total": total_files,
+                "total_chunks": total_chunks,
+                "results": all_results,
+            },
+        })
+    logger.info(f"[PDF JOB] {job_id} selesai — {ok_count}/{total_files} ok, {total_chunks} chunks")
+
+
+@app.route("/api/pdf/upload", methods=["POST"])
+def api_pdf_upload():
+    """
+    Upload satu atau lebih PDF — langsung kembalikan job_id, proses di background.
+    Polling status via GET /api/pdf/job/<job_id>
+    """
+    files = request.files.getlist("files")
+    if not files or all(f.filename == "" for f in files):
+        return jsonify({"error": "Tidak ada file PDF yang diupload."}), 400
+
+    category = request.form.get("category", "").strip()
+    chunk_size = max(5, min(100, int(request.form.get("chunk_size", "20"))))
+    use_ocr = request.form.get("use_ocr", "false").lower() == "true"
+    max_ocr_pages = max(10, min(500, int(request.form.get("max_ocr_pages", "150"))))
+    page_start_g = max(1, int(request.form.get("page_start", "1") or "1"))
+    page_end_raw = request.form.get("page_end", "0") or "0"
+    page_end_g = int(page_end_raw) if page_end_raw.isdigit() and int(page_end_raw) > 0 else 0
+
+    # Baca bytes semua file sebelum keluar dari request context
+    files_data = []
+    for f in files:
+        fname = f.filename or ""
+        if not fname.lower().endswith(".pdf"):
+            continue
+        files_data.append((fname, f.read()))
+
+    if not files_data:
+        return jsonify({"error": "Tidak ada file PDF yang valid."}), 400
+
+    job_id = str(_uuid.uuid4())
+    with _pdf_jobs_lock:
+        _pdf_jobs[job_id] = {
+            "status": "processing",
+            "progress": "Menginisialisasi...",
+            "done_files": 0,
+            "total_files": len(files_data),
+            "results": None,
+            "created_at": time.time(),
+        }
+
+    t = _threading.Thread(
+        target=_pdf_job_worker,
+        args=(job_id, files_data, category, chunk_size, use_ocr, max_ocr_pages, page_start_g, page_end_g),
+        daemon=True,
+    )
+    t.start()
+    logger.info(f"[PDF JOB] Mulai job {job_id} — {len(files_data)} file, OCR={use_ocr}")
+
+    return jsonify({"job_id": job_id, "status": "processing", "total_files": len(files_data)})
+
+
+@app.route("/api/pdf/job/<job_id>", methods=["GET"])
+def api_pdf_job_status(job_id: str):
+    """Poll status job upload PDF."""
+    with _pdf_jobs_lock:
+        job = _pdf_jobs.get(job_id)
+    if not job:
+        return jsonify({"error": "Job tidak ditemukan."}), 404
+    # Cleanup job lama (lebih dari 1 jam)
+    if time.time() - job.get("created_at", 0) > 3600:
+        with _pdf_jobs_lock:
+            _pdf_jobs.pop(job_id, None)
+        return jsonify({"error": "Job expired."}), 404
     return jsonify({
-        "status": "ok",
-        "processed": ok_count,
-        "total": len(files),
-        "total_chunks": total_chunks,
-        "results": all_results,
+        "job_id": job_id,
+        "status": job["status"],
+        "progress": job.get("progress", ""),
+        "done_files": job.get("done_files", 0),
+        "total_files": job.get("total_files", 1),
+        "results": job.get("results"),   # None saat masih proses
     })
 
 

@@ -16,6 +16,8 @@ export default defineConfig({
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
         secure: false,
+        proxyTimeout: 900000,   // 15 menit — untuk OCR PDF besar
+        timeout: 900000,
         configure: (proxy) => {
           proxy.on("error", (err, _req, res) => {
             console.error("[proxy error]", err.message);

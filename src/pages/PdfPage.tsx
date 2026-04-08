@@ -108,6 +108,9 @@ export default function PdfPage() {
   const [learnLoadingMap, setLearnLoadingMap] = useState<Record<string, boolean>>({});
   const [learnErrorMap, setLearnErrorMap] = useState<Record<string, string>>({});
   const [learnOpenMap, setLearnOpenMap] = useState<Record<string, boolean>>({});
+
+  // ── Upload job progress ──
+  const [uploadProgress, setUploadProgress] = useState("");
   // Page range — berlaku untuk semua file dalam batch
   const [pageStart, setPageStart] = useState(1);
   const [pageEnd, setPageEnd] = useState(0); // 0 = semua halaman
@@ -197,6 +200,8 @@ export default function PdfPage() {
     if (files.length === 0) return;
     setUploading(true);
     setResults([]);
+    setUploadProgress("Mengirim file ke server...");
+
     const fd = new FormData();
     files.forEach(f => fd.append("files", f));
     fd.append("category", category);
@@ -207,18 +212,68 @@ export default function PdfPage() {
     fd.append("page_end", String(pageEnd));
 
     try {
+      // 1. Upload → dapat job_id
       const res = await fetch(apiUrl("/api/pdf/upload"), { method: "POST", body: fd });
       const data = await res.json();
-      if (res.ok) {
+
+      if (!res.ok) {
+        setResults([{ filename: "—", status: "error", error: data.error || "Upload gagal" }]);
+        setUploading(false);
+        setUploadProgress("");
+        return;
+      }
+
+      // 2. Jika backend lama (langsung return results tanpa job_id)
+      if (!data.job_id) {
         setResults(data.results || []);
         if ((data.processed ?? 0) > 0) setFiles([]);
-      } else {
-        setResults([{ filename: "—", status: "error", error: data.error || "Upload gagal" }]);
+        setUploading(false);
+        setUploadProgress("");
+        return;
       }
+
+      // 3. Poll job status sampai selesai
+      const jobId = data.job_id;
+      setUploadProgress("Memproses PDF di background...");
+
+      const poll = async (): Promise<void> => {
+        try {
+          const jobRes = await fetch(apiUrl(`/api/pdf/job/${jobId}`));
+          const jobData = await jobRes.json();
+
+          if (!jobRes.ok) {
+            setResults([{ filename: "—", status: "error", error: jobData.error || "Job error" }]);
+            setUploading(false);
+            setUploadProgress("");
+            return;
+          }
+
+          setUploadProgress(jobData.progress || "Memproses...");
+
+          if (jobData.status === "done") {
+            const r = jobData.results || {};
+            setResults(r.results || []);
+            if ((r.processed ?? 0) > 0) setFiles([]);
+            setUploading(false);
+            setUploadProgress("");
+            return;
+          }
+
+          // Masih processing — poll lagi 3 detik
+          setTimeout(poll, 3000);
+        } catch {
+          // Jangan langsung menyerah — coba lagi
+          setTimeout(poll, 4000);
+        }
+      };
+
+      setTimeout(poll, 2000);
+
     } catch {
-      setResults([{ filename: "—", status: "error", error: "Gagal terhubung ke backend." }]);
+      setResults([{ filename: "—", status: "error", error: "Gagal mengirim file ke server." }]);
+      setUploading(false);
+      setUploadProgress("");
     }
-    setUploading(false);
   };
 
   const okResults = results.filter(r => r.status === "ok");
@@ -864,17 +919,29 @@ export default function PdfPage() {
                               <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-[shimmer_1.5s_infinite] -skew-x-12" />
                             )}
                             {uploading
-                              ? <><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10">{useOcr ? "Memproses + OCR Arab..." : "Memproses..."}</span></>
+                              ? <><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10 truncate max-w-[260px]">{uploadProgress || "Memproses..."}</span></>
                               : <><Upload className="w-4 h-4" /><span>Proses {files.length} PDF{category ? ` — ${category}` : ""}{useOcr ? " + OCR" : ""}
                                   {pageEnd > 0 && ` · hal. ${pageStart}–${pageEnd}`}
                                 </span></>}
                           </button>
 
-                          {uploading && useOcr && (
-                            <p className="text-[11px] text-violet-400/80 text-center flex items-center justify-center gap-1.5">
-                              <Sparkles className="w-3 h-3 animate-pulse" />
-                              OCR Arab berjalan · estimasi biaya maks {estimatedCost}
-                            </p>
+                          {uploading && (
+                            <div className="space-y-1.5">
+                              <div className="w-full h-1 bg-white/8 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-violet-500 to-purple-400 animate-[shimmer_2s_infinite] rounded-full" style={{ width: "100%" }} />
+                              </div>
+                              {uploadProgress && (
+                                <p className="text-[10px] text-violet-400/70 text-center leading-snug px-2">
+                                  {uploadProgress}
+                                </p>
+                              )}
+                              {useOcr && (
+                                <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  Estimasi biaya maks OCR: {estimatedCost}
+                                </p>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
