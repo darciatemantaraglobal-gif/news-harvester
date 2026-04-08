@@ -40,6 +40,25 @@ def _make_user_token(username: str) -> str:
     return hashlib.sha256(f"{_SESSION_SECRET}:{username}".encode()).hexdigest()
 
 def _load_users() -> list:
+    """
+    Baca users dari Supabase (primary) → fallback JSON lokal.
+    Jika Supabase berhasil, sinkronkan ke JSON lokal juga.
+    """
+    try:
+        from db_services import fetch_app_users
+        sb_users = fetch_app_users()
+        if sb_users:
+            # Sinkronkan ke JSON lokal agar konsisten
+            try:
+                os.makedirs(DATA_DIR, exist_ok=True)
+                with open(USERS_FILE, "w") as f:
+                    json.dump(sb_users, f, indent=2)
+            except Exception:
+                pass
+            return sb_users
+    except Exception:
+        pass
+    # Fallback ke JSON lokal
     try:
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE) as f:
@@ -49,6 +68,7 @@ def _load_users() -> list:
     return []
 
 def _save_users(users: list) -> None:
+    """Simpan ke JSON lokal. Operasi individual (add/delete/reset) juga memanggil Supabase langsung."""
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=2)
@@ -116,8 +136,15 @@ def add_user():
     users = _load_users()
     if any(u["username"].lower() == username for u in users):
         return jsonify({"error": "Username sudah ada."}), 400
-    users.append({"username": username, "password_hash": _hash_password(password)})
+    pw_hash = _hash_password(password)
+    users.append({"username": username, "password_hash": pw_hash})
     _save_users(users)
+    # Simpan ke Supabase (persistent)
+    try:
+        from db_services import save_app_user
+        save_app_user(username, pw_hash)
+    except Exception as e:
+        logger.warning(f"[USERS] Gagal simpan user ke Supabase: {e}")
     return jsonify({"ok": True, "username": username})
 
 @app.route("/api/users/<username>", methods=["DELETE"])
@@ -129,6 +156,12 @@ def delete_user(username):
     if len(new_users) == len(users):
         return jsonify({"error": "User tidak ditemukan."}), 404
     _save_users(new_users)
+    # Hapus dari Supabase
+    try:
+        from db_services import delete_app_user
+        delete_app_user(username)
+    except Exception as e:
+        logger.warning(f"[USERS] Gagal hapus user dari Supabase: {e}")
     return jsonify({"ok": True})
 
 
@@ -144,8 +177,15 @@ def reset_user_password(username):
     target = next((u for u in users if u["username"] == username), None)
     if not target:
         return jsonify({"error": "User tidak ditemukan."}), 404
-    target["password_hash"] = _hash_password(new_password)
+    pw_hash = _hash_password(new_password)
+    target["password_hash"] = pw_hash
     _save_users(users)
+    # Update di Supabase
+    try:
+        from db_services import save_app_user
+        save_app_user(username, pw_hash)
+    except Exception as e:
+        logger.warning(f"[USERS] Gagal update password di Supabase: {e}")
     return jsonify({"ok": True})
 
 

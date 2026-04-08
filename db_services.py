@@ -191,6 +191,45 @@ def check_supabase_available() -> bool:
     return url and key
 
 
+def fetch_app_users() -> list:
+    """
+    Ambil semua user dari tabel app_users di Supabase.
+    Return list of {username, password_hash}. Kosong jika tabel belum ada / Supabase tidak tersedia.
+    """
+    try:
+        sb = get_supabase()
+        result = sb.table("app_users").select("username, password_hash").execute()
+        return result.data or []
+    except Exception as e:
+        logger.warning(f"[APP-USERS-DB] Gagal fetch users dari Supabase: {e}")
+        return []
+
+
+def save_app_user(username: str, password_hash: str) -> bool:
+    """Simpan/update satu user ke tabel app_users. Return True jika berhasil."""
+    try:
+        sb = get_supabase()
+        sb.table("app_users").upsert(
+            {"username": username, "password_hash": password_hash},
+            on_conflict="username"
+        ).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[APP-USERS-DB] Gagal simpan user '{username}': {e}")
+        return False
+
+
+def delete_app_user(username: str) -> bool:
+    """Hapus user dari tabel app_users. Return True jika berhasil."""
+    try:
+        sb = get_supabase()
+        sb.table("app_users").delete().eq("username", username).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[APP-USERS-DB] Gagal hapus user '{username}': {e}")
+        return False
+
+
 def save_push_log_to_supabase(entry: dict) -> bool:
     """
     Simpan satu entri push log ke tabel push_logs di Supabase.
