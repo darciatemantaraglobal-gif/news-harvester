@@ -816,6 +816,81 @@ def api_format_article(article_id):
         return jsonify({"error": str(e)}), 500
 
 
+def _detect_arabic_ratio(text: str) -> float:
+    """Hitung persentase karakter Arab dalam teks."""
+    if not text:
+        return 0.0
+    arab_count = sum(1 for c in text if '\u0600' <= c <= '\u06FF' or '\u0750' <= c <= '\u077F' or '\uFB50' <= c <= '\uFDFF' or '\uFE70' <= c <= '\uFEFF')
+    letter_count = sum(1 for c in text if c.isalpha())
+    return arab_count / max(letter_count, 1)
+
+_ARABIC_RECONSTRUCTION_SYSTEM = (
+    "Kamu adalah ahli rekonstruksi teks Arab dari hasil OCR dan spesialis bahasa Arab klasik/modern.\n\n"
+    "KONTEKS PENTING:\n"
+    "Teks yang diberikan adalah hasil OCR dari kitab/dokumen berbahasa Arab. OCR sering menghasilkan:\n"
+    "- Huruf Arab yang tercerai-berai (misal: 'ا ل ح م د' → seharusnya 'الحمد')\n"
+    "- Spasi yang salah posisi di tengah kata\n"
+    "- Karakter aneh atau simbol pengganti huruf yang tidak terbaca\n"
+    "- Urutan kata yang terbalik atau baris yang tertukar\n"
+    "- Harakat/syakal yang terpisah dari huruf aslinya\n\n"
+    "TUGAS UTAMAMU:\n"
+    "1. REKONSTRUKSI setiap kata Arab ke bentuk yang benar — sambungkan huruf-huruf yang tercerai\n"
+    "2. PERBAIKI spasi yang salah di dalam kata (spasi hanya antar kata, bukan di tengah kata)\n"
+    "3. PERTAHANKAN semua harakat/syakal (ـَ ـِ ـُ ـّ dll) jika ada, letakkan di posisi benar\n"
+    "4. PERTAHANKAN semua konten — jangan tambah atau hapus makna\n"
+    "5. PERTAHANKAN bahasa asli — jangan terjemahkan ke Indonesia\n"
+    "6. Untuk teks campuran Arab-Indonesia: rekonstruksi Arab, pertahankan Indonesia apa adanya\n\n"
+    "STANDAR KUALITAS OUTPUT:\n"
+    "- Kata Arab harus terbaca seperti kitab yang dicetak normal\n"
+    "- Gunakan Unicode Arab yang benar (bukan karakter terpisah)\n"
+    "- Jangan gunakan harakat jika tidak ada di teks asli\n"
+)
+
+_FORMAT_SYSTEM = {
+    "berita": (
+        "Setelah rekonstruksi Arab selesai, sajikan hasilnya sebagai konten berita yang rapi.\n"
+        "- Ekstrak fakta penting: apa, siapa, kapan, di mana, mengapa\n"
+        "- Gunakan `##` untuk sub-topik, `-` untuk fakta, **bold** untuk nama/angka kunci\n"
+        "- Pertahankan semua teks Arab yang sudah direkonstruksi\n"
+        "Output: HANYA Markdown. Tanpa pengantar atau komentar."
+    ),
+    "kitab": (
+        "Setelah rekonstruksi Arab selesai, strukturkan sebagai teks kitab.\n"
+        "- Gunakan `##` untuk Bab/Fasal/Pasal jika terdeteksi\n"
+        "- Letakkan teks Arab dalam blok tersendiri, syarah/terjemahan sesudahnya\n"
+        "- Pertahankan nomor-nomor poin/masalah/fasal\n"
+        "Output: HANYA teks kitab terstruktur dalam Markdown. Tanpa komentar."
+    ),
+    "laporan": (
+        "Setelah rekonstruksi Arab selesai, susun sebagai laporan formal.\n"
+        "- Mulai dengan **Ringkasan Eksekutif**\n"
+        "- Gunakan `##` untuk: Latar Belakang, Temuan Utama, Analisis, Rekomendasi\n"
+        "- Pertahankan data, angka, nama resmi, teks Arab penting\n"
+        "Output: HANYA konten laporan Markdown. Tanpa pengantar."
+    ),
+    "ringkasan": (
+        "Setelah rekonstruksi Arab selesai, buat ringkasan singkat.\n"
+        "- Maksimal 5 poin terpenting dalam bullet list `-`\n"
+        "- Sertakan teks Arab kunci jika relevan\n"
+        "Output: HANYA ringkasan Markdown. Tanpa kata pengantar."
+    ),
+    "poin": (
+        "Setelah rekonstruksi Arab selesai, ubah menjadi daftar poin informatif.\n"
+        "- Setiap fakta/hukum/masalah = 1 bullet point `-`\n"
+        "- **bold** di awal setiap poin untuk kata kunci\n"
+        "- Pertahankan istilah Arab yang penting\n"
+        "Output: HANYA daftar poin Markdown. Tanpa narasi pembuka."
+    ),
+    "briefing": (
+        "Setelah rekonstruksi Arab selesai, buat briefing ringkas.\n"
+        "- **SITUASI**: 1-2 kalimat gambaran keseluruhan\n"
+        "- **FAKTA KUNCI**: bullet list fakta terverifikasi\n"
+        "- **AKTOR**: siapa yang terlibat\n"
+        "- **IMPLIKASI**: apa yang perlu diperhatikan\n"
+        "Output: HANYA konten briefing Markdown. Tanpa pengantar."
+    ),
+}
+
 FORMAT_PROMPTS = {
     "berita": lambda title, content: (
         "Kamu adalah editor konten berita profesional. Ekstrak dan sajikan HANYA informasi penting dalam format Markdown yang rapi.\n\n"
@@ -893,7 +968,7 @@ FORMAT_PROMPTS = {
 
 @app.route("/api/format-text", methods=["POST"])
 def api_format_text():
-    """Rapikan teks artikel yang di-paste langsung oleh user. Support multi-format."""
+    """Rapikan teks artikel. Auto-deteksi Arab untuk rekonstruksi OCR yang kuat."""
     from ai_services import get_openai_client, check_openai_available
     if not check_openai_available():
         return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur ini membutuhkan OPENAI_API_KEY."}), 503
@@ -908,17 +983,48 @@ def api_format_text():
     if fmt not in FORMAT_PROMPTS:
         fmt = "berita"
 
+    arabic_ratio = _detect_arabic_ratio(content)
+    is_arabic = arabic_ratio >= 0.25   # ≥25% karakter Arab → mode Arab aktif
+
     try:
         client = get_openai_client()
-        prompt = FORMAT_PROMPTS[fmt](title, content[:7000])
+
+        if is_arabic:
+            # ── Mode Arab: system message khusus rekonstruksi OCR Arab ──────────
+            format_instruction = _FORMAT_SYSTEM.get(fmt, _FORMAT_SYSTEM["berita"])
+            user_prompt = (
+                f"{format_instruction}\n\n"
+                + (f"Judul/Kitab: {title}\n\n" if title else "")
+                + f"=== TEKS OCR YANG PERLU DIREKONSTRUKSI ===\n{content[:7000]}\n"
+                + "=== AKHIR TEKS ==="
+            )
+            messages = [
+                {"role": "system", "content": _ARABIC_RECONSTRUCTION_SYSTEM},
+                {"role": "user", "content": user_prompt},
+            ]
+            model = "gpt-4o"   # GPT-4o lebih akurat untuk Arab daripada gpt-4o-mini
+            logger.info(f"[FORMAT-TEXT] Arab mode (ratio={arabic_ratio:.2f}), fmt={fmt}")
+        else:
+            # ── Mode biasa: prompt lama ──────────────────────────────────────────
+            prompt = FORMAT_PROMPTS[fmt](title, content[:7000])
+            messages = [{"role": "user", "content": prompt}]
+            model = "gpt-4o-mini"
+            logger.info(f"[FORMAT-TEXT] Non-Arab mode, fmt={fmt}")
+
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=3000,
+            model=model,
+            messages=messages,
+            max_tokens=3500,
             temperature=0.1,
         )
         formatted = response.choices[0].message.content.strip()
-        return jsonify({"status": "ok", "formatted_content": formatted, "format_used": fmt})
+        return jsonify({
+            "status": "ok",
+            "formatted_content": formatted,
+            "format_used": fmt,
+            "arabic_mode": is_arabic,
+            "arabic_ratio": round(arabic_ratio, 2),
+        })
     except Exception as e:
         logger.error(f"[FORMAT-TEXT] Error: {e}")
         return jsonify({"error": str(e)}), 500

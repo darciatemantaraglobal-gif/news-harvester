@@ -46,6 +46,7 @@ export default function PastePage() {
   const [rapikanFormat, setRapikanFormat] = useState<RapikanFormat>("berita");
   const [ocrType, setOcrType] = useState<OcrType>("auto");
   const [activeFormatLabel, setActiveFormatLabel] = useState<string>("");
+  const [arabicMode, setArabicMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +55,7 @@ export default function PastePage() {
     setLoading(true);
     setError("");
     setResult("");
+    setArabicMode(false);
     const fmtLabel = FORMAT_OPTIONS.find(f => f.value === rapikanFormat)?.label ?? rapikanFormat;
     setActiveFormatLabel(fmtLabel);
     try {
@@ -68,6 +70,7 @@ export default function PastePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memproses konten.");
       setResult(data.formatted_content);
+      setArabicMode(!!data.arabic_mode);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Terjadi kesalahan.");
     } finally {
@@ -456,7 +459,7 @@ export default function PastePage() {
 
                   {/* Result header */}
                   <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-2 border-b border-violet-900/40 shrink-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {error
                         ? <AlertCircle className="w-3.5 h-3.5 text-red-400" />
                         : <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -464,6 +467,12 @@ export default function PastePage() {
                       <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: error ? '#f87171' : '#34d399' }}>
                         {error ? "Error" : `Hasil Rapikan AI${activeFormatLabel ? ` · ${activeFormatLabel}` : ""}`}
                       </span>
+                      {arabicMode && !error && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                          style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                          ✦ Arab · GPT-4o
+                        </span>
+                      )}
                     </div>
                     {result && !error && (
                       <div className="flex items-center gap-1.5">

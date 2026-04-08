@@ -111,6 +111,7 @@ export default function ReviewDashboard() {
   const [rapikanCopied, setRapikanCopied] = useState(false);
   const [rapikanSaving, setRapikanSaving] = useState(false);
   const [rapikanSaved, setRapikanSaved] = useState(false);
+  const [rapikanArabicMode, setRapikanArabicMode] = useState(false);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -182,6 +183,7 @@ export default function ReviewDashboard() {
     setRapikanResult("");
     setRapikanError("");
     setRapikanSaved(false);
+    setRapikanArabicMode(false);
     try {
       const res = await fetch(apiUrl("/api/format-text"), {
         method: "POST",
@@ -191,6 +193,7 @@ export default function ReviewDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memproses konten.");
       setRapikanResult(data.formatted_content);
+      setRapikanArabicMode(!!data.arabic_mode);
     } catch (e: unknown) {
       setRapikanError(e instanceof Error ? e.message : "Terjadi kesalahan.");
     } finally {
@@ -1055,7 +1058,15 @@ export default function ReviewDashboard() {
                     {rapikanResult && !rapikanLoading && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-bold">Hasil Rapikan AI</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-bold">Hasil Rapikan AI</p>
+                            {rapikanArabicMode && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                                style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                                ✦ Arab · GPT-4o
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => {
