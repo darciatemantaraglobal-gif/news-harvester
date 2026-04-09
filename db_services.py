@@ -327,11 +327,23 @@ def muqarrar_check_table() -> dict:
 def muqarrar_save_chunk(chunk: dict) -> bool:
     """
     Simpan satu chunk halaman muqarrar ke Supabase.
-    chunk: {id, kitab_id, kitab_name, author, page_number, chapter, content, embedding, word_count, is_ocr}
+    chunk: {id, kitab_id, kitab_name, author, description, page_number, chapter,
+            content, embedding (jsonb list), word_count, is_ocr}
+    embedding_vec (vector(1536)) diisi otomatis dari embedding list untuk pgvector.
     """
+    import json as _json
     try:
         sb = get_supabase()
-        sb.table("muqarrar_chunks").upsert(chunk, on_conflict="id").execute()
+        row = dict(chunk)
+
+        # Konversi embedding list → string format untuk kolom pgvector vector(1536)
+        emb = row.get("embedding")
+        if emb and isinstance(emb, list) and len(emb) > 0:
+            row["embedding_vec"] = _json.dumps(emb)   # "[0.1, 0.2, ...]" — pgvector terima format ini
+        else:
+            row["embedding_vec"] = None
+
+        sb.table("muqarrar_chunks").upsert(row, on_conflict="id").execute()
         return True
     except Exception as e:
         logger.warning(f"[MUQARRAR] Gagal simpan chunk hal {chunk.get('page_number')}: {e}")

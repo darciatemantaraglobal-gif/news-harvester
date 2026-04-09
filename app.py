@@ -3404,7 +3404,8 @@ def _embed_texts_batch(texts: list, client, batch_size: int = 100, max_retries: 
         for attempt in range(max_retries):
             try:
                 resp = client.embeddings.create(
-                    model="text-embedding-3-small",
+                    model="text-embedding-3-large",
+                    dimensions=1536,
                     input=batch_inputs,
                     timeout=120,  # 2 menit per batch
                 )
