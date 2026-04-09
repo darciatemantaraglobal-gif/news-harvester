@@ -27,6 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB — cukup untuk PDF 500+ halaman
 CORS(app, origins="*")
 
 # ─── Auth ───────────────────────────────────────────────────────────────────────
@@ -3372,16 +3373,55 @@ _ARAB_HEADINGS_MQ = re.compile(
 
 
 def _embed_text(text: str, client) -> list[float] | None:
-    """Generate text-embedding-3-small untuk satu teks. Return list of floats atau None jika gagal."""
-    try:
-        resp = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text[:8000],
-        )
-        return resp.data[0].embedding
-    except Exception as e:
-        logger.warning(f"[MUQARRAR] Embedding gagal: {e}")
-        return None
+    """Single embed dengan retry. Wrapper ke _embed_texts_batch."""
+    results = _embed_texts_batch([text], client)
+    return results[0] if results else None
+
+
+def _embed_texts_batch(texts: list, client, batch_size: int = 100, max_retries: int = 3) -> list:
+    """
+    Batch embed banyak teks sekaligus — JAUH lebih cepat dari satu-satu.
+    200 halaman = 2 API call (batch 100), bukan 200 API call.
+    Return list embedding (urutan sama dengan input). Gagal → [].
+    """
+    if not texts:
+        return []
+
+    all_embeddings = [[] for _ in texts]
+
+    for start in range(0, len(texts), batch_size):
+        batch = texts[start:start + batch_size]
+        batch_inputs = [t[:8000] for t in batch]
+
+        for attempt in range(max_retries):
+            try:
+                resp = client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=batch_inputs,
+                    timeout=120,  # 2 menit per batch
+                )
+                # Susunan output bisa tidak berurutan — sort by index
+                sorted_data = sorted(resp.data, key=lambda x: x.index)
+                for i, item in enumerate(sorted_data):
+                    all_embeddings[start + i] = item.embedding
+                break  # sukses, lanjut batch berikutnya
+
+            except Exception as e:
+                wait = 2 ** attempt   # 1s, 2s, 4s
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"[MUQARRAR] Embedding batch [{start}:{start+len(batch)}] gagal "
+                        f"(attempt {attempt+1}/{max_retries}), retry {wait}s: {e}"
+                    )
+                    time.sleep(wait)
+                else:
+                    logger.error(
+                        f"[MUQARRAR] Embedding batch [{start}:{start+len(batch)}] "
+                        f"gagal setelah {max_retries} percobaan: {e}"
+                    )
+                    # all_embeddings for this batch stay as []
+
+    return all_embeddings
 
 
 def _cosine_similarity(a: list, b: list) -> float:
@@ -3415,6 +3455,54 @@ def _detect_chapter_mq(text: str) -> str:
     return ""
 
 
+def _ocr_page_with_retry(fitz_doc, page_idx: int, page_num: int, client, max_retries: int = 3) -> str:
+    """OCR satu halaman scan dengan retry dan timeout. Return teks atau ''."""
+    import base64
+    for attempt in range(max_retries):
+        try:
+            # Render halaman ke PNG — 150 DPI cukup untuk OCR teks (hemat RAM vs 200 DPI)
+            img_bytes = _page_to_image_bytes(fitz_doc, page_idx, dpi=150)
+            b64 = base64.b64encode(img_bytes).decode()
+            del img_bytes  # bebaskan memori segera
+
+            resp = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Ini adalah halaman dari sebuah kitab/muqarrar. "
+                                "Ekstrak SELURUH teks yang terlihat dengan akurat. "
+                                "Untuk teks Arab: rekonstruksi huruf-huruf yang benar, pertahankan harakat jika ada. "
+                                "Pertahankan struktur asli (judul, nomor, paragraf). "
+                                "Output: HANYA teks yang diekstrak, tanpa komentar."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{b64}", "detail": "high"},
+                        },
+                    ],
+                }],
+                max_tokens=2500,
+                temperature=0.0,
+                timeout=120,   # 2 menit per halaman OCR
+            )
+            del b64  # bebaskan memori base64 setelah terpakai
+            return resp.choices[0].message.content.strip()
+
+        except Exception as e:
+            wait = 3 ** attempt  # 1s, 3s, 9s
+            if attempt < max_retries - 1:
+                logger.warning(f"[MUQARRAR-OCR] hal {page_num} gagal (attempt {attempt+1}/{max_retries}), retry {wait}s: {e}")
+                time.sleep(wait)
+            else:
+                logger.error(f"[MUQARRAR-OCR] hal {page_num} gagal setelah {max_retries} percobaan: {e}")
+    return ""
+
+
 def _process_muqarrar_upload(
     job_id: str,
     pdf_bytes: bytes,
@@ -3423,7 +3511,12 @@ def _process_muqarrar_upload(
     author: str,
     use_ocr_for_scans: bool,
 ):
-    """Background worker: ekstrak teks per halaman, embed, simpan ke Supabase."""
+    """
+    Background worker — 3 Fase:
+      Fase 1: Ekstrak teks per halaman (OCR jika scan)
+      Fase 2: Batch embed semua teks sekaligus (200 hal = 2 API call)
+      Fase 3: Simpan semua chunk ke Supabase
+    """
     from ai_services import get_openai_client
     from db_services import muqarrar_save_chunk
 
@@ -3434,106 +3527,127 @@ def _process_muqarrar_upload(
         total = len(fitz_doc)
         job["pages_total"] = total
         job["status"] = "processing"
-        logger.info(f"[MUQARRAR] {job_id}: mulai proses {total} halaman — {kitab_name}")
+        job["phase"] = "extract"
+        job["phase_label"] = "Ekstraksi teks"
+        logger.info(f"[MUQARRAR] {job_id}: mulai proses {total} hal — {kitab_name}")
 
-        import base64
-        import uuid as _uuid
+        # ══ FASE 1: Ekstrak teks per halaman ════════════════════════════════
+        extracted: list = []   # [{page_num, text, chapter, word_count, is_ocr}]
+        ocr_count = 0
 
         for page_idx in range(total):
             if job.get("cancelled"):
+                logger.info(f"[MUQARRAR] {job_id}: dibatalkan oleh user")
                 break
 
             page_num = page_idx + 1
             job["pages_done"] = page_idx
             job["current_page"] = page_num
 
-            # ── Coba ekstrak teks digital dulu ──────────────────────────────
+            # Ekstrak teks digital
             fitz_page = fitz_doc[page_idx]
             raw_text = fitz_page.get_text("text").strip()
             is_ocr_page = False
 
-            # Jika halaman scan / teks kosong dan user minta OCR
+            # Halaman scan / teks sangat tipis → coba OCR Vision
             if (not raw_text or len(raw_text) < 30) and use_ocr_for_scans:
-                try:
-                    img_bytes = _page_to_image_bytes(fitz_doc, page_idx, dpi=200)
-                    b64 = base64.b64encode(img_bytes).decode()
-                    ocr_resp = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": (
-                                        "Ini adalah halaman dari sebuah kitab/muqarrar. "
-                                        "Ekstrak SELURUH teks yang terlihat dengan akurat. "
-                                        "Untuk teks Arab: rekonstruksi huruf-huruf yang benar, pertahankan harakat jika ada. "
-                                        "Pertahankan struktur asli (judul, nomor, paragraf). "
-                                        "Output: HANYA teks yang diekstrak, tanpa komentar."
-                                    ),
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:image/png;base64,{b64}", "detail": "high"},
-                                },
-                            ],
-                        }],
-                        max_tokens=2000,
-                        temperature=0.0,
-                    )
-                    raw_text = ocr_resp.choices[0].message.content.strip()
-                    is_ocr_page = True
-                    logger.info(f"[MUQARRAR] hal {page_num}: OCR Vision selesai ({len(raw_text)} chars)")
-                except Exception as ocr_err:
-                    logger.warning(f"[MUQARRAR] hal {page_num}: OCR gagal — {ocr_err}")
-                    raw_text = ""
+                raw_text = _ocr_page_with_retry(fitz_doc, page_idx, page_num, client)
+                is_ocr_page = bool(raw_text)
+                if is_ocr_page:
+                    ocr_count += 1
+                job["ocr_count"] = ocr_count   # update live untuk frontend
 
             if not raw_text or len(raw_text) < 15:
-                logger.info(f"[MUQARRAR] hal {page_num}: skip (kosong)")
+                logger.debug(f"[MUQARRAR] hal {page_num}: skip (kosong)")
                 continue
 
             chapter = _detect_chapter_mq(raw_text)
             word_count = len(raw_text.split())
+            extracted.append({
+                "page_num": page_num,
+                "text": raw_text[:10000],
+                "chapter": chapter,
+                "word_count": word_count,
+                "is_ocr": is_ocr_page,
+            })
 
-            # ── Generate embedding ───────────────────────────────────────────
-            embed_input = f"Kitab: {kitab_name}\nHalaman: {page_num}\n"
-            if chapter:
-                embed_input += f"Bab/Fasal: {chapter}\n"
-            embed_input += f"\n{raw_text[:6000]}"
+        fitz_doc.close()
+        del pdf_bytes   # bebaskan memori PDF asli
 
-            embedding = _embed_text(embed_input, client)
+        pages_extracted = len(extracted)
+        logger.info(
+            f"[MUQARRAR] Fase 1 selesai: {pages_extracted}/{total} hal diekstrak "
+            f"({ocr_count} via OCR Vision)"
+        )
 
+        if not extracted:
+            job["status"] = "error"
+            job["error_msg"] = "Tidak ada teks yang berhasil diekstrak dari PDF."
+            return
+
+        # ══ FASE 2: Batch embed semua teks ══════════════════════════════════
+        job["phase"] = "embed"
+        job["phase_label"] = f"Membuat embedding ({pages_extracted} halaman)"
+        job["pages_done"] = 0
+
+        embed_inputs = []
+        for item in extracted:
+            prefix = f"Kitab: {kitab_name}\nHalaman: {item['page_num']}\n"
+            if item["chapter"]:
+                prefix += f"Bab/Fasal: {item['chapter']}\n"
+            embed_inputs.append(prefix + "\n" + item["text"][:6000])
+
+        # Batch embed — 200 hal → 2 API call (batch_size=100)
+        embeddings = _embed_texts_batch(embed_inputs, client, batch_size=100, max_retries=3)
+        logger.info(f"[MUQARRAR] Fase 2 selesai: {len(embeddings)} embeddings dibuat")
+
+        # ══ FASE 3: Simpan semua chunk ke Supabase ═══════════════════════════
+        job["phase"] = "save"
+        job["phase_label"] = f"Menyimpan ke database ({pages_extracted} halaman)"
+        job["pages_done"] = 0
+
+        saved_count = 0
+        for i, item in enumerate(extracted):
+            if job.get("cancelled"):
+                break
+
+            job["pages_done"] = i
             chunk = {
-                "id": f"{kitab_id}__p{page_num}",
+                "id": f"{kitab_id}__p{item['page_num']}",
                 "kitab_id": kitab_id,
                 "kitab_name": kitab_name,
                 "author": author,
-                "page_number": page_num,
-                "chapter": chapter,
-                "content": raw_text[:10000],
-                "embedding": embedding or [],
-                "word_count": word_count,
-                "is_ocr": is_ocr_page,
+                "page_number": item["page_num"],
+                "chapter": item["chapter"],
+                "content": item["text"],
+                "embedding": embeddings[i] if i < len(embeddings) else [],
+                "word_count": item["word_count"],
+                "is_ocr": item["is_ocr"],
             }
 
-            saved = muqarrar_save_chunk(chunk)
-            if not saved:
-                job["errors"].append(f"Hal {page_num}: gagal simpan")
+            # Retry simpan ke Supabase
+            for attempt in range(3):
+                if muqarrar_save_chunk(chunk):
+                    saved_count += 1
+                    break
+                elif attempt < 2:
+                    time.sleep(1)
+                else:
+                    job["errors"].append(f"Hal {item['page_num']}: gagal simpan")
 
-            logger.info(
-                f"[MUQARRAR] hal {page_num}/{total} — {word_count} kata"
-                f"{' [OCR]' if is_ocr_page else ''}"
-                f"{' ✓' if saved else ' ✗'}"
-            )
-
-        fitz_doc.close()
-        job["pages_done"] = total
+        job["pages_done"] = pages_extracted
+        job["pages_total"] = pages_extracted
         job["status"] = "done"
         job["kitab_id"] = kitab_id
-        logger.info(f"[MUQARRAR] {job_id}: selesai — {kitab_name} ({total} halaman)")
+        job["saved_count"] = saved_count
+        job["ocr_count"] = ocr_count
+        logger.info(
+            f"[MUQARRAR] {job_id}: SELESAI — {kitab_name} | "
+            f"{saved_count}/{pages_extracted} hal tersimpan | {ocr_count} OCR"
+        )
 
     except Exception as e:
-        logger.error(f"[MUQARRAR] {job_id}: error fatal — {e}")
+        logger.error(f"[MUQARRAR] {job_id}: error fatal — {e}", exc_info=True)
         job["status"] = "error"
         job["error_msg"] = str(e)
 
@@ -3581,11 +3695,15 @@ def api_muqarrar_upload():
 
     _muqarrar_jobs[job_id] = {
         "status": "queued",
+        "phase": "queued",
+        "phase_label": "Menunggu antrian",
         "pages_done": 0,
         "pages_total": 0,
         "current_page": 0,
         "kitab_id": kitab_id,
         "kitab_name": kitab_name,
+        "saved_count": 0,
+        "ocr_count": 0,
         "errors": [],
         "error_msg": "",
         "cancelled": False,

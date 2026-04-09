@@ -196,11 +196,14 @@ export default function MuqarrarPage() {
     setSources([]);
     setCopied(false);
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120_000); // 2 menit timeout
     try {
       const res = await fetch(apiUrl("/api/muqarrar/ask"), {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ question: question.trim(), kitab_id: selectedKitab || undefined, top_k: 5 }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal mendapat jawaban.");
@@ -208,8 +211,13 @@ export default function MuqarrarPage() {
       setSources(data.sources || []);
       setShowSources(true);
     } catch (e: any) {
-      setAskError(e.message || "Gagal terhubung ke server.");
+      if (e.name === "AbortError") {
+        setAskError("Timeout — jawaban terlalu lama. Coba lagi.");
+      } else {
+        setAskError(e.message || "Gagal terhubung ke server.");
+      }
     } finally {
+      clearTimeout(timer);
       setAskLoading(false);
     }
   };
@@ -230,6 +238,13 @@ export default function MuqarrarPage() {
 
   const isDone = jobStatus?.status === "done";
   const isError = jobStatus?.status === "error";
+
+  const phaseLabel = (phase: string) => {
+    if (phase === "extract") return "Fase 1/3 — Ekstraksi teks";
+    if (phase === "embed")   return "Fase 2/3 — Membuat embedding (batch)";
+    if (phase === "save")    return "Fase 3/3 — Menyimpan ke database";
+    return "Memproses...";
+  };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg,#0a0118 0%,#050010 60%,#0d0520 100%)" }}>
@@ -486,32 +501,61 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                   background: isDone ? "rgba(16,185,129,0.07)" : isError ? "rgba(239,68,68,0.07)" : "rgba(139,92,246,0.07)",
                   borderColor: isDone ? "rgba(16,185,129,0.3)" : isError ? "rgba(239,68,68,0.3)" : "rgba(139,92,246,0.3)",
                 }}>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   {isDone
-                    ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     : isError
-                      ? <AlertCircle className="w-4 h-4 text-red-400" />
-                      : <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />}
-                  <span className="text-xs font-bold" style={{ color: isDone ? "#34d399" : isError ? "#f87171" : "#a78bfa" }}>
-                    {isDone ? "Selesai! Kitab sudah masuk perpustakaan." :
-                      isError ? `Error: ${jobStatus.error_msg}` :
-                      `Memproses halaman ${jobStatus.current_page || "..."} / ${jobStatus.pages_total || "..."}`}
+                      ? <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                      : <Loader2 className="w-4 h-4 text-violet-400 animate-spin shrink-0" />}
+                  <span className="text-xs font-bold leading-tight" style={{ color: isDone ? "#34d399" : isError ? "#f87171" : "#a78bfa" }}>
+                    {isDone
+                      ? `Selesai! ${jobStatus.saved_count || jobStatus.pages_total} halaman tersimpan.`
+                      : isError
+                        ? `Error: ${jobStatus.error_msg}`
+                        : jobStatus.phase
+                          ? phaseLabel(jobStatus.phase)
+                          : "Memulai proses..."}
                   </span>
                 </div>
+
+                {/* Phase detail */}
+                {!isDone && !isError && jobStatus.phase === "extract" && (
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    Halaman {jobStatus.current_page || "..."} / {jobStatus.pages_total || "..."}
+                    {jobStatus.ocr_count > 0 && ` · ${jobStatus.ocr_count} halaman di-OCR`}
+                  </p>
+                )}
+                {!isDone && !isError && jobStatus.phase === "embed" && (
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    Membuat embedding batch — {jobStatus.phase_label}
+                  </p>
+                )}
+                {!isDone && !isError && jobStatus.phase === "save" && (
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    Menyimpan halaman {jobStatus.pages_done} / {jobStatus.pages_total}...
+                  </p>
+                )}
+
                 {!isError && (
                   <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
                     <div className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${isDone ? 100 : progressPct}%`,
-                        background: isDone ? "linear-gradient(90deg,#10b981,#34d399)" : "linear-gradient(90deg,#7c3aed,#a78bfa)",
+                        background: isDone
+                          ? "linear-gradient(90deg,#10b981,#34d399)"
+                          : jobStatus.phase === "embed"
+                            ? "linear-gradient(90deg,#f59e0b,#fbbf24)"
+                            : jobStatus.phase === "save"
+                              ? "linear-gradient(90deg,#3b82f6,#60a5fa)"
+                              : "linear-gradient(90deg,#7c3aed,#a78bfa)",
                       }} />
                   </div>
                 )}
                 {!isError && (
                   <p className="text-[10px] text-slate-500 mt-1.5">
                     {isDone
-                      ? `${jobStatus.pages_total} halaman berhasil diproses.`
-                      : `${progressPct}% — embedding per halaman...`}
+                      ? `${jobStatus.ocr_count ? `${jobStatus.ocr_count} halaman OCR · ` : ""}Embedding batch selesai.`
+                      : `${progressPct}%`}
                   </p>
                 )}
                 {jobStatus.errors?.length > 0 && (
