@@ -34,3 +34,22 @@ create index if not exists idx_kb_articles_scrape       on kb_articles(scrape_st
 
 -- Enable Row Level Security (opsional, nonaktifkan dulu kalau mau akses bebas)
 -- alter table kb_articles enable row level security;
+
+-- ============================================================
+-- Tabel akun tim (non-admin users)
+-- !! WAJIB ADA agar akun tim tidak hilang saat Railway redeploy
+-- ============================================================
+create table if not exists app_users (
+  username      text primary key,
+  password_hash text not null,
+  created_at    timestamptz default now()
+);
+
+-- ============================================================
+-- Tabel log aktivitas login user
+-- ============================================================
+create table if not exists user_activity (
+  username    text primary key,
+  last_login  text,
+  last_seen   text
+);

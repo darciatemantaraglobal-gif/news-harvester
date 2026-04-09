@@ -139,14 +139,18 @@ def add_user():
     if any(u["username"].lower() == username for u in users):
         return jsonify({"error": "Username sudah ada."}), 400
     pw_hash = _hash_password(password)
-    users.append({"username": username, "password_hash": pw_hash})
-    _save_users(users)
-    # Simpan ke Supabase (persistent)
+    # Simpan ke Supabase DULU (persistent lintas deploy)
     try:
         from db_services import save_app_user
-        save_app_user(username, pw_hash)
+        ok = save_app_user(username, pw_hash)
+        if not ok:
+            return jsonify({"error": "Gagal menyimpan akun ke database. Pastikan tabel app_users sudah dibuat di Supabase (lihat supabase_setup.sql)."}), 500
     except Exception as e:
-        logger.warning(f"[USERS] Gagal simpan user ke Supabase: {e}")
+        logger.error(f"[USERS] Gagal simpan user ke Supabase: {e}")
+        return jsonify({"error": f"Gagal menyimpan ke Supabase: {e}. Jalankan supabase_setup.sql terlebih dahulu."}), 500
+    # Simpan juga ke JSON lokal (cache)
+    users.append({"username": username, "password_hash": pw_hash})
+    _save_users(users)
     return jsonify({"ok": True, "username": username})
 
 @app.route("/api/users/<username>", methods=["DELETE"])
@@ -180,14 +184,18 @@ def reset_user_password(username):
     if not target:
         return jsonify({"error": "User tidak ditemukan."}), 404
     pw_hash = _hash_password(new_password)
-    target["password_hash"] = pw_hash
-    _save_users(users)
-    # Update di Supabase
+    # Update di Supabase dulu
     try:
         from db_services import save_app_user
-        save_app_user(username, pw_hash)
+        ok = save_app_user(username, pw_hash)
+        if not ok:
+            return jsonify({"error": "Gagal update password di database. Pastikan tabel app_users ada di Supabase."}), 500
     except Exception as e:
-        logger.warning(f"[USERS] Gagal update password di Supabase: {e}")
+        logger.error(f"[USERS] Gagal update password di Supabase: {e}")
+        return jsonify({"error": f"Gagal update ke Supabase: {e}"}), 500
+    # Update JSON lokal juga
+    target["password_hash"] = pw_hash
+    _save_users(users)
     return jsonify({"ok": True})
 
 
