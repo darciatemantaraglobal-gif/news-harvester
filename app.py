@@ -3995,6 +3995,7 @@ def api_muqarrar_pages(kitab_id: str):
     if token != _SESSION_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
     try:
+        from db_services import get_supabase
         sb = get_supabase()
         res = (
             sb.table("muqarrar_chunks")
@@ -4074,6 +4075,7 @@ def api_muqarrar_push_library(kitab_id: str):
         drive_url = f"aina://muqarrar/{kitab_id}"
 
     try:
+        from db_services import get_supabase
         sb = get_supabase()
 
         # Ambil metadata kitab dari muqarrar_chunks
