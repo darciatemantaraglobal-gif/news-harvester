@@ -3992,7 +3992,7 @@ def api_muqarrar_list():
 def api_muqarrar_pages(kitab_id: str):
     """Ambil semua halaman/chunks satu kitab untuk review, diurutkan per halaman."""
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    if token != SESSION_SECRET:
+    if token != _SESSION_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
     try:
         sb = get_supabase()
@@ -4017,7 +4017,7 @@ def api_muqarrar_clean_page():
     Balik: { cleaned: string }
     """
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    if token != SESSION_SECRET:
+    if token != _SESSION_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
     body = request.get_json(silent=True) or {}
@@ -4066,7 +4066,7 @@ def api_muqarrar_push_library(kitab_id: str):
     Multipart form: drive_url, faculty, year_level, tags, is_published, cover (file opsional)
     """
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    if token != SESSION_SECRET:
+    if token != _SESSION_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
     drive_url = (request.form.get("drive_url") or "").strip()
