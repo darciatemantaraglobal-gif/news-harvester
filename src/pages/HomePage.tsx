@@ -89,11 +89,12 @@ export default function HomePage() {
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
 
       {/* ─── MOBILE layout (< sm) ─── */}
-      <div className="sm:hidden flex flex-col flex-1 overflow-y-auto pb-20 px-3 items-center justify-center">
+      <div className="sm:hidden flex flex-col flex-1 overflow-y-auto pb-20 px-3 items-center justify-center"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="w-full max-w-[380px] mx-auto flex flex-col gap-0">
 
         {/* ── User bar ── */}
-        <div className="flex items-center justify-between mb-3 sm:mb-5 px-0.5">
+        <div className="flex items-center justify-between mb-3 sm:mb-5 px-0.5 pt-2">
           <span className="text-[11px] text-violet-400/60 font-medium">
             {username ? <>Halo, <span className="text-violet-300 font-bold">{username}</span></> : ""}
           </span>
