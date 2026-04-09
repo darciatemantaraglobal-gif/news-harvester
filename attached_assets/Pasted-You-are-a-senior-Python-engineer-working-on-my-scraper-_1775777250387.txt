@@ -1,0 +1,112 @@
+You are a senior Python engineer working on my scraper system.
+
+IMPORTANT ARCHITECTURE DECISION:
+
+I do NOT want to replace the current knowledge pipeline.
+
+Current system must remain unchanged for:
+
+* Web article scraping
+* Paste & article cleanup
+* Additional sources
+* General knowledge ingestion
+* Existing PDF/kitab OCR flow if it already feeds legacy KB
+
+Those features must continue using the OLD pipeline.
+
+========================================
+NEW RULE
+========
+
+ONLY the feature called "Muqarrar AI" should use the NEW pipeline.
+
+Muqarrar AI is a special feature for very large PDF documents (200+ pages), especially Arabic kitab / muqorror material.
+
+========================================
+GOAL
+====
+
+Implement a dedicated Muqarrar AI ingestion pipeline in the scraper repo.
+
+This pipeline should:
+
+1. Accept uploaded PDF files
+2. Extract text per page
+3. Split text into chunks
+4. Save chunk data into dedicated Supabase tables for Muqarrar AI
+5. Preserve page numbers for citation in answers
+
+========================================
+DO NOT TOUCH
+============
+
+Do not modify or break:
+
+* existing article scraping flow
+* existing knowledge_base insertion flow
+* existing general ingestion features
+
+========================================
+NEW TABLES
+==========
+
+Create and use dedicated tables:
+
+muqarrar_documents
+
+* id
+* title
+* file_url
+* language
+* created_at
+
+muqarrar_chunks
+
+* id
+* document_id
+* page_number
+* section_title
+* content
+* embedding
+* created_at
+
+========================================
+FEATURE SCOPE
+=============
+
+This new pipeline must be triggered ONLY from the Muqarrar AI feature.
+
+Do not reuse this flow automatically for other PDF or article features unless explicitly selected as Muqarrar AI.
+
+========================================
+PROCESSING FLOW
+===============
+
+For Muqarrar AI only:
+
+* upload PDF
+* extract text page by page
+* chunk each page into 500–1000 character segments
+* keep page_number on every chunk
+* optionally detect section/chapter title if possible
+* insert into muqarrar_documents and muqarrar_chunks
+
+Use reliable Python PDF libraries such as:
+
+* PyMuPDF (fitz)
+* pdfplumber
+
+If OCR is needed for scanned Arabic PDFs, structure the code so OCR can be plugged in cleanly, but do not break non-OCR PDFs.
+
+========================================
+OUTPUT
+======
+
+Deliver:
+
+* modular code
+* clean separation between legacy pipeline and Muqarrar AI pipeline
+* safe error handling
+* comments explaining where Muqarrar AI starts and where legacy flow remains untouched
+
+This must be an additive feature, not a migration.
