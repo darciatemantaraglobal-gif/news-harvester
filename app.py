@@ -3990,15 +3990,13 @@ def api_muqarrar_pages(kitab_id: str):
 def api_muqarrar_push_library(kitab_id: str):
     """
     Push kitab ke tabel library_items di Supabase (dibaca oleh AINA Website).
-    Body: {drive_url, faculty (opsional), year_level (opsional), tags (opsional), is_published (bool)}
+    Multipart form: drive_url, faculty, year_level, tags, is_published, cover (file opsional)
     """
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
     if token != SESSION_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
-    body = request.get_json(silent=True) or {}
-    drive_url = (body.get("drive_url") or "").strip()
-    # Jika tidak ada drive_url, buat reference URL internal — tetap memenuhi NOT NULL constraint
+    drive_url = (request.form.get("drive_url") or "").strip()
     if not drive_url:
         drive_url = f"aina://muqarrar/{kitab_id}"
 
@@ -4017,16 +4015,16 @@ def api_muqarrar_push_library(kitab_id: str):
             return jsonify({"error": "Kitab tidak ditemukan."}), 404
 
         kitab = res.data[0]
-        title = kitab["kitab_name"]
-        author = kitab.get("author", "")
+        title    = kitab["kitab_name"]
+        author   = kitab.get("author", "")
         description = kitab.get("description", "")
 
-        # Build tags: gabung author + user-provided tags
-        user_tags = (body.get("tags") or "").strip()
+        # Build tags
+        user_tags = (request.form.get("tags") or "").strip()
         auto_tags = f"muqarrar{', ' + author if author else ''}"
         tags = f"{auto_tags}{', ' + user_tags if user_tags else ''}"
 
-        # Cek apakah sudah pernah di-push (cek title + category)
+        # Cek duplicate
         existing = (
             sb.table("library_items")
             .select("id")
@@ -4037,21 +4035,50 @@ def api_muqarrar_push_library(kitab_id: str):
         if existing.data:
             return jsonify({"error": f'"{title}" sudah ada di library AINA.', "duplicate": True}), 409
 
+        # Upload cover ke Supabase Storage jika ada
+        cover_url = None
+        cover_file = request.files.get("cover")
+        if cover_file and cover_file.filename:
+            import mimetypes, time as _time
+            safe_name = f"{int(_time.time())}_{cover_file.filename.replace(' ', '_')}"
+            mime = cover_file.mimetype or mimetypes.guess_type(cover_file.filename)[0] or "image/jpeg"
+            file_bytes = cover_file.read()
+
+            # Pastikan bucket ada
+            try:
+                buckets = sb.storage.list_buckets()
+                bucket_names = [b.name for b in (buckets or [])]
+                if "library-files" not in bucket_names:
+                    sb.storage.create_bucket("library-files", options={"public": True})
+            except Exception:
+                pass
+
+            upload_res = sb.storage.from_("library-files").upload(
+                f"covers/{safe_name}", file_bytes,
+                {"content-type": mime, "upsert": "false"}
+            )
+            pub = sb.storage.from_("library-files").get_public_url(f"covers/{safe_name}")
+            cover_url = pub if isinstance(pub, str) else (pub.get("publicUrl") if isinstance(pub, dict) else None)
+
         # Insert ke library_items
+        is_pub_raw = request.form.get("is_published", "true")
+        is_published = is_pub_raw.lower() not in ("false", "0", "no")
+
         payload = {
-            "title": title,
+            "title":       title,
             "description": description or (f"Muqarrar — {author}" if author else "Muqarrar"),
-            "category": "muqorror",
-            "faculty": (body.get("faculty") or "").strip() or None,
-            "year_level": (body.get("year_level") or "").strip() or None,
-            "drive_url": drive_url,
-            "file_type": "pdf",
-            "tags": tags,
-            "is_published": body.get("is_published", True),
+            "category":    "muqorror",
+            "faculty":     (request.form.get("faculty") or "").strip() or None,
+            "year_level":  (request.form.get("year_level") or "").strip() or None,
+            "drive_url":   drive_url,
+            "file_type":   "pdf",
+            "tags":        tags,
+            "is_published": is_published,
+            "cover_url":   cover_url,
         }
         insert_res = sb.table("library_items").insert(payload).execute()
         inserted = insert_res.data[0] if insert_res.data else {}
-        return jsonify({"status": "ok", "library_item": inserted})
+        return jsonify({"status": "ok", "library_item": inserted, "cover_url": cover_url})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

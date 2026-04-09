@@ -4,7 +4,7 @@ import {
   ArrowLeft, Upload, BookOpen, Search, Trash2, Loader2,
   AlertCircle, CheckCircle2, Sparkles, FileText, ChevronDown,
   ChevronUp, X, Database, Copy, Check, RefreshCw,
-  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft, Send, Link,
+  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft, Send, Link, ImageIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -94,9 +94,12 @@ export default function MuqarrarPage() {
   const [pushYear, setPushYear] = useState("");
   const [pushTags, setPushTags] = useState("");
   const [pushPublished, setPushPublished] = useState(true);
+  const [pushCover, setPushCover] = useState<File | null>(null);
+  const [pushCoverPreview, setPushCoverPreview] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState("");
   const [pushSuccess, setPushSuccess] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   // ── Review state ───────────────────────────────────────────────────────────
   const [reviewKitab, setReviewKitab] = useState<KitabItem | null>(null);
@@ -287,8 +290,11 @@ export default function MuqarrarPage() {
     setPushYear("");
     setPushTags("");
     setPushPublished(true);
+    setPushCover(null);
+    setPushCoverPreview("");
     setPushError("");
     setPushSuccess(false);
+    if (coverRef.current) coverRef.current.value = "";
   };
 
   const handlePush = async () => {
@@ -297,21 +303,23 @@ export default function MuqarrarPage() {
     setPushError("");
     setPushSuccess(false);
     try {
+      const form = new FormData();
+      form.append("drive_url", pushDriveUrl.trim());
+      form.append("faculty", pushFaculty.trim());
+      form.append("year_level", pushYear.trim());
+      form.append("tags", pushTags.trim());
+      form.append("is_published", pushPublished ? "true" : "false");
+      if (pushCover) form.append("cover", pushCover);
+
       const res = await fetch(apiUrl(`/api/muqarrar/${pushKitab.kitab_id}/push-library`), {
         method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          drive_url: pushDriveUrl.trim(),
-          faculty: pushFaculty.trim(),
-          year_level: pushYear.trim(),
-          tags: pushTags.trim(),
-          is_published: pushPublished,
-        }),
+        headers: { Authorization: `Bearer ${getToken() || ""}` },
+        body: form,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal push ke library.");
       setPushSuccess(true);
-      setTimeout(() => setPushKitab(null), 2000);
+      setTimeout(() => setPushKitab(null), 2200);
     } catch (e: any) {
       setPushError(e.message || "Gagal menghubungi server.");
     } finally {
@@ -1357,6 +1365,47 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                   style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}
                 />
                 <p className="text-[10px] text-slate-600 mt-1">Tag "muqarrar" dan pengarang ditambah otomatis</p>
+              </div>
+
+              {/* Cover image upload */}
+              <div>
+                <label className="block text-xs text-slate-400 font-semibold mb-1.5">
+                  Foto Cover <span className="text-slate-600 font-normal">(opsional)</span>
+                </label>
+                {pushCoverPreview ? (
+                  <div className="relative rounded-xl overflow-hidden" style={{ height: 120 }}>
+                    <img src={pushCoverPreview} alt="cover preview" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => { setPushCover(null); setPushCoverPreview(""); if (coverRef.current) coverRef.current.value = ""; }}
+                      className="absolute top-2 right-2 p-1 rounded-full"
+                      style={{ background: "rgba(0,0,0,0.6)" }}>
+                      <X className="w-3.5 h-3.5 text-white" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 px-2 py-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+                      <p className="text-[10px] text-white/80 truncate">{pushCover?.name}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all py-5 gap-1.5"
+                    style={{ border: "2px dashed rgba(139,92,246,0.2)", background: "rgba(139,92,246,0.04)" }}>
+                    <input
+                      ref={coverRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        setPushCover(f);
+                        setPushCoverPreview(URL.createObjectURL(f));
+                      }}
+                    />
+                    <ImageIcon className="w-6 h-6 text-violet-700" />
+                    <p className="text-[11px] text-slate-500">Klik untuk pilih gambar cover</p>
+                    <p className="text-[10px] text-slate-600">JPG, PNG, WebP — maks 5MB</p>
+                  </label>
+                )}
+                <p className="text-[10px] text-slate-600 mt-1">Tampil sebagai thumbnail di kartu Library AINA Website</p>
               </div>
 
               {/* Publikasi toggle */}
