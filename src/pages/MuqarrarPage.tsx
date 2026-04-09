@@ -292,7 +292,7 @@ export default function MuqarrarPage() {
   };
 
   const handlePush = async () => {
-    if (!pushKitab || !pushDriveUrl.trim()) return;
+    if (!pushKitab) return;
     setPushLoading(true);
     setPushError("");
     setPushSuccess(false);
@@ -1295,28 +1295,28 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                 style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)" }}>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-emerald-300/80 leading-relaxed">
-                  Kitab ini akan muncul di panel <strong>Library</strong> di AINA Website dengan kategori <strong>Muqorror</strong>.
-                  Metadata (judul, deskripsi, pengarang) diisi otomatis dari data kitab.
+                  Konten sudah tersimpan dari proses OCR — tidak perlu upload ulang. Kitab ini langsung muncul di panel <strong>Library</strong> AINA Website, dan AINA bisa menjawab pertanyaan tentang isinya.
+                  Metadata diisi otomatis dari data kitab.
                 </p>
               </div>
 
-              {/* Drive URL — required */}
+              {/* Drive URL — opsional */}
               <div>
                 <label className="block text-xs text-slate-400 font-semibold mb-1.5">
-                  Link Google Drive PDF <span className="text-red-400">*</span>
+                  Link Google Drive PDF <span className="text-slate-600 font-normal">(opsional)</span>
                 </label>
                 <div className="relative">
                   <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                   <input
                     type="url"
-                    placeholder="https://drive.google.com/file/d/..."
+                    placeholder="https://drive.google.com/file/d/... — kosongkan jika tidak ada"
                     value={pushDriveUrl}
                     onChange={e => setPushDriveUrl(e.target.value)}
                     className="w-full rounded-xl pl-8 pr-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-all"
-                    style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)" }}
+                    style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}
                   />
                 </div>
-                <p className="text-[10px] text-slate-600 mt-1">Link publik PDF muqarrar ini di Google Drive</p>
+                <p className="text-[10px] text-slate-600 mt-1">Jika dikosongkan, konten tetap bisa diakses AINA dari hasil OCR yang sudah tersimpan</p>
               </div>
 
               {/* Fakultas + Tahun */}
@@ -1399,7 +1399,7 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                 </button>
                 <button
                   onClick={handlePush}
-                  disabled={!pushDriveUrl.trim() || pushLoading || pushSuccess}
+                  disabled={pushLoading || pushSuccess}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40"
                   style={{ background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 0 20px rgba(5,150,105,0.3)" }}>
                   {pushLoading

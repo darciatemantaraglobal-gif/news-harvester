@@ -3998,8 +3998,9 @@ def api_muqarrar_push_library(kitab_id: str):
 
     body = request.get_json(silent=True) or {}
     drive_url = (body.get("drive_url") or "").strip()
+    # Jika tidak ada drive_url, buat reference URL internal — tetap memenuhi NOT NULL constraint
     if not drive_url:
-        return jsonify({"error": "drive_url wajib diisi (link Google Drive PDF)."}), 400
+        drive_url = f"aina://muqarrar/{kitab_id}"
 
     try:
         sb = get_supabase()
