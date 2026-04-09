@@ -3487,6 +3487,77 @@ def _detect_chapter_mq(text: str) -> str:
     return ""
 
 
+def _clean_arabic_text(text: str) -> str:
+    """
+    [MUQARRAR AI] Normalisasi teks hasil ekstraksi/OCR:
+      - NFC Unicode (menyatukan huruf Arab + harakat yang terpisah)
+      - Hapus karakter kontrol yang tidak perlu
+      - Normalisasi spasi berlebih dan newline ganda
+    Dipanggil untuk SEMUA teks (digital + OCR) sebelum disimpan.
+    """
+    import unicodedata as _ud
+    text = _ud.normalize("NFC", text)
+    # Hapus karakter kontrol (kecuali newline \n dan tab \t)
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    # Compres spasi berlebih pada satu baris
+    text = re.sub(r'[ \t]{2,}', ' ', text)
+    # Max 2 newline berturut-turut
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def _chunk_page_text(text: str, max_chars: int = 900, overlap: int = 120) -> list:
+    """
+    [MUQARRAR AI] Split teks satu halaman menjadi sub-chunks 500–900 karakter
+    dengan overlap agar konteks tidak terputus di batas chunk.
+
+    Strategi break:
+      1. Prioritaskan baris baru (\\n) sebagai titik potong alami
+      2. Jika tidak ada, potong di spasi terdekat
+      3. Fallback: potong tepat di max_chars
+
+    Setiap chunk dikembalikan sebagai string yang sudah di-strip.
+    Jika teks sudah ≤ max_chars → dikembalikan as-is (list 1 elemen).
+
+    NOTE (Phase 1): page_number tetap dihandle di caller (_process_muqarrar_upload).
+    NOTE (Phase 2 migration): fungsi ini murni text-splitting, tidak tahu tentang
+    kitab_id/page_number, sehingga mudah dipindah ke pipeline dokumen terpisah.
+    """
+    text = text.strip()
+    if not text:
+        return []
+    if len(text) <= max_chars:
+        return [text]
+
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + max_chars
+        if end >= len(text):
+            tail = text[start:].strip()
+            if tail:
+                chunks.append(tail)
+            break
+
+        # Cari break point alami: newline dalam setengah terakhir window
+        mid = start + max_chars // 2
+        break_at = text.rfind('\n', mid, end)
+        if break_at == -1:
+            # Fallback ke spasi
+            break_at = text.rfind(' ', mid, end)
+        if break_at == -1 or break_at <= start:
+            break_at = end
+
+        chunk = text[start:break_at].strip()
+        if chunk:
+            chunks.append(chunk)
+
+        # Mulai chunk berikut dengan overlap (jaga konteks)
+        start = max(start + 1, break_at - overlap)
+
+    return chunks
+
+
 def _ocr_page_with_retry(fitz_doc, page_idx: int, page_num: int, client, max_retries: int = 3) -> str:
     """OCR satu halaman scan dengan retry dan timeout. Return teks atau ''."""
     import base64
@@ -3545,10 +3616,20 @@ def _process_muqarrar_upload(
     description: str = "",
 ):
     """
+    [MUQARRAR AI PIPELINE — LEGACY FLOW TIDAK TERSENTUH]
     Background worker — 3 Fase:
-      Fase 1: Ekstrak teks per halaman (OCR jika scan)
-      Fase 2: Batch embed semua teks sekaligus (200 hal = 2 API call)
-      Fase 3: Simpan semua chunk ke Supabase
+      Fase 1 : Ekstrak teks per halaman (digital atau OCR Vision)
+               → clean Unicode → split menjadi chunks 500–900 karakter
+      Fase 2 : Batch embed semua chunks (1 API call per 100 chunks)
+      Fase 3 : Simpan semua chunks ke Supabase (muqarrar_chunks)
+
+    Setiap baris di muqarrar_chunks mewakili SATU sub-chunk halaman dengan field:
+      id, kitab_id, kitab_name, author, description,
+      page_number, chapter, content, embedding_vec, word_count, is_ocr
+
+    NOTE (Phase 2): Untuk migrasi ke muqarrar_documents, pisahkan
+      metadata kitab (kitab_id, kitab_name, author, description) ke tabel
+      terpisah dan ganti kitab_id di sini menjadi document_id FK.
     """
     from ai_services import get_openai_client
     from db_services import muqarrar_save_chunk
@@ -3564,8 +3645,11 @@ def _process_muqarrar_upload(
         job["phase_label"] = "Ekstraksi teks"
         logger.info(f"[MUQARRAR] {job_id}: mulai proses {total} hal — {kitab_name}")
 
-        # ══ FASE 1: Ekstrak teks per halaman ════════════════════════════════
-        extracted: list = []   # [{page_num, text, chapter, word_count, is_ocr}]
+        # ══ FASE 1: Ekstrak & chunk teks per halaman ════════════════════════
+        # extracted: list of dicts, SATU entry per sub-chunk (bukan per halaman)
+        # Format: {page_num, chunk_idx, text, chapter, word_count, is_ocr}
+        extracted: list = []
+        pages_with_text = 0
         ocr_count = 0
 
         for page_idx in range(total):
@@ -3577,40 +3661,54 @@ def _process_muqarrar_upload(
             job["pages_done"] = page_idx
             job["current_page"] = page_num
 
-            # Ekstrak teks digital
+            # ── Ekstrak teks digital ─────────────────────────────────────────
             fitz_page = fitz_doc[page_idx]
-            raw_text = fitz_page.get_text("text").strip()
+            raw_text = _clean_arabic_text(fitz_page.get_text("text"))
             is_ocr_page = False
 
-            # Halaman scan / teks sangat tipis → coba OCR Vision
+            # ── Fallback OCR Vision untuk halaman scan/teks tipis ────────────
             if (not raw_text or len(raw_text) < 30) and use_ocr_for_scans:
-                raw_text = _ocr_page_with_retry(fitz_doc, page_idx, page_num, client)
-                is_ocr_page = bool(raw_text)
-                if is_ocr_page:
+                ocr_result = _ocr_page_with_retry(fitz_doc, page_idx, page_num, client)
+                if ocr_result:
+                    raw_text = _clean_arabic_text(ocr_result)
+                    is_ocr_page = True
                     ocr_count += 1
                 job["ocr_count"] = ocr_count   # update live untuk frontend
 
+            # ── Skip halaman kosong ──────────────────────────────────────────
             if not raw_text or len(raw_text) < 15:
-                logger.debug(f"[MUQARRAR] hal {page_num}: skip (kosong)")
+                logger.debug(f"[MUQARRAR] hal {page_num}: skip (kosong/terlalu pendek)")
                 continue
 
+            pages_with_text += 1
+
+            # ── Deteksi chapter/section title dari baris awal ────────────────
+            # Field 'chapter' = section_title dalam konteks muqarrar_chunks.
+            # Nama kolom dipertahankan 'chapter' untuk kompatibilitas Supabase Phase 1.
             chapter = _detect_chapter_mq(raw_text)
-            word_count = len(raw_text.split())
-            extracted.append({
-                "page_num": page_num,
-                "text": raw_text[:10000],
-                "chapter": chapter,
-                "word_count": word_count,
-                "is_ocr": is_ocr_page,
-            })
+
+            # ── Chunking: split 500–900 karakter per sub-chunk ───────────────
+            # Halaman pendek → 1 chunk. Halaman panjang → beberapa chunk.
+            # page_number tetap sama di semua sub-chunk halaman yang sama.
+            page_chunks = _chunk_page_text(raw_text, max_chars=900, overlap=120)
+
+            for chunk_idx, chunk_text in enumerate(page_chunks):
+                extracted.append({
+                    "page_num":   page_num,
+                    "chunk_idx":  chunk_idx,
+                    "text":       chunk_text,
+                    "chapter":    chapter,
+                    "word_count": len(chunk_text.split()),
+                    "is_ocr":     is_ocr_page,
+                })
 
         fitz_doc.close()
         del pdf_bytes   # bebaskan memori PDF asli
 
-        pages_extracted = len(extracted)
+        total_chunks = len(extracted)
         logger.info(
-            f"[MUQARRAR] Fase 1 selesai: {pages_extracted}/{total} hal diekstrak "
-            f"({ocr_count} via OCR Vision)"
+            f"[MUQARRAR] Fase 1 selesai: {pages_with_text}/{total} hal diekstrak "
+            f"({ocr_count} via OCR) → {total_chunks} chunks"
         )
 
         if not extracted:
@@ -3618,9 +3716,10 @@ def _process_muqarrar_upload(
             job["error_msg"] = "Tidak ada teks yang berhasil diekstrak dari PDF."
             return
 
-        # ══ FASE 2: Batch embed semua teks ══════════════════════════════════
+        # ══ FASE 2: Batch embed semua chunks ════════════════════════════════
+        # Prefix embedding dengan konteks kitab + halaman agar retrieval akurat
         job["phase"] = "embed"
-        job["phase_label"] = f"Membuat embedding ({pages_extracted} halaman)"
+        job["phase_label"] = f"Membuat embedding ({total_chunks} chunks)"
         job["pages_done"] = 0
 
         embed_inputs = []
@@ -3628,15 +3727,16 @@ def _process_muqarrar_upload(
             prefix = f"Kitab: {kitab_name}\nHalaman: {item['page_num']}\n"
             if item["chapter"]:
                 prefix += f"Bab/Fasal: {item['chapter']}\n"
-            embed_inputs.append(prefix + "\n" + item["text"][:6000])
+            # Gunakan seluruh chunk (max 900 chars) untuk embedding
+            embed_inputs.append(prefix + "\n" + item["text"])
 
-        # Batch embed — 200 hal → 2 API call (batch_size=100)
+        # Batch embed — batch_size=100 → minim jumlah API call
         embeddings = _embed_texts_batch(embed_inputs, client, batch_size=100, max_retries=3)
         logger.info(f"[MUQARRAR] Fase 2 selesai: {len(embeddings)} embeddings dibuat")
 
-        # ══ FASE 3: Simpan semua chunk ke Supabase ═══════════════════════════
+        # ══ FASE 3: Simpan semua chunks ke Supabase ═════════════════════════
         job["phase"] = "save"
-        job["phase_label"] = f"Menyimpan ke database ({pages_extracted} halaman)"
+        job["phase_label"] = f"Menyimpan ke database ({total_chunks} chunks)"
         job["pages_done"] = 0
 
         saved_count = 0
@@ -3645,21 +3745,27 @@ def _process_muqarrar_upload(
                 break
 
             job["pages_done"] = i
+
+            # ID unik: kitab + halaman + nomor chunk dalam halaman
+            # Format: {kitab_id}__p{page:04d}__c{chunk:02d}
+            # Memungkinkan upsert deterministik jika kitab di-re-upload
+            chunk_id = f"{kitab_id}__p{item['page_num']:04d}__c{item['chunk_idx']:02d}"
+
             chunk = {
-                "id": f"{kitab_id}__p{item['page_num']}",
-                "kitab_id": kitab_id,
-                "kitab_name": kitab_name,
-                "author": author,
-                "description": description,
+                "id":          chunk_id,
+                "kitab_id":    kitab_id,       # Phase 2: ganti dengan document_id FK
+                "kitab_name":  kitab_name,     # Phase 2: ambil dari muqarrar_documents
+                "author":      author,         # Phase 2: ambil dari muqarrar_documents
+                "description": description,    # Phase 2: ambil dari muqarrar_documents
                 "page_number": item["page_num"],
-                "chapter": item["chapter"],
-                "content": item["text"],
-                "embedding": embeddings[i] if i < len(embeddings) else [],
-                "word_count": item["word_count"],
-                "is_ocr": item["is_ocr"],
+                "chapter":     item["chapter"],  # = section_title; rename di Phase 2
+                "content":     item["text"],
+                "embedding":   embeddings[i] if i < len(embeddings) else [],
+                "word_count":  item["word_count"],
+                "is_ocr":      item["is_ocr"],
             }
 
-            # Retry simpan ke Supabase
+            # Retry simpan ke Supabase (maks 3x dengan jeda)
             for attempt in range(3):
                 if muqarrar_save_chunk(chunk):
                     saved_count += 1
@@ -3667,17 +3773,17 @@ def _process_muqarrar_upload(
                 elif attempt < 2:
                     time.sleep(1)
                 else:
-                    job["errors"].append(f"Hal {item['page_num']}: gagal simpan")
+                    job["errors"].append(f"Hal {item['page_num']} chunk {item['chunk_idx']}: gagal simpan")
 
-        job["pages_done"] = pages_extracted
-        job["pages_total"] = pages_extracted
+        job["pages_done"] = total_chunks
+        job["pages_total"] = total_chunks
         job["status"] = "done"
         job["kitab_id"] = kitab_id
         job["saved_count"] = saved_count
         job["ocr_count"] = ocr_count
         logger.info(
             f"[MUQARRAR] {job_id}: SELESAI — {kitab_name} | "
-            f"{saved_count}/{pages_extracted} hal tersimpan | {ocr_count} OCR"
+            f"{saved_count}/{total_chunks} chunks tersimpan | {pages_with_text} hal | {ocr_count} OCR"
         )
 
     except Exception as e:
@@ -3990,7 +4096,11 @@ def api_muqarrar_list():
 
 @app.route("/api/muqarrar/<kitab_id>/pages", methods=["GET"])
 def api_muqarrar_pages(kitab_id: str):
-    """Ambil semua halaman/chunks satu kitab untuk review, diurutkan per halaman."""
+    """
+    Ambil semua halaman satu kitab untuk Review UI.
+    Sub-chunks dari halaman yang sama digabung kembali menjadi satu entri per halaman,
+    sehingga Review UI tetap menampilkan navigasi per halaman.
+    """
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
     if token != _SESSION_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
@@ -4004,7 +4114,28 @@ def api_muqarrar_pages(kitab_id: str):
             .order("page_number", desc=False)
             .execute()
         )
-        pages = res.data or []
+        rows = res.data or []
+
+        # Gabungkan sub-chunks per halaman untuk tampilan Review
+        # (satu halaman bisa punya beberapa sub-chunk setelah pipeline baru)
+        page_map: dict = {}
+        for row in rows:
+            pn = row["page_number"]
+            if pn not in page_map:
+                page_map[pn] = {
+                    "page_number": pn,
+                    "chapter":     row.get("chapter") or "",
+                    "content":     "",
+                    "word_count":  0,
+                    "is_ocr":      row.get("is_ocr", False),
+                }
+            existing = page_map[pn]["content"]
+            new_text = (row.get("content") or "").strip()
+            if new_text:
+                page_map[pn]["content"] = (existing + "\n\n" + new_text).strip() if existing else new_text
+            page_map[pn]["word_count"] += row.get("word_count", 0)
+
+        pages = sorted(page_map.values(), key=lambda x: x["page_number"])
         return jsonify({"pages": pages, "total": len(pages)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

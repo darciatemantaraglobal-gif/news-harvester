@@ -326,27 +326,46 @@ def muqarrar_check_table() -> dict:
 
 def muqarrar_save_chunk(chunk: dict) -> bool:
     """
-    Simpan satu chunk halaman muqarrar ke Supabase.
-    chunk: {id, kitab_id, kitab_name, author, description, page_number, chapter,
-            content, embedding (jsonb list), word_count, is_ocr}
-    embedding_vec (vector(1536)) diisi otomatis dari embedding list untuk pgvector.
+    [MUQARRAR AI PIPELINE] Simpan satu sub-chunk halaman ke tabel muqarrar_chunks.
+
+    Field yang wajib ada di dict chunk:
+      id          — unik: "{kitab_id}__p{page:04d}__c{chunk_idx:02d}"
+      kitab_id    — ID kitab (slug + timestamp)
+      kitab_name  — Nama lengkap kitab
+      author      — Pengarang (boleh kosong)
+      description — Deskripsi singkat (boleh kosong)
+      page_number — Nomor halaman sumber (int, selalu ada)
+      chapter     — Judul bab/fasal jika terdeteksi (= section_title di spec)
+      content     — Teks sub-chunk (sudah di-clean, 500–900 karakter)
+      embedding   — List float dari text-embedding-3-large (1536 dim); [] jika gagal
+      word_count  — Jumlah kata dalam chunk
+      is_ocr      — True jika teks berasal dari OCR Vision
+
+    NOTE (Phase 2): Saat migrasi ke muqarrar_documents, ubah kitab_id → document_id FK.
+    NOTE: Kolom 'chapter' di Supabase = section_title di spec — rename di Phase 2.
     """
     import json as _json
     try:
         sb = get_supabase()
         row = dict(chunk)
 
-        # Konversi embedding list → string format untuk kolom pgvector vector(1536)
+        # Konversi embedding list → string format pgvector "[x, y, ...]"
+        # Chunk tanpa embedding (list kosong) → embedding_vec = NULL (tetap tersimpan,
+        # namun tidak bisa digunakan untuk vector search)
         emb = row.get("embedding")
-        if emb and isinstance(emb, list) and len(emb) > 0:
-            row["embedding_vec"] = _json.dumps(emb)   # "[0.1, 0.2, ...]" — pgvector terima format ini
+        if emb and isinstance(emb, list) and len(emb) == 1536:
+            row["embedding_vec"] = _json.dumps(emb)
         else:
             row["embedding_vec"] = None
 
+        # Upsert: re-upload kitab akan menimpa chunks lama dengan ID yang sama
         sb.table("muqarrar_chunks").upsert(row, on_conflict="id").execute()
         return True
     except Exception as e:
-        logger.warning(f"[MUQARRAR] Gagal simpan chunk hal {chunk.get('page_number')}: {e}")
+        logger.warning(
+            f"[MUQARRAR] Gagal simpan chunk hal {chunk.get('page_number')} "
+            f"id={chunk.get('id')}: {e}"
+        )
         return False
 
 
@@ -405,7 +424,7 @@ def muqarrar_list_kitab() -> list:
 
 
 def muqarrar_delete_kitab(kitab_id: str) -> bool:
-    """Hapus semua chunks milik satu kitab."""
+    """Hapus semua chunks milik satu kitab (semua sub-chunks semua halaman)."""
     try:
         sb = get_supabase()
         sb.table("muqarrar_chunks").delete().eq("kitab_id", kitab_id).execute()
@@ -413,4 +432,3 @@ def muqarrar_delete_kitab(kitab_id: str) -> bool:
     except Exception as e:
         logger.warning(f"[MUQARRAR] Gagal hapus kitab {kitab_id}: {e}")
         return False
-        return []
