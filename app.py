@@ -3986,6 +3986,76 @@ def api_muqarrar_pages(kitab_id: str):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/muqarrar/<kitab_id>/push-library", methods=["POST"])
+def api_muqarrar_push_library(kitab_id: str):
+    """
+    Push kitab ke tabel library_items di Supabase (dibaca oleh AINA Website).
+    Body: {drive_url, faculty (opsional), year_level (opsional), tags (opsional), is_published (bool)}
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if token != SESSION_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    body = request.get_json(silent=True) or {}
+    drive_url = (body.get("drive_url") or "").strip()
+    if not drive_url:
+        return jsonify({"error": "drive_url wajib diisi (link Google Drive PDF)."}), 400
+
+    try:
+        sb = get_supabase()
+
+        # Ambil metadata kitab dari muqarrar_chunks
+        res = (
+            sb.table("muqarrar_chunks")
+            .select("kitab_name, author, description")
+            .eq("kitab_id", kitab_id)
+            .limit(1)
+            .execute()
+        )
+        if not res.data:
+            return jsonify({"error": "Kitab tidak ditemukan."}), 404
+
+        kitab = res.data[0]
+        title = kitab["kitab_name"]
+        author = kitab.get("author", "")
+        description = kitab.get("description", "")
+
+        # Build tags: gabung author + user-provided tags
+        user_tags = (body.get("tags") or "").strip()
+        auto_tags = f"muqarrar{', ' + author if author else ''}"
+        tags = f"{auto_tags}{', ' + user_tags if user_tags else ''}"
+
+        # Cek apakah sudah pernah di-push (cek title + category)
+        existing = (
+            sb.table("library_items")
+            .select("id")
+            .eq("title", title)
+            .eq("category", "muqorror")
+            .execute()
+        )
+        if existing.data:
+            return jsonify({"error": f'"{title}" sudah ada di library AINA.', "duplicate": True}), 409
+
+        # Insert ke library_items
+        payload = {
+            "title": title,
+            "description": description or (f"Muqarrar — {author}" if author else "Muqarrar"),
+            "category": "muqorror",
+            "faculty": (body.get("faculty") or "").strip() or None,
+            "year_level": (body.get("year_level") or "").strip() or None,
+            "drive_url": drive_url,
+            "file_type": "pdf",
+            "tags": tags,
+            "is_published": body.get("is_published", True),
+        }
+        insert_res = sb.table("library_items").insert(payload).execute()
+        inserted = insert_res.data[0] if insert_res.data else {}
+        return jsonify({"status": "ok", "library_item": inserted})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/muqarrar/<kitab_id>", methods=["DELETE"])
 def api_muqarrar_delete(kitab_id: str):
     """Hapus semua chunks satu kitab."""

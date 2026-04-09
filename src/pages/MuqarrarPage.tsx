@@ -4,7 +4,7 @@ import {
   ArrowLeft, Upload, BookOpen, Search, Trash2, Loader2,
   AlertCircle, CheckCircle2, Sparkles, FileText, ChevronDown,
   ChevronUp, X, Database, Copy, Check, RefreshCw,
-  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft,
+  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft, Send, Link,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -86,6 +86,17 @@ export default function MuqarrarPage() {
   const [kitabList, setKitabList] = useState<KitabItem[]>([]);
   const [libLoading, setLibLoading] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+
+  // ── Push to Library state ──────────────────────────────────────────────────
+  const [pushKitab, setPushKitab] = useState<KitabItem | null>(null);
+  const [pushDriveUrl, setPushDriveUrl] = useState("");
+  const [pushFaculty, setPushFaculty] = useState("");
+  const [pushYear, setPushYear] = useState("");
+  const [pushTags, setPushTags] = useState("");
+  const [pushPublished, setPushPublished] = useState(true);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState("");
+  const [pushSuccess, setPushSuccess] = useState(false);
 
   // ── Review state ───────────────────────────────────────────────────────────
   const [reviewKitab, setReviewKitab] = useState<KitabItem | null>(null);
@@ -266,6 +277,46 @@ export default function MuqarrarPage() {
     setShowAllChapters(false);
     if (fileRef.current) fileRef.current.value = "";
     if (pollRef.current) clearInterval(pollRef.current);
+  };
+
+  // ── Push to AINA Library ───────────────────────────────────────────────────
+  const openPush = (kitab: KitabItem) => {
+    setPushKitab(kitab);
+    setPushDriveUrl("");
+    setPushFaculty("");
+    setPushYear("");
+    setPushTags("");
+    setPushPublished(true);
+    setPushError("");
+    setPushSuccess(false);
+  };
+
+  const handlePush = async () => {
+    if (!pushKitab || !pushDriveUrl.trim()) return;
+    setPushLoading(true);
+    setPushError("");
+    setPushSuccess(false);
+    try {
+      const res = await fetch(apiUrl(`/api/muqarrar/${pushKitab.kitab_id}/push-library`), {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          drive_url: pushDriveUrl.trim(),
+          faculty: pushFaculty.trim(),
+          year_level: pushYear.trim(),
+          tags: pushTags.trim(),
+          is_published: pushPublished,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal push ke library.");
+      setPushSuccess(true);
+      setTimeout(() => setPushKitab(null), 2000);
+    } catch (e: any) {
+      setPushError(e.message || "Gagal menghubungi server.");
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   // ── Review ─────────────────────────────────────────────────────────────────
@@ -503,6 +554,12 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
                       style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}>
                       <Eye className="w-3 h-3" />Review
+                    </button>
+                    <button
+                      onClick={() => openPush(k)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                      style={{ background: "rgba(16,185,129,0.12)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }}>
+                      <Send className="w-3 h-3" />Push
                     </button>
                     <button
                       onClick={() => { setSelectedKitab(k.kitab_id); setTab("ask"); }}
@@ -1208,6 +1265,154 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
           </div>
         )}
       </main>
+
+      {/* ── PUSH TO AINA LIBRARY MODAL ─────────────────────────────── */}
+      {pushKitab && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden"
+            style={{ background: "linear-gradient(135deg,#0f0a1e,#0a0515)", border: "1px solid rgba(16,185,129,0.3)" }}>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b"
+              style={{ borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.07)" }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "rgba(16,185,129,0.2)", border: "1px solid rgba(16,185,129,0.4)" }}>
+                <Send className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white">Push ke AINA Library</p>
+                <p className="text-[10px] text-emerald-400/70 truncate">{pushKitab.kitab_name}</p>
+              </div>
+              <button onClick={() => setPushKitab(null)} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="px-4 py-4 space-y-3">
+              {/* Info */}
+              <div className="flex items-start gap-2 rounded-xl p-2.5"
+                style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)" }}>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-emerald-300/80 leading-relaxed">
+                  Kitab ini akan muncul di panel <strong>Library</strong> di AINA Website dengan kategori <strong>Muqorror</strong>.
+                  Metadata (judul, deskripsi, pengarang) diisi otomatis dari data kitab.
+                </p>
+              </div>
+
+              {/* Drive URL — required */}
+              <div>
+                <label className="block text-xs text-slate-400 font-semibold mb-1.5">
+                  Link Google Drive PDF <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/file/d/..."
+                    value={pushDriveUrl}
+                    onChange={e => setPushDriveUrl(e.target.value)}
+                    className="w-full rounded-xl pl-8 pr-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-all"
+                    style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)" }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-600 mt-1">Link publik PDF muqarrar ini di Google Drive</p>
+              </div>
+
+              {/* Fakultas + Tahun */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-400 font-semibold mb-1.5">Fakultas (opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="cth: Syariah"
+                    value={pushFaculty}
+                    onChange={e => setPushFaculty(e.target.value)}
+                    className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 outline-none"
+                    style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 font-semibold mb-1.5">Tahun / Semester</label>
+                  <input
+                    type="text"
+                    placeholder="cth: Semester 1"
+                    value={pushYear}
+                    onChange={e => setPushYear(e.target.value)}
+                    className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 outline-none"
+                    style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}
+                  />
+                </div>
+              </div>
+
+              {/* Tags tambahan */}
+              <div>
+                <label className="block text-xs text-slate-400 font-semibold mb-1.5">Tags tambahan (opsional)</label>
+                <input
+                  type="text"
+                  placeholder="cth: fiqh, thaharah — dipisah koma"
+                  value={pushTags}
+                  onChange={e => setPushTags(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none"
+                  style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}
+                />
+                <p className="text-[10px] text-slate-600 mt-1">Tag "muqarrar" dan pengarang ditambah otomatis</p>
+              </div>
+
+              {/* Publikasi toggle */}
+              <div className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)" }}>
+                <div>
+                  <p className="text-xs font-semibold text-slate-300">Langsung Dipublikasikan</p>
+                  <p className="text-[10px] text-slate-500">Aktif = langsung muncul di Library AINA</p>
+                </div>
+                <button onClick={() => setPushPublished(v => !v)}
+                  className="relative w-10 h-5 rounded-full transition-colors"
+                  style={{ background: pushPublished ? "rgba(16,185,129,0.7)" : "rgba(75,85,99,0.5)" }}>
+                  <span className="absolute top-0.5 rounded-full w-4 h-4 bg-white transition-all shadow"
+                    style={{ left: pushPublished ? "calc(100% - 18px)" : "2px" }} />
+                </button>
+              </div>
+
+              {/* Error / Success */}
+              {pushError && (
+                <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+                  style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                  <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                  <p className="text-xs text-red-400">{pushError}</p>
+                </div>
+              )}
+              {pushSuccess && (
+                <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+                  style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.4)" }}>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <p className="text-xs text-emerald-300 font-semibold">Berhasil! Kitab sekarang muncul di Library AINA.</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setPushKitab(null)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-300 transition-colors"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  Batal
+                </button>
+                <button
+                  onClick={handlePush}
+                  disabled={!pushDriveUrl.trim() || pushLoading || pushSuccess}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40"
+                  style={{ background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 0 20px rgba(5,150,105,0.3)" }}>
+                  {pushLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />Mengirim...</>
+                    : pushSuccess
+                      ? <><CheckCircle2 className="w-4 h-4" />Berhasil!</>
+                      : <><Send className="w-4 h-4" />Push ke Library</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav active="home" />
     </div>
