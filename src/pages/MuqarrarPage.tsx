@@ -4,6 +4,7 @@ import {
   ArrowLeft, Upload, BookOpen, Search, Trash2, Loader2,
   AlertCircle, CheckCircle2, Sparkles, FileText, ChevronDown,
   ChevronUp, X, Database, Copy, Check, RefreshCw,
+  ScanLine, List, Hash, ChevronRight,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -55,6 +56,18 @@ export default function MuqarrarPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // ── Scan state ─────────────────────────────────────────────────────────────
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [scanResult, setScanResult] = useState<{
+    pages_total: number;
+    toc_source: "native" | "detected" | "none";
+    chapters_count: number;
+    chapters: { level: number; title: string; page: number; page_count: number }[];
+    first_page_preview: string;
+  } | null>(null);
+  const [showAllChapters, setShowAllChapters] = useState(false);
+
   // ── Library state ──────────────────────────────────────────────────────────
   const [kitabList, setKitabList] = useState<KitabItem[]>([]);
   const [libLoading, setLibLoading] = useState(false);
@@ -102,6 +115,33 @@ export default function MuqarrarPage() {
       // silent
     } finally {
       setLibLoading(false);
+    }
+  };
+
+  // ── Scan PDF ───────────────────────────────────────────────────────────────
+  const handleScan = async () => {
+    if (!file) return;
+    setScanLoading(true);
+    setScanError("");
+    setScanResult(null);
+    setShowAllChapters(false);
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch(apiUrl("/api/muqarrar/scan"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken() || ""}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Scan gagal.");
+      setScanResult(data);
+    } catch (e: any) {
+      setScanError(e.message || "Gagal scan PDF.");
+    } finally {
+      setScanLoading(false);
     }
   };
 
@@ -168,6 +208,10 @@ export default function MuqarrarPage() {
     setJobStatus(null);
     setUploadError("");
     setUploadLoading(false);
+    setScanResult(null);
+    setScanError("");
+    setScanLoading(false);
+    setShowAllChapters(false);
     if (fileRef.current) fileRef.current.value = "";
     if (pollRef.current) clearInterval(pollRef.current);
   };
@@ -424,7 +468,12 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                 <input ref={fileRef} type="file" accept=".pdf" className="sr-only"
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) setFile(f);
+                    if (f) {
+                      setFile(f);
+                      setScanResult(null);
+                      setScanError("");
+                      setShowAllChapters(false);
+                    }
                   }} />
                 {file ? (
                   <>
@@ -445,6 +494,139 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                 )}
               </label>
             </div>
+
+            {/* ── Scan Struktur ─────────────────────────────────────────────── */}
+            {file && !jobId && (
+              <div>
+                <button
+                  onClick={handleScan}
+                  disabled={scanLoading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  style={{
+                    background: "rgba(139,92,246,0.12)",
+                    border: "1px solid rgba(139,92,246,0.35)",
+                    color: "#a78bfa",
+                  }}>
+                  {scanLoading
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Meng-scan struktur PDF...</>
+                    : <><ScanLine className="w-3.5 h-3.5" />Pra-Scan Struktur PDF</>}
+                </button>
+                <p className="text-[10px] text-slate-600 text-center mt-1">Cek isi & daftar bab sebelum proses — cepat, tanpa AI</p>
+              </div>
+            )}
+
+            {/* Scan error */}
+            {scanError && (
+              <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{scanError}</p>
+              </div>
+            )}
+
+            {/* Scan result panel */}
+            {scanResult && !jobId && (
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(139,92,246,0.3)" }}>
+                {/* Header */}
+                <div className="px-4 py-3 flex items-center gap-2" style={{ background: "rgba(109,40,217,0.15)" }}>
+                  <ScanLine className="w-4 h-4 text-violet-400 shrink-0" />
+                  <span className="text-xs font-bold text-violet-300">Hasil Pra-Scan PDF</span>
+                  {scanResult.toc_source === "native" && (
+                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }}>
+                      Daftar Isi Native
+                    </span>
+                  )}
+                  {scanResult.toc_source === "detected" && (
+                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.3)" }}>
+                      Deteksi Otomatis
+                    </span>
+                  )}
+                  {scanResult.toc_source === "none" && (
+                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(100,116,139,0.2)", color: "#94a3b8", border: "1px solid rgba(100,116,139,0.3)" }}>
+                      Tidak Ada TOC
+                    </span>
+                  )}
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 divide-x" style={{ divideColor: "rgba(139,92,246,0.15)", background: "rgba(15,10,30,0.6)" }}>
+                  <div className="px-3 py-3 text-center">
+                    <Hash className="w-3.5 h-3.5 text-violet-400 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-white">{scanResult.pages_total}</p>
+                    <p className="text-[10px] text-slate-500">Halaman</p>
+                  </div>
+                  <div className="px-3 py-3 text-center" style={{ borderLeft: "1px solid rgba(139,92,246,0.15)" }}>
+                    <List className="w-3.5 h-3.5 text-violet-400 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-white">{scanResult.chapters_count}</p>
+                    <p className="text-[10px] text-slate-500">Bab/Entri</p>
+                  </div>
+                  <div className="px-3 py-3 text-center" style={{ borderLeft: "1px solid rgba(139,92,246,0.15)" }}>
+                    <BookOpen className="w-3.5 h-3.5 text-violet-400 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-white">
+                      {scanResult.pages_total > 0
+                        ? Math.round(scanResult.pages_total / Math.max(scanResult.chapters_count, 1))
+                        : "-"}
+                    </p>
+                    <p className="text-[10px] text-slate-500">Hal/Bab rata²</p>
+                  </div>
+                </div>
+
+                {/* Chapters list */}
+                {scanResult.chapters.length > 0 && (
+                  <div style={{ background: "rgba(10,5,25,0.7)" }}>
+                    <div className="px-3 py-2 border-t" style={{ borderColor: "rgba(139,92,246,0.15)" }}>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daftar Bab / Isi</p>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                      {(showAllChapters ? scanResult.chapters : scanResult.chapters.slice(0, 10)).map((ch, i) => (
+                        <div key={i}
+                          className="flex items-start gap-2 px-3 py-2 border-t"
+                          style={{
+                            borderColor: "rgba(139,92,246,0.08)",
+                            paddingLeft: `${(ch.level - 1) * 12 + 12}px`,
+                          }}>
+                          <ChevronRight className="w-3 h-3 text-violet-600 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] text-slate-300 leading-tight truncate" title={ch.title}>
+                              {ch.title}
+                            </p>
+                            <p className="text-[10px] text-slate-600 mt-0.5">
+                              Hal. {ch.page}
+                              {ch.page_count > 0 ? ` · ${ch.page_count} hal` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {scanResult.chapters.length > 10 && (
+                      <button
+                        onClick={() => setShowAllChapters(v => !v)}
+                        className="w-full py-2 text-[11px] text-violet-400 font-semibold hover:text-violet-300 transition-colors"
+                        style={{ borderTop: "1px solid rgba(139,92,246,0.1)" }}>
+                        {showAllChapters
+                          ? "Tampilkan lebih sedikit ↑"
+                          : `Tampilkan semua ${scanResult.chapters.length} entri ↓`}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* First page preview */}
+                {scanResult.first_page_preview && (
+                  <div className="px-3 py-3 border-t" style={{ borderColor: "rgba(139,92,246,0.12)", background: "rgba(10,5,25,0.5)" }}>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Preview Halaman 1</p>
+                    <p className="text-[11px] text-slate-400 leading-relaxed whitespace-pre-wrap font-mono" style={{ maxHeight: 80, overflow: "hidden" }}>
+                      {scanResult.first_page_preview}
+                    </p>
+                  </div>
+                )}
+
+                {scanResult.chapters.length === 0 && scanResult.toc_source !== "native" && (
+                  <div className="px-3 py-3 text-center border-t" style={{ borderColor: "rgba(139,92,246,0.12)", background: "rgba(10,5,25,0.5)" }}>
+                    <p className="text-[11px] text-slate-500">Tidak ada bab terdeteksi — kemungkinan PDF scan/gambar tanpa teks. OCR akan diaktifkan saat proses.</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Kitab name */}
             <div>

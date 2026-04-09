@@ -3652,6 +3652,136 @@ def _process_muqarrar_upload(
         job["error_msg"] = str(e)
 
 
+@app.route("/api/muqarrar/scan", methods=["POST"])
+def api_muqarrar_scan():
+    """
+    Pra-scan PDF: baca struktur (jumlah halaman, TOC, deteksi bab)
+    tanpa embedding — hanya PyMuPDF, cepat, tidak perlu AI.
+    """
+    import re as _re
+    if "file" not in request.files:
+        return jsonify({"error": "Tidak ada file yang dikirim."}), 400
+
+    pdf_file = request.files["file"]
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File harus berformat PDF."}), 400
+
+    try:
+        import fitz  # PyMuPDF
+        pdf_bytes = pdf_file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        pages_total = len(doc)
+
+        # ── 1. Coba baca TOC native PDF ─────────────────────────────────────────
+        raw_toc = doc.get_toc()  # [[level, title, page], ...]
+        chapters = []
+        toc_source = "none"
+
+        if raw_toc and len(raw_toc) >= 1:
+            toc_source = "native"
+            for level, title, page in raw_toc:
+                title = (title or "").strip()
+                if not title:
+                    continue
+                chapters.append({
+                    "level": level,
+                    "title": title,
+                    "page": max(1, page),
+                })
+            logger.info(f"[MUQARRAR SCAN] TOC native: {len(chapters)} entri")
+
+        # ── 2. Jika TOC kosong / sangat sedikit → deteksi dari teks halaman ─────
+        if len(chapters) < 3:
+            toc_source = "detected"
+            chapters = []
+
+            # Pola deteksi: Latin + Arab + Melayu
+            heading_patterns = [
+                _re.compile(r'^(BAB|Bab|CHAPTER|Chapter|FASAL|Fasal|MUKADDIMAH|Mukaddimah|PENDAHULUAN|Pendahuluan|PENUTUP|Penutup|KESIMPULAN|Kesimpulan|DAFTAR|Daftar)\b', _re.IGNORECASE),
+                _re.compile(r'^(فصل|باب|مقدمة|خاتمة|تمهيد|كتاب)', _re.UNICODE),
+                _re.compile(r'^\d+[\.\-\)]\s+[A-ZА-Яا-ي]'),  # "1. Judul", "2- Bab"
+                _re.compile(r'^(PART|Part|SECTION|Section|UNIT|Unit)\s+\w'),
+            ]
+
+            for page_idx in range(pages_total):
+                page = doc[page_idx]
+                page_num = page_idx + 1
+
+                # Ambil teks dari blok teks terbesar (heading biasanya font besar)
+                blocks = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)["blocks"]
+                heading_found = None
+                max_size = 0.0
+
+                for blk in blocks:
+                    if blk.get("type") != 0:  # type 0 = teks
+                        continue
+                    for line in blk.get("lines", []):
+                        for span in line.get("spans", []):
+                            text = (span.get("text") or "").strip()
+                            size = span.get("size", 0)
+                            if not text or len(text) > 120:
+                                continue
+                            # Cek pola heading
+                            for pat in heading_patterns:
+                                if pat.match(text):
+                                    if size >= max_size:
+                                        max_size = size
+                                        heading_found = text
+                                    break
+
+                # Fallback: cek baris pertama teks halaman kalau font besar relatif
+                if not heading_found:
+                    plain = page.get_text("text").strip()
+                    first_line = plain.split("\n")[0].strip() if plain else ""
+                    if first_line and len(first_line) <= 80:
+                        # Kalau font besar (ukuran relatif terhadap rata-rata)
+                        all_sizes = [
+                            sp.get("size", 0)
+                            for blk in blocks if blk.get("type") == 0
+                            for line in blk.get("lines", [])
+                            for sp in line.get("spans", [])
+                        ]
+                        avg_size = (sum(all_sizes) / len(all_sizes)) if all_sizes else 10
+                        if max_size > avg_size * 1.4 and any(pat.match(first_line) for pat in heading_patterns):
+                            heading_found = first_line
+
+                if heading_found:
+                    chapters.append({
+                        "level": 1,
+                        "title": heading_found,
+                        "page": page_num,
+                    })
+
+            logger.info(f"[MUQARRAR SCAN] Deteksi heading: {len(chapters)} bab terdeteksi")
+
+        # ── 3. Hitung distribusi halaman per bab ────────────────────────────────
+        for i, ch in enumerate(chapters):
+            if i + 1 < len(chapters):
+                ch["page_count"] = chapters[i + 1]["page"] - ch["page"]
+            else:
+                ch["page_count"] = pages_total - ch["page"] + 1
+
+        # ── 4. Info halaman pertama (preview teks singkat) ──────────────────────
+        first_page_preview = ""
+        if pages_total > 0:
+            fp_text = doc[0].get_text("text").strip()
+            first_page_preview = fp_text[:300] if fp_text else ""
+
+        doc.close()
+
+        return jsonify({
+            "pages_total": pages_total,
+            "toc_source": toc_source,  # "native" | "detected" | "none"
+            "chapters_count": len(chapters),
+            "chapters": chapters,
+            "first_page_preview": first_page_preview,
+        })
+
+    except Exception as e:
+        logger.error(f"[MUQARRAR SCAN] error: {e}", exc_info=True)
+        return jsonify({"error": f"Gagal scan PDF: {str(e)}"}), 500
+
+
 @app.route("/api/muqarrar/db-status", methods=["GET"])
 def api_muqarrar_db_status():
     """Periksa apakah tabel muqarrar_chunks sudah ada di Supabase."""
