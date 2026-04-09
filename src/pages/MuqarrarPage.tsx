@@ -107,6 +107,9 @@ export default function MuqarrarPage() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [activePageIdx, setActivePageIdx] = useState(0);
+  const [cleanedPages, setCleanedPages] = useState<Record<number, string>>({});
+  const [cleaningIdx, setCleaningIdx] = useState<number | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
 
   // ── Ask state ──────────────────────────────────────────────────────────────
   const [question, setQuestion] = useState("");
@@ -333,12 +336,20 @@ export default function MuqarrarPage() {
     setReviewPages([]);
     setReviewError("");
     setActivePageIdx(0);
+    setCleanedPages({});
+    setCleaningIdx(null);
+    setShowRaw(false);
     setTab("review");
     setReviewLoading(true);
     try {
       const res = await fetch(apiUrl(`/api/muqarrar/${kitab.kitab_id}/pages`), {
         headers: { Authorization: `Bearer ${getToken() || ""}` },
       });
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Server error (${res.status}): ${text.slice(0, 120)}`);
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memuat halaman.");
       setReviewPages(data.pages || []);
@@ -346,6 +357,30 @@ export default function MuqarrarPage() {
       setReviewError(e.message || "Gagal memuat halaman kitab.");
     } finally {
       setReviewLoading(false);
+    }
+  };
+
+  const handleCleanPage = async (page: PageChunk, idx: number) => {
+    if (!reviewKitab || cleaningIdx !== null) return;
+    setCleaningIdx(idx);
+    try {
+      const res = await fetch(apiUrl("/api/muqarrar/clean-page"), {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          content: page.content,
+          page_number: page.page_number,
+          kitab_name: reviewKitab.kitab_name,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membersihkan halaman.");
+      setCleanedPages(prev => ({ ...prev, [page.page_number]: data.cleaned }));
+      setShowRaw(false);
+    } catch (e: any) {
+      alert(e.message || "Gagal membersihkan halaman.");
+    } finally {
+      setCleaningIdx(null);
     }
   };
 
@@ -1234,16 +1269,56 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                             OCR
                           </span>
                         )}
+                        {cleanedPages[page.page_number] && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                            style={{ background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }}>
+                            ✓ Dibersihkan
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-600">{page.word_count} kata</span>
                       </div>
                     </div>
 
+                    {/* Toolbar bersihkan */}
+                    <div className="flex items-center gap-2 px-3 py-2"
+                      style={{ background: "rgba(10,5,25,0.5)", borderBottom: "1px solid rgba(139,92,246,0.1)" }}>
+                      {cleanedPages[page.page_number] ? (
+                        <button
+                          onClick={() => setShowRaw(v => !v)}
+                          className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all"
+                          style={{
+                            background: showRaw ? "rgba(100,100,100,0.15)" : "rgba(16,185,129,0.12)",
+                            color: showRaw ? "#9ca3af" : "#34d399",
+                            border: showRaw ? "1px solid rgba(100,100,100,0.2)" : "1px solid rgba(16,185,129,0.25)",
+                          }}>
+                          <Eye className="w-3 h-3" />
+                          {showRaw ? "Lihat Hasil Bersih" : "Tampilkan Mentah"}
+                        </button>
+                      ) : null}
+                      <button
+                        disabled={cleaningIdx !== null || !page.content}
+                        onClick={() => handleCleanPage(page, activePageIdx)}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all ml-auto disabled:opacity-50"
+                        style={{ background: "rgba(139,92,246,0.12)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.25)" }}>
+                        {cleaningIdx === activePageIdx
+                          ? <><Loader2 className="w-3 h-3 animate-spin" /> Membersihkan...</>
+                          : <><Sparkles className="w-3 h-3" /> {cleanedPages[page.page_number] ? "Bersihkan Ulang" : "Bersihkan dengan AI"}</>}
+                      </button>
+                    </div>
+
                     {/* Page content */}
                     <div className="px-4 py-4" style={{ background: "rgba(10,5,25,0.7)" }}>
-                      <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap font-mono"
-                        style={{ fontSize: "12px", lineHeight: "1.7" }}>
-                        {page.content || <span className="text-slate-600 italic">Halaman ini kosong.</span>}
-                      </p>
+                      {cleanedPages[page.page_number] && !showRaw ? (
+                        <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap"
+                          dir="rtl" style={{ fontSize: "13px", lineHeight: "2", fontFamily: "serif" }}>
+                          {cleanedPages[page.page_number]}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap font-mono"
+                          style={{ fontSize: "12px", lineHeight: "1.7" }}>
+                          {page.content || <span className="text-slate-600 italic">Halaman ini kosong.</span>}
+                        </p>
+                      )}
                     </div>
                   </div>
 

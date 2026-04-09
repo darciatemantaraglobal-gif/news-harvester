@@ -28,6 +28,29 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB — cukup untuk PDF 500+ halaman
+
+# ─── Global JSON error handlers (pastikan TIDAK PERNAH return HTML traceback) ─
+@app.errorhandler(400)
+def err_400(e): return jsonify({"error": "Bad request", "detail": str(e)}), 400
+@app.errorhandler(401)
+def err_401(e): return jsonify({"error": "Unauthorized"}), 401
+@app.errorhandler(403)
+def err_403(e): return jsonify({"error": "Forbidden"}), 403
+@app.errorhandler(404)
+def err_404(e): return jsonify({"error": "Endpoint tidak ditemukan."}), 404
+@app.errorhandler(405)
+def err_405(e): return jsonify({"error": "Method not allowed"}), 405
+@app.errorhandler(413)
+def err_413(e): return jsonify({"error": "File terlalu besar (maks 500 MB)"}), 413
+@app.errorhandler(500)
+def err_500(e):
+    logger.error(f"[500] Unhandled exception: {e}")
+    return jsonify({"error": "Internal server error", "detail": str(e)}), 500
+@app.errorhandler(Exception)
+def err_any(e):
+    logger.error(f"[UNHANDLED] {type(e).__name__}: {e}")
+    return jsonify({"error": str(e)}), 500
+
 CORS(app, origins="*")
 
 # ─── Auth ───────────────────────────────────────────────────────────────────────
@@ -3986,6 +4009,56 @@ def api_muqarrar_pages(kitab_id: str):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/muqarrar/clean-page", methods=["POST"])
+def api_muqarrar_clean_page():
+    """
+    Bersihkan teks OCR satu halaman dengan AI.
+    Body JSON: { content: string, page_number: int, kitab_name: string }
+    Balik: { cleaned: string }
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if token != SESSION_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    body = request.get_json(silent=True) or {}
+    raw = (body.get("content") or "").strip()
+    if not raw:
+        return jsonify({"error": "Konten kosong."}), 400
+
+    page_num = body.get("page_number", "?")
+    kitab_name = body.get("kitab_name", "")
+
+    client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+    prompt = f"""Kamu adalah editor teks Arab yang ahli. Tugasmu: bersihkan hasil OCR dari kitab PDF Arab berikut.
+
+Aturan WAJIB:
+1. JANGAN ubah isi, makna, atau urutan teks sama sekali — hanya perbaiki TAMPILAN
+2. Hapus karakter sampah, artefak OCR (simbol aneh, repetisi baris, karakter tidak bermakna)
+3. Perbaiki spasi yang berantakan dan baris yang terpotong tidak wajar
+4. Pertahankan struktur paragraf dan baris baru yang bermakna
+5. Jangan tambahkan konten baru, catatan, atau komentar apapun
+6. Hasilkan HANYA teks yang sudah dibersihkan, tanpa penjelasan
+
+Kitab: {kitab_name}
+Halaman: {page_num}
+
+Teks OCR mentah:
+{raw[:6000]}"""
+
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=4096,
+        )
+        cleaned = (resp.choices[0].message.content or "").strip()
+        return jsonify({"cleaned": cleaned})
+    except Exception as e:
+        logger.error(f"[CLEAN-PAGE] {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/muqarrar/<kitab_id>/push-library", methods=["POST"])
 def api_muqarrar_push_library(kitab_id: str):
     """
@@ -4219,4 +4292,4 @@ def api_muqarrar_ask():
 if __name__ == "__main__":
     # use_reloader=False: prevents Werkzeug stat reloader from restarting the process
     # mid-scrape (which would wipe in-memory scrape_state and cause progress log to blank out)
-    app.run(host="0.0.0.0", port=8000, debug=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=8000, debug=False, use_reloader=False)
