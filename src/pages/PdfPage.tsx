@@ -71,9 +71,13 @@ interface PdfLearnResult {
   topics: string[];
 }
 
-const CATEGORIES = [
+const CATEGORIES_ARAB = [
   "Fiqh", "Aqidah", "Akhlak", "Hadits", "Tafsir",
-  "Sirah", "Nahwu / Sharaf", "Bahasa Arab", "Umum",
+  "Sirah", "Nahwu / Sharaf", "Bahasa Arab",
+];
+const CATEGORIES_ID = [
+  "Laporan", "Kebijakan", "Artikel Ilmiah", "Buku Teks",
+  "Prosiding", "Kajian", "Berita / Media",
 ];
 
 const COST_PER_SCAN_PAGE_USD = 0.0002;
@@ -108,6 +112,9 @@ export default function PdfPage() {
   const [learnLoadingMap, setLearnLoadingMap] = useState<Record<string, boolean>>({});
   const [learnErrorMap, setLearnErrorMap] = useState<Record<string, string>>({});
   const [learnOpenMap, setLearnOpenMap] = useState<Record<string, boolean>>({});
+
+  // ── Advanced settings toggle ──
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // ── Upload job progress ──
   const [uploadProgress, setUploadProgress] = useState("");
@@ -343,13 +350,13 @@ export default function PdfPage() {
             </Link>
             <div className="min-w-0 leading-none">
               <div className="flex items-center gap-2 mb-0.5">
-                <p className="font-bold text-white text-base lg:text-xl tracking-tight">PDF Kitab → KB Draft</p>
+                <p className="font-bold text-white text-base lg:text-xl tracking-tight">PDF → KB Draft</p>
                 <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0"
                   style={{ background: "rgba(139,92,246,0.25)", border: "1px solid rgba(167,139,250,0.4)", color: "rgba(196,181,253,0.9)" }}>
                   <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />AI
                 </span>
               </div>
-              <p className="text-violet-300/70 text-[11px] lg:text-[13px]">Upload kitab PDF, chunk per bab</p>
+              <p className="text-violet-300/70 text-[11px] lg:text-[13px]">Kitab Arab & dokumen Indonesia didukung</p>
             </div>
           </div>
           <div className="flex items-center gap-2 ml-auto">
@@ -398,13 +405,17 @@ export default function PdfPage() {
                         ))}
                       </div>
                       <div className="grid grid-cols-1 gap-2 mt-3">
+                        <div className="flex items-start gap-2 text-[11px] text-violet-300 bg-violet-900/20 border border-violet-700/30 rounded-lg px-3 py-2">
+                          <Globe className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span><strong>Bahasa Arab & Indonesia</strong> — otomatis terdeteksi. Kitab Arab pakai rekonstruksi OCR khusus.</span>
+                        </div>
                         <div className="flex items-start gap-2 text-[11px] text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 rounded-lg px-3 py-2">
                           <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                           <span><strong>PDF teks digital:</strong> ekstraksi langsung, akurat, cepat. Tanpa biaya AI.</span>
                         </div>
                         <div className="flex items-start gap-2 text-[11px] text-amber-300 bg-amber-900/20 border border-amber-700/30 rounded-lg px-3 py-2">
                           <ScanLine className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                          <span><strong>PDF scan/gambar:</strong> aktifkan AI OCR. Biaya ~$0.0002/halaman — 100 hal ≈ $0.02.</span>
+                          <span><strong>PDF scan/gambar:</strong> aktifkan AI OCR di Pengaturan Lanjutan. Biaya ~$0.0002/hal.</span>
                         </div>
                       </div>
                     </div>
@@ -432,12 +443,15 @@ export default function PdfPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                      <span className="flex items-center gap-1 text-[10px] text-violet-400/80">
+                        <Globe className="w-3 h-3" />Arab & Indonesia
+                      </span>
                       <span className="flex items-center gap-1 text-[10px] text-emerald-400/80">
                         <CheckCircle2 className="w-3 h-3" />PDF teks — gratis
                       </span>
                       <span className="flex items-center gap-1 text-[10px] text-amber-400/80">
-                        <ScanLine className="w-3 h-3" />Scan — AI OCR ~$0.0002/hal
+                        <ScanLine className="w-3 h-3" />Scan — OCR (lanjutan)
                       </span>
                     </div>
                   </div>
@@ -452,44 +466,55 @@ export default function PdfPage() {
 
                   <div className="p-4 sm:p-5 lg:p-6 space-y-4 lg:space-y-5">
 
-                    {/* ── Options ── */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-violet-900/50 flex items-center justify-center shrink-0">
-                          <Layers className="w-3 h-3 text-violet-400" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-400/80">Pengaturan</span>
+                    {/* ── Kategori (selalu terlihat) ── */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+                        <Layers className="w-3 h-3 text-violet-400" />Kategori Dokumen
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={category}
+                          onChange={e => setCategory(e.target.value)}
+                          className="w-full appearance-none text-sm border border-violet-800/40 rounded-xl px-3.5 pr-9 py-2.5 bg-[#0f0a1e] text-slate-200 outline-none focus:border-violet-500/60 transition-colors cursor-pointer"
+                          style={{ colorScheme: "dark" }}
+                        >
+                          <option value="">— Pilih kategori (opsional) —</option>
+                          <optgroup label="── Kitab Arab ──">
+                            {CATEGORIES_ARAB.map(c => <option key={c} value={c}>{c}</option>)}
+                          </optgroup>
+                          <optgroup label="── Dokumen Indonesia ──">
+                            {CATEGORIES_ID.map(c => <option key={c} value={c}>{c}</option>)}
+                          </optgroup>
+                          <option value="Umum">Umum</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-violet-400/60 pointer-events-none" />
                       </div>
+                      <p className="text-[10px] text-slate-600 pl-0.5">Bahasa Arab & Indonesia otomatis terdeteksi oleh sistem</p>
+                    </div>
 
-                      {/* Category — full width */}
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                          Kategori Kitab
-                        </label>
-                        <div className="relative">
-                          <select
-                            value={category}
-                            onChange={e => setCategory(e.target.value)}
-                            className="w-full appearance-none text-sm border border-violet-800/40 rounded-xl px-3.5 pr-9 py-2.5 bg-[#0f0a1e] text-slate-200 outline-none focus:border-violet-500/60 transition-colors cursor-pointer"
-                            style={{ colorScheme: "dark" }}
-                          >
-                            <option value="">— Pilih kategori —</option>
-                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-violet-400/60 pointer-events-none" />
-                        </div>
-                      </div>
+                    {/* ── Pengaturan Lanjutan (collapsed) ── */}
+                    <div>
+                      <button
+                        onClick={() => setShowAdvanced(v => !v)}
+                        className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition-colors py-1"
+                      >
+                        {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        Pengaturan Lanjutan
+                        {(useOcr || chunkSize !== 20) && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-900/50 text-violet-300 border border-violet-700/40">
+                            {[useOcr ? "OCR" : null, chunkSize !== 20 ? `${chunkSize} hal` : null].filter(Boolean).join(" · ")}
+                          </span>
+                        )}
+                      </button>
 
-                      {/* Chunk + OCR row — 2-col on mobile */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Chunk size */}
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                            <FileText className="w-3 h-3 text-indigo-400" />Hal. per KB Draft
-                          </label>
-                          <div className="bg-[#0f0a1e] border border-violet-800/40 rounded-xl px-3.5 py-2.5 space-y-1.5">
+                      {showAdvanced && (
+                        <div className="mt-2 space-y-3 pl-1">
+                          {/* Chunk size */}
+                          <div className="space-y-1.5">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-slate-500">Halaman per artikel</span>
+                              <label className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+                                <FileText className="w-3 h-3 text-indigo-400" />Ukuran potongan artikel
+                              </label>
                               <span className="text-sm font-bold text-violet-300 tabular-nums">{chunkSize} hal</span>
                             </div>
                             <input
@@ -498,77 +523,55 @@ export default function PdfPage() {
                               onChange={e => setChunkSize(Number(e.target.value))}
                               className="w-full accent-violet-500 h-1.5"
                             />
+                            <p className="text-[10px] text-slate-600">PDF akan dipotong setiap {chunkSize} halaman menjadi satu KB Draft</p>
                           </div>
-                        </div>
 
-                        {/* OCR toggle */}
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3 text-violet-400" />AI OCR (Scan)
-                          </label>
-                          <button
-                            onClick={() => setUseOcr(v => !v)}
-                            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                              useOcr
-                                ? "bg-violet-600/20 text-violet-200 border-violet-500/60"
-                                : "bg-[#0f0a1e] text-slate-500 border-violet-800/40 hover:border-violet-700/60"
-                            }`}
-                          >
-                            <span>{useOcr ? "OCR Aktif" : "OCR Nonaktif"}</span>
-                            <div className={`w-9 h-5 rounded-full transition-colors relative shrink-0 ${useOcr ? "bg-violet-500" : "bg-slate-700"}`}>
-                              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${useOcr ? "left-4" : "left-0.5"}`} />
-                            </div>
-                          </button>
-                          {!useOcr && (
+                          {/* OCR toggle */}
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+                              <Sparkles className="w-3 h-3 text-violet-400" />AI OCR — untuk PDF scan/foto
+                            </label>
+                            <button
+                              onClick={() => setUseOcr(v => !v)}
+                              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                                useOcr
+                                  ? "bg-violet-600/20 text-violet-200 border-violet-500/60"
+                                  : "bg-[#0f0a1e] text-slate-500 border-violet-800/40 hover:border-violet-700/60"
+                              }`}
+                            >
+                              <span>{useOcr ? "✓ OCR Aktif" : "OCR Nonaktif (default)"}</span>
+                              <div className={`w-9 h-5 rounded-full transition-colors relative shrink-0 ${useOcr ? "bg-violet-500" : "bg-slate-700"}`}>
+                                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${useOcr ? "left-4" : "left-0.5"}`} />
+                              </div>
+                            </button>
                             <p className="text-[10px] text-slate-600 flex items-center gap-1 pl-0.5">
-                              <Info className="w-3 h-3 shrink-0" />Gratis — hanya PDF teks digital
+                              <Info className="w-3 h-3 shrink-0" />{useOcr ? "Butuh OPENAI_API_KEY · ~$0.0002/halaman" : "Gratis — hanya PDF yang sudah bisa disorot teksnya"}
                             </p>
+                          </div>
+
+                          {/* OCR max pages (hanya kalau OCR aktif) */}
+                          {useOcr && (
+                            <div className="bg-violet-900/15 border border-violet-800/30 rounded-xl p-3 space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-semibold text-slate-500">Maks. halaman scan di-OCR</label>
+                                <span className="text-sm font-bold text-violet-300 tabular-nums">{maxOcrPages} hal</span>
+                              </div>
+                              <input
+                                type="range" min={10} max={500} step={10}
+                                value={maxOcrPages}
+                                onChange={e => setMaxOcrPages(Number(e.target.value))}
+                                className="w-full accent-violet-600 h-1.5"
+                              />
+                              <div className="flex items-center gap-2 text-[11px] text-emerald-400/80">
+                                <DollarSign className="w-3 h-3 shrink-0" />
+                                Estimasi: {maxOcrPages} hal × $0.0002 ≈ <strong>{formatCost(maxOcrPages)}</strong>
+                                {files.length > 1 && <span className="text-slate-500">· {files.length} file = maks {estimatedCost}</span>}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
+                      )}
                     </div>
-
-                    {/* OCR settings (only when OCR enabled) */}
-                    {useOcr && (
-                      <div className="bg-violet-900/20 border border-violet-700/30 rounded-xl p-3.5 space-y-3.5">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-violet-400" />
-                          <span className="text-sm font-semibold text-violet-200">Pengaturan AI OCR</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-semibold text-slate-500">Maks. halaman scan di-OCR</label>
-                            <span className="text-sm font-bold text-violet-300 tabular-nums">{maxOcrPages} hal</span>
-                          </div>
-                          <input
-                            type="range" min={10} max={500} step={10}
-                            value={maxOcrPages}
-                            onChange={e => setMaxOcrPages(Number(e.target.value))}
-                            className="w-full accent-violet-600 h-1.5"
-                          />
-                          <p className="text-[10px] text-slate-500">
-                            Halaman scan di atas limit ini akan di-skip.
-                          </p>
-                        </div>
-                        <div className="bg-white/5 border border-violet-700/30 rounded-lg px-3 py-2.5 flex items-center gap-2.5">
-                          <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <div className="text-xs text-slate-400 space-y-0.5">
-                            <div className="font-semibold text-slate-200">Estimasi biaya per file</div>
-                            <div>
-                              Maks <strong className="text-violet-300">{maxOcrPages} hal</strong> × $0.0002 ≈{" "}
-                              <strong className="text-emerald-400">{formatCost(maxOcrPages)}</strong>
-                              {files.length > 1 && (
-                                <span className="text-slate-500"> · {files.length} file = maks {estimatedCost}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2 text-[11px] text-violet-300/80">
-                          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                          <span>Butuh <strong>OPENAI_API_KEY</strong>. Proses OCR 4 halaman per API call.</span>
-                        </div>
-                      </div>
-                    )}
 
                     <div className="border-t border-violet-900/30" />
 
