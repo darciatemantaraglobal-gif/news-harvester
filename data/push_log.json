@@ -1,0 +1,51 @@
+[
+  {
+    "id": "push-1775693792504",
+    "timestamp": "2026-04-09T00:16:32",
+    "username": "admin",
+    "source": "review-approved",
+    "count": 1,
+    "skipped": 0,
+    "titles": [
+      "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)"
+    ]
+  },
+  {
+    "id": "push-1775693843303",
+    "timestamp": "2026-04-09T00:17:23",
+    "username": "admin",
+    "source": "review-approved",
+    "count": 3,
+    "skipped": 0,
+    "titles": [
+      "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+      "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+      "Judul Dokumen Test"
+    ]
+  },
+  {
+    "id": "push-1775693854806",
+    "timestamp": "2026-04-09T00:17:34",
+    "username": "admin",
+    "source": "review-approved",
+    "count": 2,
+    "skipped": 0,
+    "titles": [
+      "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+      "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)"
+    ]
+  },
+  {
+    "id": "push-1775693939651",
+    "timestamp": "2026-04-09T00:18:59",
+    "username": "admin",
+    "source": "review-approved",
+    "count": 3,
+    "skipped": 0,
+    "titles": [
+      "Judul Dokumen Test",
+      "Laporan Bulanan",
+      "Analisis Kebijakan Luar Negeri"
+    ]
+  }
+]
