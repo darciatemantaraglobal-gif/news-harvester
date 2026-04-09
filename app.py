@@ -3518,6 +3518,7 @@ def _process_muqarrar_upload(
     kitab_name: str,
     author: str,
     use_ocr_for_scans: bool,
+    description: str = "",
 ):
     """
     Background worker — 3 Fase:
@@ -3625,6 +3626,7 @@ def _process_muqarrar_upload(
                 "kitab_id": kitab_id,
                 "kitab_name": kitab_name,
                 "author": author,
+                "description": description,
                 "page_number": item["page_num"],
                 "chapter": item["chapter"],
                 "content": item["text"],
@@ -3658,6 +3660,93 @@ def _process_muqarrar_upload(
         logger.error(f"[MUQARRAR] {job_id}: error fatal — {e}", exc_info=True)
         job["status"] = "error"
         job["error_msg"] = str(e)
+
+
+@app.route("/api/muqarrar/detect", methods=["POST"])
+def api_muqarrar_detect():
+    """
+    Deteksi metadata kitab dari PDF menggunakan AI (GPT-4o).
+    Baca halaman awal → ekstrak nama kitab, pengarang, deskripsi.
+    """
+    import json as _json
+    from ai_services import get_openai_client, check_openai_available
+
+    if not check_openai_available():
+        return jsonify({"error": "OPENAI_API_KEY tidak ditemukan."}), 503
+
+    if "file" not in request.files:
+        return jsonify({"error": "Tidak ada file yang dikirim."}), 400
+
+    pdf_file = request.files["file"]
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File harus berformat PDF."}), 400
+
+    try:
+        pdf_bytes = pdf_file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+        # Ambil teks dari 8 halaman pertama
+        pages_text = []
+        for i in range(min(8, len(doc))):
+            text = doc[i].get_text("text").strip()
+            if text and len(text) > 20:
+                pages_text.append(f"=== Halaman {i + 1} ===\n{text[:2500]}")
+        doc.close()
+
+        if not pages_text:
+            return jsonify({"error": "Tidak ada teks yang bisa dibaca dari halaman awal PDF. Coba isi manual."}), 400
+
+        combined = "\n\n".join(pages_text[:6])
+
+        client = get_openai_client()
+        resp = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Kamu adalah asisten ekstraksi metadata kitab/buku Islam yang sangat teliti. "
+                        "Analisis teks dari halaman awal sebuah PDF dan ekstrak informasi berikut. "
+                        "Jawab HANYA dengan JSON valid, tanpa teks lain, tanpa markdown code block.\n"
+                        'Format: {"kitab_name": "...", "author": "...", "description": "..."}\n\n'
+                        "Panduan pengisian:\n"
+                        "- kitab_name: nama lengkap kitab/buku paling tepat (sertakan nama Arab asli jika ada, "
+                        "cth: 'Fath al-Qarib (فتح القريب)' atau 'Mabadi Fiqhiyyah Juz 1')\n"
+                        "- author: nama lengkap pengarang/penulis beserta gelar jika ada "
+                        "(kosong string jika tidak ditemukan)\n"
+                        "- description: deskripsi informatif 2-3 kalimat dalam Bahasa Indonesia tentang "
+                        "isi, tema, dan kegunaan kitab ini. Jadikan semenarik dan seinformatif mungkin."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Berikut teks dari halaman awal PDF yang diupload:\n\n{combined}",
+                },
+            ],
+            temperature=0.2,
+            max_tokens=600,
+        )
+
+        raw = resp.choices[0].message.content.strip()
+        # Hapus markdown code block jika ada
+        if raw.startswith("```"):
+            raw = raw.strip("`").strip()
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
+
+        result = _json.loads(raw)
+        return jsonify({
+            "kitab_name": (result.get("kitab_name") or "").strip(),
+            "author": (result.get("author") or "").strip(),
+            "description": (result.get("description") or "").strip(),
+        })
+
+    except _json.JSONDecodeError as e:
+        logger.error(f"[MUQARRAR-DETECT] JSON parse error: {e}")
+        return jsonify({"error": "AI memberikan respons tidak valid. Coba lagi."}), 500
+    except Exception as e:
+        logger.error(f"[MUQARRAR-DETECT] Error: {e}", exc_info=True)
+        return jsonify({"error": f"Gagal mendeteksi: {str(e)}"}), 500
 
 
 @app.route("/api/muqarrar/scan", methods=["POST"])
@@ -3814,6 +3903,7 @@ def api_muqarrar_upload():
 
     kitab_name = (request.form.get("kitab_name") or "").strip()
     author = (request.form.get("author") or "").strip()
+    description = (request.form.get("description") or "").strip()
     use_ocr = request.form.get("use_ocr", "true").lower() == "true"
 
     if not kitab_name:
@@ -3849,7 +3939,7 @@ def api_muqarrar_upload():
 
     t = threading.Thread(
         target=_process_muqarrar_upload,
-        args=(job_id, pdf_bytes, kitab_id, kitab_name, author, use_ocr),
+        args=(job_id, pdf_bytes, kitab_id, kitab_name, author, use_ocr, description),
         daemon=True,
     )
     t.start()

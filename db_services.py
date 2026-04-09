@@ -361,13 +361,13 @@ def muqarrar_fetch_chunks_for_search(kitab_id: str | None = None) -> list:
 def muqarrar_list_kitab() -> list:
     """
     Ambil daftar kitab yang sudah diupload.
-    Return list of {kitab_id, kitab_name, author, total_pages, created_at}
+    Return list of {kitab_id, kitab_name, author, description, total_pages, created_at}
     """
     try:
         sb = get_supabase()
         result = (
             sb.table("muqarrar_chunks")
-            .select("kitab_id, kitab_name, author, page_number, created_at")
+            .select("kitab_id, kitab_name, author, description, page_number, created_at")
             .order("created_at", desc=True)
             .execute()
         )
@@ -381,6 +381,7 @@ def muqarrar_list_kitab() -> list:
                     "kitab_id": kid,
                     "kitab_name": r["kitab_name"],
                     "author": r.get("author", ""),
+                    "description": r.get("description", ""),
                     "total_pages": 0,
                     "created_at": r.get("created_at", ""),
                 }

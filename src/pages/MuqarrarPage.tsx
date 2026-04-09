@@ -16,6 +16,7 @@ interface KitabItem {
   kitab_id: string;
   kitab_name: string;
   author: string;
+  description: string;
   total_pages: number;
   created_at: string;
 }
@@ -48,7 +49,12 @@ export default function MuqarrarPage() {
   const [file, setFile] = useState<File | null>(null);
   const [kitabName, setKitabName] = useState("");
   const [author, setAuthor] = useState("");
+  const [description, setDescription] = useState("");
   const [useOcr, setUseOcr] = useState(true);
+
+  // ── Detect AI state ────────────────────────────────────────────────────────
+  const [detectLoading, setDetectLoading] = useState(false);
+  const [detectError, setDetectError] = useState("");
   const [jobId, setJobId] = useState("");
   const [jobStatus, setJobStatus] = useState<Record<string, any> | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -118,6 +124,33 @@ export default function MuqarrarPage() {
     }
   };
 
+  // ── Detect with AI ─────────────────────────────────────────────────────────
+  const handleDetect = async () => {
+    if (!file) return;
+    setDetectLoading(true);
+    setDetectError("");
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch(apiUrl("/api/muqarrar/detect"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken() || ""}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Deteksi gagal.");
+      if (data.kitab_name) setKitabName(data.kitab_name);
+      if (data.author) setAuthor(data.author);
+      if (data.description) setDescription(data.description);
+    } catch (e: any) {
+      setDetectError(e.message || "Gagal mendeteksi metadata PDF.");
+    } finally {
+      setDetectLoading(false);
+    }
+  };
+
   // ── Scan PDF ───────────────────────────────────────────────────────────────
   const handleScan = async () => {
     if (!file) return;
@@ -157,6 +190,7 @@ export default function MuqarrarPage() {
     form.append("file", file);
     form.append("kitab_name", kitabName.trim());
     form.append("author", author.trim());
+    form.append("description", description.trim());
     form.append("use_ocr", useOcr ? "true" : "false");
 
     try {
@@ -204,6 +238,9 @@ export default function MuqarrarPage() {
     setFile(null);
     setKitabName("");
     setAuthor("");
+    setDescription("");
+    setDetectError("");
+    setDetectLoading(false);
     setJobId("");
     setJobStatus(null);
     setUploadError("");
@@ -408,7 +445,10 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white leading-tight">{k.kitab_name}</p>
-                      {k.author && <p className="text-[11px] text-slate-400 mt-0.5">{k.author}</p>}
+                      {k.author && <p className="text-[11px] text-slate-400 mt-0.5 italic">{k.author}</p>}
+                      {k.description && (
+                        <p className="text-[11px] text-slate-400/80 mt-1.5 leading-relaxed line-clamp-2">{k.description}</p>
+                      )}
                       <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
@@ -495,23 +535,51 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
               </label>
             </div>
 
-            {/* ── Scan Struktur ─────────────────────────────────────────────── */}
+            {/* ── Action buttons: Deteksi AI + Pra-Scan ─────────────────────── */}
             {file && !jobId && (
-              <div>
+              <div className="space-y-2">
+                {/* Deteksi AI — primary */}
+                <button
+                  onClick={handleDetect}
+                  disabled={detectLoading || scanLoading}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                  style={{
+                    background: detectLoading
+                      ? "rgba(139,92,246,0.15)"
+                      : "linear-gradient(135deg,rgba(124,58,237,0.35),rgba(109,40,217,0.25))",
+                    border: "1px solid rgba(139,92,246,0.5)",
+                    color: "#c4b5fd",
+                  }}>
+                  {detectLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />AI sedang membaca PDF...</>
+                    : <><Sparkles className="w-4 h-4" />Deteksi Otomatis dengan AI</>}
+                </button>
+                <p className="text-[10px] text-slate-500 text-center -mt-1">
+                  AI baca halaman awal → auto-isi nama kitab, pengarang &amp; deskripsi
+                </p>
+
+                {/* Deteksi error */}
+                {detectError && (
+                  <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                    <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <p className="text-xs text-red-400">{detectError}</p>
+                  </div>
+                )}
+
+                {/* Pra-Scan — secondary */}
                 <button
                   onClick={handleScan}
-                  disabled={scanLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  disabled={scanLoading || detectLoading}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
                   style={{
-                    background: "rgba(139,92,246,0.12)",
-                    border: "1px solid rgba(139,92,246,0.35)",
-                    color: "#a78bfa",
+                    background: "rgba(139,92,246,0.07)",
+                    border: "1px dashed rgba(139,92,246,0.25)",
+                    color: "#7c6fad",
                   }}>
                   {scanLoading
-                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Meng-scan struktur PDF...</>
-                    : <><ScanLine className="w-3.5 h-3.5" />Pra-Scan Struktur PDF</>}
+                    ? <><Loader2 className="w-3 h-3 animate-spin" />Meng-scan...</>
+                    : <><ScanLine className="w-3 h-3" />Pra-Scan Struktur (tanpa AI)</>}
                 </button>
-                <p className="text-[10px] text-slate-600 text-center mt-1">Cek isi & daftar bab sebelum proses — cepat, tanpa AI</p>
               </div>
             )}
 
@@ -650,6 +718,27 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                 value={author}
                 onChange={e => setAuthor(e.target.value)}
                 className="w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-all"
+                style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)" }}
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs text-slate-400 font-semibold">Deskripsi Kitab (opsional)</label>
+                {description && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                    style={{ background: "rgba(16,185,129,0.12)", color: "#34d399", border: "1px solid rgba(16,185,129,0.25)" }}>
+                    ✓ Terisi AI
+                  </span>
+                )}
+              </div>
+              <textarea
+                rows={3}
+                placeholder="Deskripsi singkat tentang isi dan tema kitab ini… atau klik 'Deteksi AI' di atas untuk auto-generate"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-all resize-none leading-relaxed"
                 style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)" }}
               />
             </div>

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS muqarrar_chunks (
   kitab_id    text        NOT NULL,
   kitab_name  text        NOT NULL,
   author      text        DEFAULT '',
+  description text        DEFAULT '',
   page_number integer     NOT NULL,
   chapter     text        DEFAULT '',
   content     text        NOT NULL,
@@ -22,3 +23,9 @@ CREATE INDEX IF NOT EXISTS muqarrar_page_idx      ON muqarrar_chunks (kitab_id, 
 
 -- Row Level Security (opsional — disable jika pakai service role saja)
 ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- Migrasi: jalankan jika tabel sudah ada sebelumnya
+-- (aman dijalankan berulang kali)
+-- ============================================================
+ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS description text DEFAULT '';
