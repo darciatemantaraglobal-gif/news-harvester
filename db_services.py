@@ -302,4 +302,102 @@ def fetch_push_logs_from_supabase(limit: int = 200) -> list:
         return result.data or []
     except Exception as e:
         logger.warning(f"[PUSH-LOG-DB] Gagal fetch dari Supabase: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MUQARRAR — per-page KB chunks with embeddings
+# ══════════════════════════════════════════════════════════════════════════════
+
+def muqarrar_check_table() -> dict:
+    """
+    Periksa apakah tabel muqarrar_chunks sudah ada di Supabase.
+    Return {"exists": True/False, "error": str|None}
+    """
+    try:
+        sb = get_supabase()
+        sb.table("muqarrar_chunks").select("id").limit(1).execute()
+        return {"exists": True, "error": None}
+    except Exception as e:
+        err = str(e)
+        if "does not exist" in err or "relation" in err or "42P01" in err:
+            return {"exists": False, "error": "Tabel belum dibuat. Jalankan muqarrar_setup.sql di Supabase SQL Editor."}
+        return {"exists": False, "error": err}
+
+
+def muqarrar_save_chunk(chunk: dict) -> bool:
+    """
+    Simpan satu chunk halaman muqarrar ke Supabase.
+    chunk: {id, kitab_id, kitab_name, author, page_number, chapter, content, embedding, word_count, is_ocr}
+    """
+    try:
+        sb = get_supabase()
+        sb.table("muqarrar_chunks").upsert(chunk, on_conflict="id").execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[MUQARRAR] Gagal simpan chunk hal {chunk.get('page_number')}: {e}")
+        return False
+
+
+def muqarrar_fetch_chunks_for_search(kitab_id: str | None = None) -> list:
+    """
+    Ambil semua chunks (dengan embedding) untuk similarity search.
+    Jika kitab_id diberikan, filter per kitab. Sinon, ambil semua.
+    Return list of dicts.
+    """
+    try:
+        sb = get_supabase()
+        q = sb.table("muqarrar_chunks").select(
+            "id, kitab_id, kitab_name, author, page_number, chapter, content, embedding, word_count"
+        )
+        if kitab_id:
+            q = q.eq("kitab_id", kitab_id)
+        result = q.order("page_number").execute()
+        return result.data or []
+    except Exception as e:
+        logger.warning(f"[MUQARRAR] Gagal fetch chunks: {e}")
+        return []
+
+
+def muqarrar_list_kitab() -> list:
+    """
+    Ambil daftar kitab yang sudah diupload.
+    Return list of {kitab_id, kitab_name, author, total_pages, created_at}
+    """
+    try:
+        sb = get_supabase()
+        result = (
+            sb.table("muqarrar_chunks")
+            .select("kitab_id, kitab_name, author, page_number, created_at")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        rows = result.data or []
+        # Group by kitab_id
+        kitab_map: dict = {}
+        for r in rows:
+            kid = r["kitab_id"]
+            if kid not in kitab_map:
+                kitab_map[kid] = {
+                    "kitab_id": kid,
+                    "kitab_name": r["kitab_name"],
+                    "author": r.get("author", ""),
+                    "total_pages": 0,
+                    "created_at": r.get("created_at", ""),
+                }
+            kitab_map[kid]["total_pages"] = max(kitab_map[kid]["total_pages"], r["page_number"])
+        return sorted(kitab_map.values(), key=lambda x: x["created_at"], reverse=True)
+    except Exception as e:
+        logger.warning(f"[MUQARRAR] Gagal list kitab: {e}")
+        return []
+
+
+def muqarrar_delete_kitab(kitab_id: str) -> bool:
+    """Hapus semua chunks milik satu kitab."""
+    try:
+        sb = get_supabase()
+        sb.table("muqarrar_chunks").delete().eq("kitab_id", kitab_id).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[MUQARRAR] Gagal hapus kitab {kitab_id}: {e}")
+        return False
         return []

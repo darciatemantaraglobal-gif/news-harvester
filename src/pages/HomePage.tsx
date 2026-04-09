@@ -238,6 +238,33 @@ export default function HomePage() {
               </div>
             </Link>
 
+            {/* Muqarrar AI card — full width */}
+            <Link to="/muqarrar" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.01] col-span-2"
+              style={{ background: "#0d0720" }}>
+              <div className="absolute animate-border-beam-slow pointer-events-none"
+                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(109,40,217,0.6) 300deg, rgba(167,139,250,1) 345deg, transparent 360deg)" }} />
+              <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex items-center gap-3 p-3 sm:p-4" style={{ background: "#0d0720" }}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-white text-xs sm:text-sm leading-tight">Muqarrar AI</h3>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                      style={{ background: "rgba(139,92,246,0.2)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.35)" }}>
+                      Baru
+                    </span>
+                  </div>
+                  <p className="text-violet-300/50 text-[10px] sm:text-xs leading-relaxed mt-0.5">
+                    Upload kitab PDF 200+ hal → AINA jawab + sebut nomor halaman sumbernya.
+                  </p>
+                </div>
+                <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-violet-400 group-hover:text-violet-200 transition-colors shrink-0">
+                  Buka <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
           </div>
         </div>
 

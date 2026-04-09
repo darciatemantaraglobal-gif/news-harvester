@@ -1,5 +1,6 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata, logging, time
+import numpy as np
 from functools import wraps
 import pdfplumber
 import fitz  # PyMuPDF
@@ -3353,6 +3354,400 @@ def api_telegram_scrape():
         "articles": articles,
         "channel": channel,
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MUQARRAR — Upload PDF per-halaman, OCR, embed, simpan, tanya AINA
+# ══════════════════════════════════════════════════════════════════════════════
+
+_muqarrar_jobs: dict = {}   # job_id → {status, pages_done, pages_total, kitab_id, errors, kitab_name}
+
+_LATIN_HEADINGS_MQ = re.compile(
+    r'(?im)^(?:bab|pasal|fasal|bagian|chapter|section|unit|pelajaran|pertemuan|'
+    r'tema|topik|materi|modul|pendahuluan|penutup|kesimpulan)\b[\s\d\w\-:\.]*$'
+)
+_ARAB_HEADINGS_MQ = re.compile(
+    r'(?:الباب|الفصل|المبحث|المسألة|الفريضة|القسم|الموضوع|الدرس|الكتاب)'
+)
+
+
+def _embed_text(text: str, client) -> list[float] | None:
+    """Generate text-embedding-3-small untuk satu teks. Return list of floats atau None jika gagal."""
+    try:
+        resp = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text[:8000],
+        )
+        return resp.data[0].embedding
+    except Exception as e:
+        logger.warning(f"[MUQARRAR] Embedding gagal: {e}")
+        return None
+
+
+def _cosine_similarity(a: list, b: list) -> float:
+    """Cosine similarity antara dua embedding vector."""
+    va = np.array(a, dtype=np.float32)
+    vb = np.array(b, dtype=np.float32)
+    denom = np.linalg.norm(va) * np.linalg.norm(vb)
+    if denom == 0:
+        return 0.0
+    return float(np.dot(va, vb) / denom)
+
+
+def _page_to_image_bytes(fitz_doc, page_idx: int, dpi: int = 200) -> bytes:
+    """Render halaman PDF ke PNG bytes untuk OCR."""
+    page = fitz_doc[page_idx]
+    pix = page.get_pixmap(dpi=dpi)
+    return pix.tobytes("png")
+
+
+def _detect_chapter_mq(text: str) -> str:
+    """Deteksi heading bab/fasal dari teks halaman. Return heading string atau ''."""
+    lines = text.strip().splitlines()[:6]
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if _LATIN_HEADINGS_MQ.match(line):
+            return line[:120]
+        if _ARAB_HEADINGS_MQ.search(line) and len(line) < 120:
+            return line[:120]
+    return ""
+
+
+def _process_muqarrar_upload(
+    job_id: str,
+    pdf_bytes: bytes,
+    kitab_id: str,
+    kitab_name: str,
+    author: str,
+    use_ocr_for_scans: bool,
+):
+    """Background worker: ekstrak teks per halaman, embed, simpan ke Supabase."""
+    from ai_services import get_openai_client
+    from db_services import muqarrar_save_chunk
+
+    job = _muqarrar_jobs[job_id]
+    try:
+        client = get_openai_client()
+        fitz_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        total = len(fitz_doc)
+        job["pages_total"] = total
+        job["status"] = "processing"
+        logger.info(f"[MUQARRAR] {job_id}: mulai proses {total} halaman — {kitab_name}")
+
+        import base64
+        import uuid as _uuid
+
+        for page_idx in range(total):
+            if job.get("cancelled"):
+                break
+
+            page_num = page_idx + 1
+            job["pages_done"] = page_idx
+            job["current_page"] = page_num
+
+            # ── Coba ekstrak teks digital dulu ──────────────────────────────
+            fitz_page = fitz_doc[page_idx]
+            raw_text = fitz_page.get_text("text").strip()
+            is_ocr_page = False
+
+            # Jika halaman scan / teks kosong dan user minta OCR
+            if (not raw_text or len(raw_text) < 30) and use_ocr_for_scans:
+                try:
+                    img_bytes = _page_to_image_bytes(fitz_doc, page_idx, dpi=200)
+                    b64 = base64.b64encode(img_bytes).decode()
+                    ocr_resp = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[{
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": (
+                                        "Ini adalah halaman dari sebuah kitab/muqarrar. "
+                                        "Ekstrak SELURUH teks yang terlihat dengan akurat. "
+                                        "Untuk teks Arab: rekonstruksi huruf-huruf yang benar, pertahankan harakat jika ada. "
+                                        "Pertahankan struktur asli (judul, nomor, paragraf). "
+                                        "Output: HANYA teks yang diekstrak, tanpa komentar."
+                                    ),
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/png;base64,{b64}", "detail": "high"},
+                                },
+                            ],
+                        }],
+                        max_tokens=2000,
+                        temperature=0.0,
+                    )
+                    raw_text = ocr_resp.choices[0].message.content.strip()
+                    is_ocr_page = True
+                    logger.info(f"[MUQARRAR] hal {page_num}: OCR Vision selesai ({len(raw_text)} chars)")
+                except Exception as ocr_err:
+                    logger.warning(f"[MUQARRAR] hal {page_num}: OCR gagal — {ocr_err}")
+                    raw_text = ""
+
+            if not raw_text or len(raw_text) < 15:
+                logger.info(f"[MUQARRAR] hal {page_num}: skip (kosong)")
+                continue
+
+            chapter = _detect_chapter_mq(raw_text)
+            word_count = len(raw_text.split())
+
+            # ── Generate embedding ───────────────────────────────────────────
+            embed_input = f"Kitab: {kitab_name}\nHalaman: {page_num}\n"
+            if chapter:
+                embed_input += f"Bab/Fasal: {chapter}\n"
+            embed_input += f"\n{raw_text[:6000]}"
+
+            embedding = _embed_text(embed_input, client)
+
+            chunk = {
+                "id": f"{kitab_id}__p{page_num}",
+                "kitab_id": kitab_id,
+                "kitab_name": kitab_name,
+                "author": author,
+                "page_number": page_num,
+                "chapter": chapter,
+                "content": raw_text[:10000],
+                "embedding": embedding or [],
+                "word_count": word_count,
+                "is_ocr": is_ocr_page,
+            }
+
+            saved = muqarrar_save_chunk(chunk)
+            if not saved:
+                job["errors"].append(f"Hal {page_num}: gagal simpan")
+
+            logger.info(
+                f"[MUQARRAR] hal {page_num}/{total} — {word_count} kata"
+                f"{' [OCR]' if is_ocr_page else ''}"
+                f"{' ✓' if saved else ' ✗'}"
+            )
+
+        fitz_doc.close()
+        job["pages_done"] = total
+        job["status"] = "done"
+        job["kitab_id"] = kitab_id
+        logger.info(f"[MUQARRAR] {job_id}: selesai — {kitab_name} ({total} halaman)")
+
+    except Exception as e:
+        logger.error(f"[MUQARRAR] {job_id}: error fatal — {e}")
+        job["status"] = "error"
+        job["error_msg"] = str(e)
+
+
+@app.route("/api/muqarrar/db-status", methods=["GET"])
+def api_muqarrar_db_status():
+    """Periksa apakah tabel muqarrar_chunks sudah ada di Supabase."""
+    from db_services import muqarrar_check_table
+    result = muqarrar_check_table()
+    return jsonify(result)
+
+
+@app.route("/api/muqarrar/upload", methods=["POST"])
+def api_muqarrar_upload():
+    """Mulai proses upload & embedding muqarrar PDF. Return job_id."""
+    from ai_services import check_openai_available
+    if not check_openai_available():
+        return jsonify({"error": "OPENAI_API_KEY tidak ditemukan."}), 503
+
+    if "file" not in request.files:
+        return jsonify({"error": "Tidak ada file yang dikirim."}), 400
+
+    pdf_file = request.files["file"]
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File harus berformat PDF."}), 400
+
+    kitab_name = (request.form.get("kitab_name") or "").strip()
+    author = (request.form.get("author") or "").strip()
+    use_ocr = request.form.get("use_ocr", "true").lower() == "true"
+
+    if not kitab_name:
+        return jsonify({"error": "Nama kitab wajib diisi."}), 400
+
+    import time
+    import uuid as _uuid
+    import threading
+    import re as _re
+
+    # Buat kitab_id dari slug nama kitab + timestamp
+    slug = _re.sub(r'[^a-z0-9]+', '-', kitab_name.lower()).strip('-')
+    kitab_id = f"{slug}-{int(time.time())}"
+    job_id = str(_uuid.uuid4())[:8]
+
+    pdf_bytes = pdf_file.read()
+
+    _muqarrar_jobs[job_id] = {
+        "status": "queued",
+        "pages_done": 0,
+        "pages_total": 0,
+        "current_page": 0,
+        "kitab_id": kitab_id,
+        "kitab_name": kitab_name,
+        "errors": [],
+        "error_msg": "",
+        "cancelled": False,
+    }
+
+    t = threading.Thread(
+        target=_process_muqarrar_upload,
+        args=(job_id, pdf_bytes, kitab_id, kitab_name, author, use_ocr),
+        daemon=True,
+    )
+    t.start()
+
+    return jsonify({"job_id": job_id, "kitab_id": kitab_id})
+
+
+@app.route("/api/muqarrar/job/<job_id>", methods=["GET"])
+def api_muqarrar_job(job_id: str):
+    """Cek progress job upload muqarrar."""
+    job = _muqarrar_jobs.get(job_id)
+    if not job:
+        return jsonify({"error": "Job tidak ditemukan."}), 404
+    return jsonify(job)
+
+
+@app.route("/api/muqarrar/list", methods=["GET"])
+def api_muqarrar_list():
+    """Daftar semua kitab yang sudah diupload."""
+    from db_services import muqarrar_list_kitab
+    kitab_list = muqarrar_list_kitab()
+    return jsonify({"kitab": kitab_list})
+
+
+@app.route("/api/muqarrar/<kitab_id>", methods=["DELETE"])
+def api_muqarrar_delete(kitab_id: str):
+    """Hapus semua chunks satu kitab."""
+    from db_services import muqarrar_delete_kitab
+    ok = muqarrar_delete_kitab(kitab_id)
+    if ok:
+        return jsonify({"status": "ok", "deleted": kitab_id})
+    return jsonify({"error": "Gagal menghapus kitab."}), 500
+
+
+@app.route("/api/muqarrar/ask", methods=["POST"])
+def api_muqarrar_ask():
+    """
+    Tanya AINA berdasarkan muqarrar yang telah diupload.
+    Body: {question, kitab_id (opsional), top_k (opsional, default 5)}
+    Return: {answer, sources: [{page, chapter, kitab_name, excerpt, score}]}
+    """
+    from ai_services import get_openai_client, check_openai_available
+    from db_services import muqarrar_fetch_chunks_for_search
+
+    if not check_openai_available():
+        return jsonify({"error": "OPENAI_API_KEY tidak ditemukan."}), 503
+
+    data = request.get_json(force=True) or {}
+    question = (data.get("question") or "").strip()
+    kitab_id = (data.get("kitab_id") or "").strip() or None
+    top_k = min(int(data.get("top_k", 5)), 10)
+
+    if not question:
+        return jsonify({"error": "Pertanyaan tidak boleh kosong."}), 400
+
+    try:
+        client = get_openai_client()
+
+        # ── 1. Embed pertanyaan ──────────────────────────────────────────────
+        q_embedding = _embed_text(question, client)
+        if not q_embedding:
+            return jsonify({"error": "Gagal membuat embedding untuk pertanyaan."}), 500
+
+        # ── 2. Fetch chunks dari Supabase ────────────────────────────────────
+        chunks = muqarrar_fetch_chunks_for_search(kitab_id)
+        if not chunks:
+            return jsonify({"error": "Tidak ada data kitab yang ditemukan. Upload muqarrar terlebih dahulu."}), 404
+
+        # ── 3. Hitung cosine similarity & ambil top-k ────────────────────────
+        scored = []
+        for c in chunks:
+            emb = c.get("embedding")
+            if not emb or not isinstance(emb, list) or len(emb) < 10:
+                continue
+            sim = _cosine_similarity(q_embedding, emb)
+            scored.append((sim, c))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top_chunks = scored[:top_k]
+
+        if not top_chunks:
+            return jsonify({"error": "Tidak ada chunk yang relevan ditemukan."}), 404
+
+        # ── 4. Susun konteks untuk GPT ───────────────────────────────────────
+        context_parts = []
+        sources_out = []
+        for score, c in top_chunks:
+            page = c["page_number"]
+            chapter = c.get("chapter") or ""
+            kname = c.get("kitab_name", "")
+            author_str = c.get("author", "")
+            content_preview = c["content"][:400].replace('\n', ' ').strip()
+
+            label = f"[{kname}"
+            if author_str:
+                label += f" — {author_str}"
+            label += f", Halaman {page}"
+            if chapter:
+                label += f", {chapter}"
+            label += "]"
+
+            context_parts.append(f"{label}\n{c['content'][:1500]}")
+            sources_out.append({
+                "page": page,
+                "chapter": chapter,
+                "kitab_name": kname,
+                "author": author_str,
+                "excerpt": content_preview,
+                "score": round(score, 3),
+            })
+
+        context_text = "\n\n---\n\n".join(context_parts)
+
+        # ── 5. Generate jawaban dengan sitasi halaman ────────────────────────
+        system_msg = (
+            "Kamu adalah AINA — asisten AI Islam berbasis pengetahuan kitab.\n\n"
+            "INSTRUKSI KETAT:\n"
+            "1. Jawab HANYA berdasarkan kutipan kitab yang diberikan di bawah.\n"
+            "2. Setiap fakta/hukum yang kamu sebutkan WAJIB disertai sitasi: (Hal. X) atau (Hal. X-Y).\n"
+            "3. Jika ada teks Arab yang relevan, kutip teksnya lalu berikan penjelasan.\n"
+            "4. Jika informasi tidak cukup dari kutipan yang ada, katakan dengan jelas.\n"
+            "5. Jangan tambahkan pengetahuan dari luar kutipan yang diberikan.\n"
+            "6. Format jawaban: Markdown — gunakan **bold** untuk poin penting, "
+            "`##` untuk sub-topik jika jawaban panjang.\n"
+        )
+
+        user_msg = (
+            f"**Pertanyaan:** {question}\n\n"
+            f"**Kutipan dari Kitab:**\n\n{context_text}\n\n"
+            "Jawab pertanyaan di atas berdasarkan kutipan kitab. "
+            "Sertakan nomor halaman untuk setiap informasi yang kamu ambil."
+        )
+
+        resp = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ],
+            max_tokens=2000,
+            temperature=0.1,
+        )
+        answer = resp.choices[0].message.content.strip()
+
+        return jsonify({
+            "status": "ok",
+            "answer": answer,
+            "sources": sources_out,
+            "chunks_searched": len(chunks),
+        })
+
+    except Exception as e:
+        logger.error(f"[MUQARRAR-ASK] Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
