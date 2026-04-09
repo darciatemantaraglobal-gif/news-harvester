@@ -189,7 +189,7 @@ export default function UsersPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-24 max-w-2xl mx-auto w-full space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-nav-safe sm:pb-6 max-w-2xl mx-auto w-full space-y-4">
 
           {/* Flash */}
           {msg && (

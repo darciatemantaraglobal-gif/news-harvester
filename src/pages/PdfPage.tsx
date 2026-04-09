@@ -382,7 +382,7 @@ export default function PdfPage() {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-24 space-y-3 sm:space-y-4 lg:space-y-5">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-nav-safe space-y-3 sm:space-y-4 lg:space-y-5">
           <div className="flex flex-col lg:flex-row lg:items-start gap-3 lg:gap-5 max-w-5xl mx-auto">
 
             {/* ── Left col: Cara Kerja — desktop only ── */}

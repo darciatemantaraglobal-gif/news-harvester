@@ -89,8 +89,7 @@ export default function HomePage() {
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
 
       {/* ─── MOBILE layout (< sm) ─── */}
-      <div className="sm:hidden flex flex-col flex-1 overflow-y-auto pb-20 px-3 items-center justify-center"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="sm:hidden flex flex-col flex-1 overflow-y-auto pb-nav-safe px-3 items-center justify-center">
       <div className="w-full max-w-[380px] mx-auto flex flex-col gap-0">
 
         {/* ── User bar ── */}

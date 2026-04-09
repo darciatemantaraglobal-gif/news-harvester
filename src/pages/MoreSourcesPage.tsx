@@ -669,7 +669,7 @@ export default function MoreSourcesPage() {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-24">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-nav-safe">
           <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
 
             {/* Tab selector */}

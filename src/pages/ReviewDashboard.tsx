@@ -429,7 +429,7 @@ export default function ReviewDashboard() {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-24 min-w-0">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-nav-safe min-w-0">
         <div className="max-w-screen-xl mx-auto space-y-3 sm:space-y-4 lg:space-y-5">
 
           {/* ── Stats: 3-col on mobile, 6-col on sm+ ── */}

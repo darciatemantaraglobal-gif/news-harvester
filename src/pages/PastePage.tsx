@@ -236,7 +236,7 @@ export default function PastePage() {
       </header>
 
       {/* Main content */}
-      <main className="relative z-10 flex-1 flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-6 pb-24 sm:pb-6 overflow-y-auto">
+      <main className="relative z-10 flex-1 flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-6 pb-nav-safe sm:pb-6 overflow-y-auto">
 
         {/* ── Input panel ── */}
         <div className="flex flex-col gap-3 sm:flex-1 sm:min-w-0">

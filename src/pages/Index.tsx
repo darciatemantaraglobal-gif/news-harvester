@@ -870,7 +870,7 @@ const Index = () => {
         </div>
 
         {/* ─── Scrollable Content ─── */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-24 lg:pb-24 space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-nav-safe space-y-3 sm:space-y-4 lg:space-y-5 min-w-0">
 
           {/* ── URL Input Card ── */}
           <div className="relative overflow-hidden rounded-2xl animate-fade-in-up animation-delay-100" style={{ background: "#0d0720" }}>

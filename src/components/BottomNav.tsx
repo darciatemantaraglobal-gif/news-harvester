@@ -50,7 +50,8 @@ export function BottomNav({ active }: BottomNavProps) {
   const isReview = active === "review";
 
   return (
-    <div className="fixed bottom-4 inset-x-0 z-30 flex justify-center px-6 pointer-events-none">
+    <div className="fixed inset-x-0 z-30 flex justify-center px-6 pointer-events-none"
+      style={{ bottom: "max(16px, calc(env(safe-area-inset-bottom, 0px) + 8px))" }}>
       <div
         className="flex items-center gap-1 px-2 py-2 rounded-2xl pointer-events-auto"
         style={{

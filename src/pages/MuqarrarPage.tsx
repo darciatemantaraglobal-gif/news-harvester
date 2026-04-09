@@ -346,7 +346,7 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
         </div>
       )}
 
-      <main className="flex-1 px-4 pb-28 pt-3 max-w-3xl mx-auto w-full">
+      <main className="flex-1 px-4 pb-nav-safe pt-3 max-w-3xl mx-auto w-full">
 
         {/* Tab bar */}
         <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.15)" }}>

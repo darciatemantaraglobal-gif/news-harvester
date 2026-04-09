@@ -34,6 +34,10 @@ body {
   background-color: #000000 !important;
   min-height: 100%;
   min-height: -webkit-fill-available;
+  /* PWA / iPhone safe area — top notch & Dynamic Island */
+  padding-top: env(safe-area-inset-top, 0px);
+  /* bottom home indicator */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 #root {
   background-color: #000000 !important;
@@ -44,6 +48,12 @@ body {
 }
 .min-h-screen {
   min-height: 100dvh !important;
+}
+@layer utilities {
+  /* scroll container bottom padding: nav clearance + iPhone home indicator */
+  .pb-nav-safe {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @keyframes glow-pulse {
