@@ -40,6 +40,9 @@ interface KbDraft {
   approval_status: ApprovalStatus;
   last_updated: string;
   notes: string;
+  is_duplicate?: boolean;
+  duplicate_of_title?: string;
+  duplicate_of_status?: string;
 }
 
 interface KbStats {
@@ -667,6 +670,14 @@ export default function ReviewDashboard() {
                                 </div>
                               )}
 
+                              {/* Duplicate warning */}
+                              {article.is_duplicate && (
+                                <div className="flex items-start gap-1.5 text-[10px] text-orange-300 bg-orange-900/20 border border-orange-700/30 rounded-lg px-2.5 py-2 leading-snug">
+                                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                                  <span>URL sumber sudah ada di KB{article.duplicate_of_title ? `: "${article.duplicate_of_title}"` : ""}{article.duplicate_of_status ? ` (${article.duplicate_of_status})` : ""}. Pertimbangkan hapus artikel ini.</span>
+                                </div>
+                              )}
+
                               {/* Status select */}
                               <div className="flex items-center gap-2">
                                 <Select
@@ -794,6 +805,12 @@ export default function ReviewDashboard() {
                                 <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-amber-300 bg-amber-900/20 border border-amber-700/30 rounded-md px-2 py-1 leading-snug">
                                   <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
                                   <span>Konten artikel ini tidak lengkap. Verifikasi sebelum approve.</span>
+                                </div>
+                              )}
+                              {article.is_duplicate && (
+                                <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-orange-300 bg-orange-900/20 border border-orange-700/30 rounded-md px-2 py-1 leading-snug">
+                                  <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
+                                  <span>Duplikat{article.duplicate_of_title ? `: "${article.duplicate_of_title}"` : ""}</span>
                                 </div>
                               )}
                               {article.summary && (

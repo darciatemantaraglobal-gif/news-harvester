@@ -11,7 +11,7 @@ import {
   AlertCircle, Circle, ArrowRight, BarChart3, Eye,
   Clock, CalendarDays, Play, ToggleLeft, ToggleRight, Timer,
   LayoutList, FileCode2, XCircle, Copy, Globe, X, Trash2,
-  History, Shield, Activity,
+  History, Shield, Activity, Rss, Plus,
 } from "lucide-react";
 
 function getSourceMeta(url: string): {
@@ -89,6 +89,12 @@ interface ScraperSettings {
   content_selector: string;
 }
 
+interface RssSource {
+  url: string;
+  label: string;
+  max_items: number;
+}
+
 interface SchedulerSettings {
   enabled: boolean;
   interval: "manual" | "daily" | "weekly";
@@ -97,6 +103,7 @@ interface SchedulerSettings {
   url: string;
   scrape_mode: string;
   incremental: boolean;
+  rss_sources: RssSource[];
   last_run_at: string | null;
   last_run_articles_added: number;
   last_run_url: string;
@@ -112,6 +119,7 @@ const DEFAULT_SCHEDULER_SETTINGS: SchedulerSettings = {
   url: "",
   scrape_mode: "full",
   incremental: true,
+  rss_sources: [],
   last_run_at: null,
   last_run_articles_added: 0,
   last_run_url: "",
@@ -283,6 +291,9 @@ const Index = () => {
   const [schedulerOpen, setSchedulerOpen] = useState(false);
   const [schedulerSaving, setSchedulerSaving] = useState(false);
   const [schedulerRunNow, setSchedulerRunNow] = useState(false);
+  const [newRssUrl, setNewRssUrl] = useState("");
+  const [newRssLabel, setNewRssLabel] = useState("");
+  const [newRssMax, setNewRssMax] = useState(10);
 
   const [ingestionHistory, setIngestionHistory] = useState<Record<string, unknown>[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -2014,7 +2025,7 @@ const Index = () => {
                         Simpan
                       </Button>
                       <Button data-testid="button-run-now" onClick={triggerRunNow}
-                        disabled={schedulerRunNow || !schedulerSettings.url} size="sm" variant="outline"
+                        disabled={schedulerRunNow || (!schedulerSettings.url && schedulerSettings.rss_sources.length === 0)} size="sm" variant="outline"
                         className="gap-1.5 h-8 border-white/15 text-slate-500 hover:text-indigo-400 hover:border-indigo-300 rounded-full">
                         {schedulerRunNow ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                         Jalankan
@@ -2031,6 +2042,90 @@ const Index = () => {
                           : `setiap ${DOW_LABELS[schedulerSettings.day_of_week] || schedulerSettings.day_of_week} pukul ${schedulerSettings.time_of_day}`} WIB
                       </p>
                     )}
+
+                    {/* ── RSS Sources ── */}
+                    <div className="border-t border-white/8 pt-3 space-y-2">
+                      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                        <Rss className="w-3 h-3 text-orange-400" />
+                        Sumber RSS Terjadwal
+                        {schedulerSettings.rss_sources.length > 0 && (
+                          <span className="ml-1 text-[9px] font-bold bg-orange-900/40 text-orange-300 px-1.5 py-0.5 rounded-full">
+                            {schedulerSettings.rss_sources.length}
+                          </span>
+                        )}
+                      </Label>
+                      {schedulerSettings.rss_sources.length > 0 && (
+                        <div className="space-y-1.5">
+                          {schedulerSettings.rss_sources.map((src, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-orange-900/10 border border-orange-700/20 rounded-lg px-2.5 py-1.5">
+                              <Rss className="w-3 h-3 text-orange-400 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold text-slate-200 truncate">{src.label}</p>
+                                <p className="text-[10px] text-slate-500 truncate">{src.url}</p>
+                              </div>
+                              <span className="text-[9px] text-orange-300 bg-orange-900/30 px-1.5 py-0.5 rounded shrink-0">{src.max_items} item</span>
+                              <button
+                                onClick={() => setSchedulerSettings(s => ({
+                                  ...s,
+                                  rss_sources: s.rss_sources.filter((_, j) => j !== i),
+                                }))}
+                                className="text-slate-600 hover:text-red-400 p-0.5 rounded shrink-0 transition-colors">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {schedulerSettings.rss_sources.length === 0 && (
+                        <p className="text-[10px] text-slate-600 italic">Belum ada RSS feed terjadwal. Tambah di bawah.</p>
+                      )}
+                      {/* Add RSS form */}
+                      <div className="flex flex-col gap-1.5 bg-white/3 rounded-xl p-2.5 border border-white/8">
+                        <Input
+                          placeholder="URL feed RSS (https://...)"
+                          value={newRssUrl}
+                          onChange={e => setNewRssUrl(e.target.value)}
+                          className="h-7 text-xs bg-white/5 border-white/15"
+                        />
+                        <div className="flex gap-1.5">
+                          <Input
+                            placeholder="Label (opsional)"
+                            value={newRssLabel}
+                            onChange={e => setNewRssLabel(e.target.value)}
+                            className="h-7 text-xs bg-white/5 border-white/15 flex-1"
+                          />
+                          <Input
+                            type="number" min={1} max={100}
+                            value={newRssMax}
+                            onChange={e => setNewRssMax(Math.max(1, Math.min(100, Number(e.target.value))))}
+                            className="h-7 text-xs bg-white/5 border-white/15 w-16"
+                            title="Maks artikel per run"
+                          />
+                          <Button size="sm"
+                            disabled={!newRssUrl.trim()}
+                            onClick={() => {
+                              const u = newRssUrl.trim();
+                              if (!u) return;
+                              if (schedulerSettings.rss_sources.some(s => s.url === u)) return;
+                              setSchedulerSettings(prev => ({
+                                ...prev,
+                                rss_sources: [...prev.rss_sources, {
+                                  url: u,
+                                  label: newRssLabel.trim() || u,
+                                  max_items: newRssMax,
+                                }],
+                              }));
+                              setNewRssUrl("");
+                              setNewRssLabel("");
+                              setNewRssMax(10);
+                            }}
+                            className="h-7 px-2.5 rounded-lg bg-orange-700 hover:bg-orange-800 text-white text-xs gap-1 shrink-0">
+                            <Plus className="w-3 h-3" />Tambah
+                          </Button>
+                        </div>
+                        <p className="text-[9px] text-slate-600">RSS feed akan di-scrape sesuai jadwal di atas. Kolom angka = maks artikel per run.</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

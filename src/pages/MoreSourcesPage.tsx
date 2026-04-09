@@ -24,6 +24,9 @@ interface KbResult {
   source_url: string;
   approval_status: string;
   scrape_status: string;
+  is_duplicate?: boolean;
+  duplicate_of_title?: string;
+  duplicate_of_status?: string;
 }
 
 interface ScrapeResult {
@@ -386,6 +389,14 @@ export default function MoreSourcesPage() {
             )}
           </div>
         </div>
+
+        {/* Duplicate warning */}
+        {article.is_duplicate && (
+          <div className="flex items-start gap-1.5 text-[10px] text-orange-300 bg-orange-900/20 border border-orange-700/30 rounded-lg px-2 py-1.5 leading-snug">
+            <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
+            <span>URL ini sudah ada di KB{article.duplicate_of_title ? `: "${article.duplicate_of_title}"` : ""}{article.duplicate_of_status ? ` (${article.duplicate_of_status})` : ""}. Pertimbangkan untuk menghapus artikel ini.</span>
+          </div>
+        )}
 
         {/* Approve / Reject buttons */}
         {!isExported && (

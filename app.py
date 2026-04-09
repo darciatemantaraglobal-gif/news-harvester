@@ -390,6 +390,7 @@ DEFAULT_SCHEDULER = {
     "url": "",
     "scrape_mode": "full",  # "full" | "kb"
     "incremental": True,
+    "rss_sources": [],       # list of {url, label, max_items}
     "last_run_at": None,
     "last_run_articles_added": 0,
     "last_run_url": "",
@@ -425,15 +426,69 @@ def _next_run_iso() -> str | None:
     return None
 
 
+def _run_scheduled_rss(rss_sources: list) -> int:
+    """Jalankan scraping RSS untuk semua sumber terjadwal. Kembalikan jumlah artikel baru."""
+    total_added = 0
+    try:
+        import feedparser as _fp
+        from bs4 import BeautifulSoup as _BS
+        import re as _re
+        from datetime import datetime as _dt
+        import time as _t
+    except ImportError as e:
+        logging.warning(f"[SCHEDULER-RSS] Library tidak tersedia: {e}")
+        return 0
+
+    for src in rss_sources:
+        url = (src.get("url") or "").strip()
+        label = src.get("label") or url
+        max_items = int(src.get("max_items") or 10)
+        if not url:
+            continue
+        try:
+            feed = _fp.parse(url)
+            entries = feed.get("entries", [])[:max_items]
+            for entry in entries:
+                title = entry.get("title", "").strip() or "(Tanpa Judul)"
+                link = entry.get("link", "")
+                content_raw = ""
+                if entry.get("content"):
+                    content_raw = entry["content"][0].get("value", "")
+                if not content_raw:
+                    content_raw = entry.get("summary", "") or entry.get("description", "")
+                try:
+                    content = _BS(content_raw, "html.parser").get_text(separator="\n").strip()
+                except Exception:
+                    content = _re.sub(r"<[^>]+>", " ", content_raw).strip()
+                if not content:
+                    content = title
+                pub_date = ""
+                if entry.get("published_parsed"):
+                    try:
+                        pub_date = _dt(*entry["published_parsed"][:6]).strftime("%Y-%m-%dT%H:%M:%S")
+                    except Exception:
+                        pass
+                _make_kb_draft(title, content, link, pub_date, source_tag="rss")
+                total_added += 1
+            logging.info(f"[SCHEDULER-RSS] {label}: {len(entries)} artikel diproses.")
+        except Exception as e:
+            logging.warning(f"[SCHEDULER-RSS] Gagal fetch {label}: {e}")
+    return total_added
+
+
 def _run_scheduled_scrape():
     """Dipanggil oleh APScheduler. Gunakan settings yang tersimpan."""
     cfg = _load_scheduler_settings()
     url = cfg.get("url", "").strip()
     mode = cfg.get("scrape_mode", "full")
     incremental = cfg.get("incremental", True)
+    rss_sources = cfg.get("rss_sources", [])
 
-    if not url:
-        logging.warning("[SCHEDULER] URL belum dikonfigurasi, scraping dibatalkan.")
+    has_web = bool(url)
+    has_rss = bool(rss_sources)
+
+    if not has_web and not has_rss:
+        logging.warning("[SCHEDULER] Tidak ada sumber yang dikonfigurasi, scraping dibatalkan.")
         return
 
     with state_lock:
@@ -441,18 +496,21 @@ def _run_scheduled_scrape():
             logging.warning("[SCHEDULER] Scraping sedang berjalan, jadwal dilewati.")
             return
 
-    logging.info(f"[SCHEDULER] Memulai scraping terjadwal: {url} | mode={mode} | incremental={incremental}")
-    settings = _load_settings()
+    added = 0
 
-    # Hitung artikel sebelum
-    before_count = len(_load_articles())
+    # ── Web scraping ──
+    if has_web:
+        logging.info(f"[SCHEDULER] Web scraping terjadwal: {url} | mode={mode}")
+        settings = _load_settings()
+        before_count = len(_load_articles())
+        _run_scrape(url, settings, mode, scheduled=True, incremental=incremental)
+        after_count = len(_load_articles())
+        added += max(0, after_count - before_count)
 
-    _run_scrape(url, settings, mode,
-                scheduled=True, incremental=incremental)
-
-    # Hitung artikel baru
-    after_count = len(_load_articles())
-    added = max(0, after_count - before_count)
+    # ── RSS scraping ──
+    if has_rss:
+        logging.info(f"[SCHEDULER] RSS scraping terjadwal: {len(rss_sources)} sumber")
+        added += _run_scheduled_rss(rss_sources)
 
     cfg = _load_scheduler_settings()
     cfg["last_run_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -2675,7 +2733,7 @@ def scheduler_post_settings():
     cfg = _load_scheduler_settings()
 
     allowed = {"enabled", "interval", "day_of_week", "time_of_day",
-               "url", "scrape_mode", "incremental"}
+               "url", "scrape_mode", "incremental", "rss_sources"}
     for k in allowed:
         if k in data:
             cfg[k] = data[k]
@@ -2686,11 +2744,70 @@ def scheduler_post_settings():
     if cfg["interval"] == "manual":
         cfg["enabled"] = False
 
+    # Validasi rss_sources
+    if "rss_sources" in cfg:
+        clean = []
+        for src in cfg["rss_sources"]:
+            u = (src.get("url") or "").strip()
+            if u:
+                clean.append({
+                    "url": u,
+                    "label": (src.get("label") or "").strip() or u,
+                    "max_items": max(1, min(100, int(src.get("max_items") or 10))),
+                })
+        cfg["rss_sources"] = clean
+
     _save_scheduler_settings(cfg)
     _apply_scheduler(cfg)
 
     cfg["next_run_at"] = _next_run_iso()
     return jsonify({"status": "ok", "settings": cfg})
+
+
+@app.route("/api/scheduler/rss-sources", methods=["GET"])
+def scheduler_rss_sources_get():
+    cfg = _load_scheduler_settings()
+    return jsonify({"rss_sources": cfg.get("rss_sources", [])})
+
+
+@app.route("/api/scheduler/rss-sources", methods=["POST"])
+def scheduler_rss_sources_post():
+    """Tambah, hapus, atau replace seluruh list RSS sources."""
+    data = request.get_json(force=True)
+    cfg = _load_scheduler_settings()
+    sources = cfg.get("rss_sources", [])
+
+    action = data.get("action", "replace")  # "add" | "remove" | "replace"
+
+    if action == "replace":
+        raw = data.get("rss_sources", [])
+        sources = []
+        for src in raw:
+            u = (src.get("url") or "").strip()
+            if u:
+                sources.append({
+                    "url": u,
+                    "label": (src.get("label") or "").strip() or u,
+                    "max_items": max(1, min(100, int(src.get("max_items") or 10))),
+                })
+    elif action == "add":
+        u = (data.get("url") or "").strip()
+        if not u:
+            return jsonify({"error": "URL wajib diisi"}), 400
+        # Cek duplikat URL
+        if not any(s["url"] == u for s in sources):
+            sources.append({
+                "url": u,
+                "label": (data.get("label") or "").strip() or u,
+                "max_items": max(1, min(100, int(data.get("max_items") or 10))),
+            })
+    elif action == "remove":
+        u = (data.get("url") or "").strip()
+        sources = [s for s in sources if s["url"] != u]
+
+    cfg["rss_sources"] = sources
+    _save_scheduler_settings(cfg)
+    return jsonify({"status": "ok", "rss_sources": sources})
 
 
 @app.route("/api/scheduler/status", methods=["GET"])
@@ -2762,7 +2879,18 @@ def _make_kb_draft(title: str, content: str, source_url: str = "",
         "summary": "",
         "tags": [source_tag] if source_tag else [],
     })
+
+    # ── Deteksi duplikat berdasarkan source_url ──
     kb = _load_kb()
+    if source_url:
+        for existing in kb:
+            if existing.get("source_url", "").strip() == source_url.strip() and existing.get("id") != article_id:
+                draft["is_duplicate"] = True
+                draft["duplicate_of_id"] = existing.get("id", "")
+                draft["duplicate_of_title"] = existing.get("title", "")
+                draft["duplicate_of_status"] = existing.get("approval_status", "")
+                break
+
     if not any(a.get("id") == article_id for a in kb):
         kb.append(draft)
         _save_kb(kb)
