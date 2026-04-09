@@ -4,7 +4,7 @@ import {
   ArrowLeft, Upload, BookOpen, Search, Trash2, Loader2,
   AlertCircle, CheckCircle2, Sparkles, FileText, ChevronDown,
   ChevronUp, X, Database, Copy, Check, RefreshCw,
-  ScanLine, List, Hash, ChevronRight,
+  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -30,7 +30,15 @@ interface SourceItem {
   score: number;
 }
 
-type Tab = "library" | "upload" | "ask";
+type Tab = "library" | "upload" | "ask" | "review";
+
+interface PageChunk {
+  page_number: number;
+  chapter: string;
+  content: string;
+  word_count: number;
+  is_ocr: boolean;
+}
 
 const authHeaders = () => ({
   Authorization: `Bearer ${getToken() || ""}`,
@@ -78,6 +86,13 @@ export default function MuqarrarPage() {
   const [kitabList, setKitabList] = useState<KitabItem[]>([]);
   const [libLoading, setLibLoading] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+
+  // ── Review state ───────────────────────────────────────────────────────────
+  const [reviewKitab, setReviewKitab] = useState<KitabItem | null>(null);
+  const [reviewPages, setReviewPages] = useState<PageChunk[]>([]);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [activePageIdx, setActivePageIdx] = useState(0);
 
   // ── Ask state ──────────────────────────────────────────────────────────────
   const [question, setQuestion] = useState("");
@@ -251,6 +266,28 @@ export default function MuqarrarPage() {
     setShowAllChapters(false);
     if (fileRef.current) fileRef.current.value = "";
     if (pollRef.current) clearInterval(pollRef.current);
+  };
+
+  // ── Review ─────────────────────────────────────────────────────────────────
+  const openReview = async (kitab: KitabItem) => {
+    setReviewKitab(kitab);
+    setReviewPages([]);
+    setReviewError("");
+    setActivePageIdx(0);
+    setTab("review");
+    setReviewLoading(true);
+    try {
+      const res = await fetch(apiUrl(`/api/muqarrar/${kitab.kitab_id}/pages`), {
+        headers: { Authorization: `Bearer ${getToken() || ""}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memuat halaman.");
+      setReviewPages(data.pages || []);
+    } catch (e: any) {
+      setReviewError(e.message || "Gagal memuat halaman kitab.");
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   // ── Library delete ─────────────────────────────────────────────────────────
@@ -460,7 +497,13 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => openReview(k)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                      style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}>
+                      <Eye className="w-3 h-3" />Review
+                    </button>
                     <button
                       onClick={() => { setSelectedKitab(k.kitab_id); setTab("ask"); }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
@@ -1019,6 +1062,148 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB: REVIEW ───────────────────────────────────────────────── */}
+        {tab === "review" && reviewKitab && (
+          <div className="space-y-3">
+            {/* Header review */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setTab("library")}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0">
+                <ChevronLeft className="w-4 h-4 text-slate-400" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white truncate">{reviewKitab.kitab_name}</p>
+                {reviewKitab.author && (
+                  <p className="text-[10px] text-slate-500 italic truncate">{reviewKitab.author}</p>
+                )}
+              </div>
+              {!reviewLoading && reviewPages.length > 0 && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                  style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
+                  {reviewPages.length} halaman
+                </span>
+              )}
+            </div>
+
+            {/* Loading */}
+            {reviewLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-5 h-5 text-violet-500 animate-spin" />
+              </div>
+            )}
+
+            {/* Error */}
+            {reviewError && !reviewLoading && (
+              <div className="flex items-center gap-2 rounded-xl px-3 py-3"
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{reviewError}</p>
+              </div>
+            )}
+
+            {/* Navigator halaman */}
+            {!reviewLoading && reviewPages.length > 0 && (() => {
+              const page = reviewPages[activePageIdx];
+              return (
+                <div className="space-y-3">
+                  {/* Prev/Next nav */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={activePageIdx === 0}
+                      onClick={() => setActivePageIdx(i => i - 1)}
+                      className="p-2 rounded-lg transition-all disabled:opacity-30"
+                      style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)" }}>
+                      <ChevronLeft className="w-4 h-4 text-violet-400" />
+                    </button>
+                    <div className="flex-1 text-center">
+                      <span className="text-xs font-bold text-white">Hal. {page.page_number}</span>
+                      <span className="text-[10px] text-slate-500 ml-1">/ {reviewPages[reviewPages.length - 1].page_number}</span>
+                    </div>
+                    <button
+                      disabled={activePageIdx === reviewPages.length - 1}
+                      onClick={() => setActivePageIdx(i => i + 1)}
+                      className="p-2 rounded-lg transition-all disabled:opacity-30"
+                      style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)" }}>
+                      <ChevronRight className="w-4 h-4 text-violet-400" />
+                    </button>
+                  </div>
+
+                  {/* Jump to page */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {reviewPages.map((p, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActivePageIdx(i)}
+                        className="min-w-[2rem] px-1.5 py-1 rounded-lg text-[10px] font-bold transition-all"
+                        style={{
+                          background: i === activePageIdx ? "rgba(139,92,246,0.35)" : "rgba(139,92,246,0.07)",
+                          color: i === activePageIdx ? "#c4b5fd" : "#4b5563",
+                          border: i === activePageIdx ? "1px solid rgba(139,92,246,0.5)" : "1px solid transparent",
+                        }}>
+                        {p.page_number}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Konten halaman */}
+                  <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(139,92,246,0.25)" }}>
+                    {/* Page header */}
+                    <div className="flex items-center gap-2 px-3 py-2.5 flex-wrap"
+                      style={{ background: "rgba(109,40,217,0.12)", borderBottom: "1px solid rgba(139,92,246,0.15)" }}>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "rgba(139,92,246,0.25)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.4)" }}>
+                        Hal. {page.page_number}
+                      </span>
+                      {page.chapter && (
+                        <span className="text-[11px] text-slate-300 font-medium">{page.chapter}</span>
+                      )}
+                      <div className="ml-auto flex items-center gap-1.5">
+                        {page.is_ocr && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                            style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.3)" }}>
+                            OCR
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-600">{page.word_count} kata</span>
+                      </div>
+                    </div>
+
+                    {/* Page content */}
+                    <div className="px-4 py-4" style={{ background: "rgba(10,5,25,0.7)" }}>
+                      <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap font-mono"
+                        style={{ fontSize: "12px", lineHeight: "1.7" }}>
+                        {page.content || <span className="text-slate-600 italic">Halaman ini kosong.</span>}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tanya tentang halaman ini */}
+                  <button
+                    onClick={() => {
+                      setSelectedKitab(reviewKitab.kitab_id);
+                      setQuestion(`Jelaskan isi halaman ${page.page_number} dari kitab ${reviewKitab.kitab_name}.`);
+                      setTab("ask");
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: "rgba(139,92,246,0.1)", border: "1px dashed rgba(139,92,246,0.3)", color: "#7c6fad" }}>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Tanya AINA tentang halaman ini
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Empty */}
+            {!reviewLoading && !reviewError && reviewPages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <BookOpen className="w-10 h-10 text-violet-800 mb-3" />
+                <p className="text-sm text-slate-500">Tidak ada halaman ditemukan.</p>
+              </div>
             )}
           </div>
         )}

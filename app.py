@@ -3965,6 +3965,27 @@ def api_muqarrar_list():
     return jsonify({"kitab": kitab_list})
 
 
+@app.route("/api/muqarrar/<kitab_id>/pages", methods=["GET"])
+def api_muqarrar_pages(kitab_id: str):
+    """Ambil semua halaman/chunks satu kitab untuk review, diurutkan per halaman."""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if token != SESSION_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        sb = get_supabase()
+        res = (
+            sb.table("muqarrar_chunks")
+            .select("page_number,chapter,content,word_count,is_ocr")
+            .eq("kitab_id", kitab_id)
+            .order("page_number", desc=False)
+            .execute()
+        )
+        pages = res.data or []
+        return jsonify({"pages": pages, "total": len(pages)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/muqarrar/<kitab_id>", methods=["DELETE"])
 def api_muqarrar_delete(kitab_id: str):
     """Hapus semua chunks satu kitab."""
