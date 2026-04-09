@@ -23,44 +23,33 @@ CREATE TABLE IF NOT EXISTS muqarrar_chunks (
   created_at    timestamptz DEFAULT now()
 );
 
--- ── 2. Index standar ────────────────────────────────────────
+-- ── 2. Migrasi kolom DULU sebelum buat index ────────────────
+-- (aman dijalankan berulang kali — ADD COLUMN IF NOT EXISTS)
+ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS description   text DEFAULT '';
+ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS embedding_vec vector(1536);
+
+-- ── 3. Disable RLS (pakai service role key) ─────────────────
+ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;
+
+-- ── 4. Index standar ────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS muqarrar_kitab_id_idx ON muqarrar_chunks (kitab_id);
 CREATE INDEX IF NOT EXISTS muqarrar_page_idx     ON muqarrar_chunks (kitab_id, page_number);
 
--- ── 3. Index pgvector untuk cosine similarity search ────────
+-- ── 5. Index pgvector (setelah kolom embedding_vec ada) ─────
 CREATE INDEX IF NOT EXISTS muqarrar_embedding_vec_idx
   ON muqarrar_chunks
   USING ivfflat (embedding_vec vector_cosine_ops)
   WITH (lists = 10);
 
--- ── 4. Disable RLS (pakai service role key) ─────────────────
-ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;
-
--- ============================================================
--- Migrasi kolom: jalankan jika tabel SUDAH ADA sebelumnya
--- (aman dijalankan berulang kali — ADD COLUMN IF NOT EXISTS)
--- ============================================================
-ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS description   text DEFAULT '';
-ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS embedding_vec vector(1536);
-
--- Migrasi data lama: konversi embedding jsonb → vector(1536)
--- Jalankan SEKALI untuk mengisi embedding_vec dari data yang sudah ada
-UPDATE muqarrar_chunks
-SET    embedding_vec = embedding::text::vector(1536)
-WHERE  embedding IS NOT NULL
-  AND  jsonb_array_length(embedding) = 1536
-  AND  embedding_vec IS NULL;
-
 -- ============================================================
 -- RPC: match_muqarrar_chunks
 -- Digunakan oleh AINA Website untuk semantic search ke kitab muqarrar
--- Sama persis dengan match_knowledge_base tapi untuk tabel muqarrar_chunks
 -- ============================================================
 CREATE OR REPLACE FUNCTION match_muqarrar_chunks(
   query_embedding vector(1536),
   match_threshold float   DEFAULT 0.35,
   match_count     int     DEFAULT 5,
-  filter_kitab_id text    DEFAULT NULL   -- NULL = semua kitab
+  filter_kitab_id text    DEFAULT NULL
 )
 RETURNS TABLE (
   kitab_id    text,
