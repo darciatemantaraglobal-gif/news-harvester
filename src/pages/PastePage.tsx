@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X, Newspaper, BookOpen, FileText, List, Zap, Radio, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
@@ -574,8 +575,13 @@ export default function PastePage() {
                         prose-ul:my-2 prose-ul:pl-4
                         prose-strong:text-white prose-strong:font-semibold
                         prose-blockquote:border-violet-600 prose-blockquote:text-slate-400 prose-blockquote:italic
+                        prose-table:w-full prose-table:border-collapse prose-table:text-xs
+                        prose-thead:bg-violet-900/40
+                        prose-th:border prose-th:border-violet-700/50 prose-th:px-2 prose-th:py-1.5 prose-th:text-violet-300 prose-th:font-semibold prose-th:text-left
+                        prose-td:border prose-td:border-slate-700/50 prose-td:px-2 prose-td:py-1.5 prose-td:text-slate-300
+                        prose-tr:even:bg-white/[0.03]
                       ">
-                        <ReactMarkdown>{result}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
                       </div>
                     )}
                   </div>

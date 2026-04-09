@@ -8,6 +8,7 @@ import {
   Sparkles, Copy, Check, Save, RotateCcw, Trash2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { getToken } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -1210,8 +1211,13 @@ export default function ReviewDashboard() {
                             prose-p:text-slate-300 prose-p:leading-relaxed prose-p:my-1.5 prose-p:text-xs
                             prose-li:text-slate-300 prose-li:leading-relaxed prose-li:text-xs
                             prose-ul:my-1.5 prose-ul:pl-4 prose-ol:my-1.5 prose-ol:pl-4
-                            prose-strong:text-white prose-strong:font-semibold">
-                            <ReactMarkdown>{rapikanResult}</ReactMarkdown>
+                            prose-strong:text-white prose-strong:font-semibold
+                            prose-table:w-full prose-table:border-collapse prose-table:text-[11px]
+                            prose-thead:bg-violet-900/40
+                            prose-th:border prose-th:border-violet-700/50 prose-th:px-2 prose-th:py-1 prose-th:text-violet-300 prose-th:font-semibold prose-th:text-left
+                            prose-td:border prose-td:border-slate-700/50 prose-td:px-2 prose-td:py-1 prose-td:text-slate-300
+                            prose-tr:even:bg-white/[0.03]">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{rapikanResult}</ReactMarkdown>
                           </div>
                         </div>
 

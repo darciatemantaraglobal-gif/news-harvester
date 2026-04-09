@@ -974,123 +974,207 @@ _ARABIC_RECONSTRUCTION_SYSTEM = (
     "- Jangan gunakan harakat jika tidak ada di teks asli\n"
 )
 
+# ── System message untuk SEMUA mode (non-Arab) ──────────────────────────────
+_AINA_SYSTEM = (
+    "Kamu adalah kurator Knowledge Base untuk AINA — asisten AI Islam berbahasa Indonesia dan Arab.\n\n"
+    "KONTEKS AINA:\n"
+    "AINA menjawab pertanyaan seputar fikih Islam, kebijakan keagamaan Indonesia, berita dunia Muslim, "
+    "fatwa ulama, teks kitab Arab, dan isu sosial-politik di negara Muslim. "
+    "Output yang kamu buat langsung masuk ke database pengetahuan AINA dan digunakan sebagai sumber jawaban.\n\n"
+    "PRINSIP UTAMA:\n"
+    "1. EKSTRAK semua informasi yang berguna untuk menjawab pertanyaan — jangan potong fakta penting\n"
+    "2. HAPUS noise: iklan, navigasi, promo, basa-basi, disclaimer boilerplate, duplikasi, opini tanpa fakta\n"
+    "3. PERTAHANKAN: nama tokoh, jabatan, angka, tanggal, kutipan, istilah teknis (Arab/Latin), sumber\n"
+    "4. TABEL: jika ada data tabel, WAJIB format sebagai tabel Markdown yang rapi:\n"
+    "   | Kolom 1 | Kolom 2 | Kolom 3 |\n"
+    "   |---------|---------|----------|\n"
+    "   | Data    | Data    | Data     |\n"
+    "   Pastikan alignment kolom konsisten dan semua sel terisi.\n"
+    "5. BAHASA: gunakan bahasa yang sama dengan teks sumber (jangan terjemahkan)\n"
+    "6. OUTPUT: HANYA Markdown bersih — tanpa kata pengantar, tanpa penutup, tanpa komentar dari kamu\n"
+)
+
 _FORMAT_SYSTEM = {
     "berita": (
-        "Setelah rekonstruksi Arab selesai, sajikan hasilnya sebagai konten berita yang rapi.\n"
-        "- Ekstrak fakta penting: apa, siapa, kapan, di mana, mengapa\n"
-        "- Gunakan `##` untuk sub-topik, `-` untuk fakta, **bold** untuk nama/angka kunci\n"
+        "Setelah rekonstruksi Arab selesai, sajikan hasilnya sebagai konten berita KB-AINA yang rapi.\n"
+        "- Ekstrak fakta penting: apa, siapa, kapan, di mana, mengapa, bagaimana\n"
+        "- Format: `##` sub-topik, `-` fakta, **bold** nama/jabatan/angka kunci\n"
+        "- Jika ada data tabel dalam teks, sajikan sebagai tabel Markdown\n"
         "- Pertahankan semua teks Arab yang sudah direkonstruksi\n"
         "Output: HANYA Markdown. Tanpa pengantar atau komentar."
     ),
     "kitab": (
-        "Setelah rekonstruksi Arab selesai, strukturkan sebagai teks kitab.\n"
-        "- Gunakan `##` untuk Bab/Fasal/Pasal jika terdeteksi\n"
+        "Setelah rekonstruksi Arab selesai, strukturkan sebagai teks kitab KB-AINA.\n"
+        "- Gunakan `##` untuk Bab/Fasal/Pasal yang terdeteksi\n"
         "- Letakkan teks Arab dalam blok tersendiri, syarah/terjemahan sesudahnya\n"
-        "- Pertahankan nomor-nomor poin/masalah/fasal\n"
+        "- Pertahankan nomor poin/masalah/fasal, istilah fikih dan ushul\n"
+        "- Jika ada tabel (misalnya perbandingan madzhab), gunakan tabel Markdown\n"
         "Output: HANYA teks kitab terstruktur dalam Markdown. Tanpa komentar."
     ),
     "laporan": (
-        "Setelah rekonstruksi Arab selesai, susun sebagai laporan formal.\n"
-        "- Mulai dengan **Ringkasan Eksekutif**\n"
+        "Setelah rekonstruksi Arab selesai, susun sebagai laporan formal KB-AINA.\n"
+        "- Mulai dengan **Ringkasan Eksekutif** (2-3 kalimat inti)\n"
         "- Gunakan `##` untuk: Latar Belakang, Temuan Utama, Analisis, Rekomendasi\n"
+        "- Jika ada data angka/statistik: sajikan sebagai tabel Markdown\n"
         "- Pertahankan data, angka, nama resmi, teks Arab penting\n"
         "Output: HANYA konten laporan Markdown. Tanpa pengantar."
     ),
     "ringkasan": (
-        "Setelah rekonstruksi Arab selesai, buat ringkasan singkat.\n"
-        "- Maksimal 5 poin terpenting dalam bullet list `-`\n"
-        "- Sertakan teks Arab kunci jika relevan\n"
+        "Setelah rekonstruksi Arab selesai, buat ringkasan singkat untuk KB-AINA.\n"
+        "- Satu kalimat konteks di atas, lalu 3-7 poin bullet list `-` paling penting\n"
+        "- Sertakan teks Arab kunci, nama tokoh, tanggal, angka yang relevan\n"
+        "- Setiap poin harus mandiri dan cukup untuk menjawab pertanyaan\n"
         "Output: HANYA ringkasan Markdown. Tanpa kata pengantar."
     ),
     "poin": (
-        "Setelah rekonstruksi Arab selesai, ubah menjadi daftar poin informatif.\n"
-        "- Setiap fakta/hukum/masalah = 1 bullet point `-`\n"
-        "- **bold** di awal setiap poin untuk kata kunci\n"
-        "- Pertahankan istilah Arab yang penting\n"
+        "Setelah rekonstruksi Arab selesai, ubah menjadi daftar poin informatif KB-AINA.\n"
+        "- Setiap fakta/hukum/masalah = 1 bullet point `-` yang berdiri sendiri\n"
+        "- **bold** di awal setiap poin untuk kata kunci (hukum, nama, istilah)\n"
+        "- Kelompokkan dengan `##` jika ada kategori berbeda\n"
+        "- Pertahankan istilah Arab yang penting, jangan terjemahkan\n"
         "Output: HANYA daftar poin Markdown. Tanpa narasi pembuka."
     ),
     "briefing": (
-        "Setelah rekonstruksi Arab selesai, buat briefing ringkas.\n"
-        "- **SITUASI**: 1-2 kalimat gambaran keseluruhan\n"
-        "- **FAKTA KUNCI**: bullet list fakta terverifikasi\n"
-        "- **AKTOR**: siapa yang terlibat\n"
-        "- **IMPLIKASI**: apa yang perlu diperhatikan\n"
+        "Setelah rekonstruksi Arab selesai, buat briefing intelijen/diplomatik untuk KB-AINA.\n"
+        "## SITUASI\n(1-2 kalimat gambaran keseluruhan)\n"
+        "## FAKTA KUNCI\n(bullet list: angka, nama, tanggal terverifikasi)\n"
+        "## AKTOR\n(siapa yang terlibat, peran masing-masing)\n"
+        "## IMPLIKASI\n(apa artinya untuk kebijakan/umat/hubungan antar negara)\n"
+        "- Jika ada data komparatif, gunakan tabel Markdown\n"
         "Output: HANYA konten briefing Markdown. Tanpa pengantar."
     ),
 }
 
+# ── Prompts untuk mode non-Arab (dengan system message _AINA_SYSTEM) ────────
 FORMAT_PROMPTS = {
     "berita": lambda title, content: (
-        "Kamu adalah editor konten berita profesional. Ekstrak dan sajikan HANYA informasi penting dalam format Markdown yang rapi.\n\n"
-        + (f"Judul: {title}\n\n" if title else "")
-        + f"Teks asli:\n{content}\n\n"
-        "INSTRUKSI:\n"
-        "- Buang: iklan, promo, navigasi, disclaimer, basa-basi, duplikasi, opini tidak berdasar fakta\n"
-        "- Pertahankan: fakta (apa/siapa/kapan/di mana/mengapa/bagaimana), angka, tanggal, nama resmi, kutipan penting\n"
-        "- Format: `##` untuk sub-topik, `-` untuk daftar fakta, **bold** untuk nama/jabatan/angka kunci, paragraf prose untuk narasi\n"
-        "- Gunakan bahasa yang sama dengan teks asli\n"
-        "Output: HANYA Markdown. Tanpa pengantar atau komentar."
+        "Kamu adalah kurator KB-AINA. Proses teks berikut menjadi konten berita yang siap digunakan AINA untuk menjawab pertanyaan.\n\n"
+        + (f"**Judul:** {title}\n\n" if title else "")
+        + f"**Teks sumber:**\n{content}\n\n"
+        "## INSTRUKSI KETAT\n\n"
+        "**HAPUS (jangan masukkan sama sekali):**\n"
+        "- Iklan, promo, banner, ajakan subscribe/follow/like\n"
+        "- Menu navigasi, breadcrumb, footer, copyright, cookie notice\n"
+        "- Kalimat pembuka/penutup basa-basi ('Baca juga...', 'Artikel terkait...', dll)\n"
+        "- Opini penulis tanpa dasar fakta, spekulasi\n"
+        "- Konten duplikat atau pengulangan informasi yang sama\n\n"
+        "**WAJIB PERTAHANKAN:**\n"
+        "- Fakta 5W+1H (apa, siapa, kapan, di mana, mengapa, bagaimana)\n"
+        "- Angka, statistik, persentase, nilai, jumlah\n"
+        "- Tanggal dan waktu spesifik\n"
+        "- Nama lengkap tokoh beserta jabatan/gelar\n"
+        "- Kutipan langsung yang substantif (pakai > blockquote)\n"
+        "- Nama lembaga, kebijakan, regulasi, produk hukum\n"
+        "- Konteks sejarah/latar belakang yang relevan\n\n"
+        "**FORMAT OUTPUT (Markdown):**\n"
+        "- `##` untuk sub-topik utama jika ada beberapa aspek berbeda\n"
+        "- `-` bullet untuk daftar fakta\n"
+        "- **bold** untuk nama, jabatan, angka, istilah kunci\n"
+        "- `> kutipan` untuk kutipan langsung penting\n"
+        "- TABEL: jika ada data perbandingan/statistik tabel, wajib gunakan format:\n"
+        "  | Header | Header |\n  |--------|--------|\n  | Data   | Data   |\n"
+        "- Paragraf prose untuk narasi yang membutuhkan alur\n"
+        "- Gunakan bahasa yang sama dengan sumber\n\n"
+        "Output: HANYA konten Markdown. Tanpa kata pengantar, penutup, atau komentar."
     ),
     "kitab": lambda title, content: (
-        "Kamu adalah editor teks kitab Arab/Indonesia profesional. Rapikan dan strukturkan teks berikut.\n\n"
-        + (f"Judul/Kitab: {title}\n\n" if title else "")
-        + f"Teks asli:\n{content}\n\n"
-        "INSTRUKSI:\n"
-        "- Perbaiki kesalahan OCR: karakter aneh, spasi salah, baris terputus\n"
-        "- Pertahankan SEMUA konten asli — jangan hapus atau tambah informasi\n"
-        "- Strukturkan dengan `##` untuk Bab/Fasal/Pasal jika terdeteksi\n"
-        "- Teks Arab: pertahankan, pastikan urutan RTL, gunakan blok terpisah\n"
-        "- Terjemahan/syarah: letakkan setelah teks Arab yang relevan\n"
-        "- Rapikan paragraf dan spasi, pertahankan bahasa asli\n"
-        "Output: HANYA teks yang sudah diperbaiki dalam Markdown. Tanpa komentar."
+        "Kamu adalah kurator KB-AINA spesialis teks keagamaan. Rapikan dan strukturkan teks kitab/agama berikut agar optimal untuk retrieval AINA.\n\n"
+        + (f"**Kitab/Judul:** {title}\n\n" if title else "")
+        + f"**Teks sumber:**\n{content}\n\n"
+        "## INSTRUKSI\n\n"
+        "**Rekonstruksi & Pembersihan:**\n"
+        "- Perbaiki OCR: sambungkan huruf Arab yang terpisah, perbaiki spasi yang salah\n"
+        "- Buang karakter noise, watermark, header/footer halaman yang tidak relevan\n"
+        "- PERTAHANKAN semua konten — jangan hapus atau tambah makna apapun\n\n"
+        "**Struktur:**\n"
+        "- `##` untuk Bab / Fasal / Pasal / Kitab yang terdeteksi\n"
+        "- `###` untuk sub-bagian (masalah, kaidah, dll)\n"
+        "- Teks Arab dalam blok terpisah, syarah/terjemahan/komentar sesudahnya\n"
+        "- Pertahankan penomoran (1. 2. 3. atau أولاً ثانياً dll)\n"
+        "- Istilah fikih/ushul/hadis: pertahankan dalam Arab, tambah transliterasi jika ada\n\n"
+        "**Tabel:** jika ada perbandingan madzhab, hukum, atau data terstruktur:\n"
+        "| Aspek | Hanafi | Maliki | Syafi'i | Hanbali |\n"
+        "|-------|--------|--------|---------|--------|\n"
+        "| ...   | ...    | ...    | ...     | ...    |\n\n"
+        "Output: HANYA teks kitab terstruktur dalam Markdown. Tanpa komentar dari kamu."
     ),
     "laporan": lambda title, content: (
-        "Kamu adalah analis laporan resmi. Susun ulang teks berikut menjadi laporan terstruktur dan formal.\n\n"
-        + (f"Judul: {title}\n\n" if title else "")
-        + f"Konten:\n{content}\n\n"
-        "INSTRUKSI:\n"
-        "- Mulai dengan **Ringkasan Eksekutif** (2-3 kalimat inti)\n"
-        "- Gunakan `##` untuk: Latar Belakang, Temuan/Fakta Utama, Analisis, Rekomendasi (jika ada)\n"
-        "- Pertahankan semua data, angka, nama resmi, tanggal\n"
-        "- Bahasa: formal dan objektif\n"
-        "- Gunakan **bold** untuk istilah kunci dan poin penting\n"
-        "Output: HANYA konten laporan Markdown. Tanpa pengantar atau penutup dari kamu."
+        "Kamu adalah kurator KB-AINA spesialis laporan formal. Susun ulang teks berikut menjadi laporan terstruktur yang informatif untuk AINA.\n\n"
+        + (f"**Judul Laporan:** {title}\n\n" if title else "")
+        + f"**Konten sumber:**\n{content}\n\n"
+        "## INSTRUKSI\n\n"
+        "**Struktur laporan (gunakan `##` untuk setiap bagian):**\n"
+        "1. **Ringkasan Eksekutif** — 2-4 kalimat inti yang menjawab: apa yang terjadi, mengapa penting\n"
+        "2. **Latar Belakang** — konteks yang dibutuhkan untuk memahami laporan\n"
+        "3. **Temuan / Fakta Utama** — fakta-fakta kunci dengan angka, nama, tanggal\n"
+        "4. **Analisis** — implikasi, sebab-akibat, signifikansi (hanya jika ada dalam sumber)\n"
+        "5. **Rekomendasi / Tindak Lanjut** — (hanya jika ada dalam sumber)\n\n"
+        "**Data & Tabel:**\n"
+        "- Semua data statistik, angka perbandingan, atau data tabel WAJIB disajikan sebagai tabel Markdown\n"
+        "- Format tabel: rata kiri untuk teks, rata kanan untuk angka\n"
+        "- Contoh:\n"
+        "  | Indikator | Tahun 2023 | Tahun 2024 | Perubahan |\n"
+        "  |-----------|-----------|------------|----------|\n"
+        "  | ...       | ...       | ...        | ...      |\n\n"
+        "**Gaya:** formal, objektif, **bold** untuk istilah kunci dan poin krusial\n\n"
+        "Output: HANYA konten laporan Markdown. Tanpa pengantar atau komentar dari kamu."
     ),
     "ringkasan": lambda title, content: (
-        "Buat ringkasan SANGAT SINGKAT dan padat dari teks berikut.\n\n"
-        + (f"Judul: {title}\n\n" if title else "")
-        + f"Teks:\n{content}\n\n"
-        "INSTRUKSI:\n"
-        "- Maksimal 5 poin paling penting\n"
-        "- Setiap poin: 1-2 kalimat, langsung ke inti\n"
-        "- Sertakan angka/tanggal/nama kunci yang krusial\n"
-        "- Format: bullet list `-` yang ringkas\n"
-        "- Di bagian atas, satu kalimat konteks (tanpa header)\n"
-        "Output: HANYA teks ringkasan. Tanpa kata pengantar."
+        "Kamu adalah kurator KB-AINA. Buat ringkasan yang padat dan informatif — cukup untuk AINA menjawab pertanyaan tentang topik ini.\n\n"
+        + (f"**Topik:** {title}\n\n" if title else "")
+        + f"**Teks sumber:**\n{content}\n\n"
+        "## INSTRUKSI\n\n"
+        "**Struktur output:**\n"
+        "- Satu kalimat pembuka yang merangkum inti topik (tanpa header)\n"
+        "- Bullet list `-` berisi 4-8 poin PALING PENTING, masing-masing 1-2 kalimat\n"
+        "- Setiap poin harus mandiri (tidak merujuk 'di atas' atau 'hal tersebut')\n"
+        "- Urutan: dari yang paling signifikan ke yang kurang signifikan\n\n"
+        "**Wajib masukkan jika ada:**\n"
+        "- Nama tokoh + jabatan\n"
+        "- Tanggal/periode spesifik\n"
+        "- Angka dan statistik kunci\n"
+        "- Keputusan/fatwa/kebijakan yang dihasilkan\n"
+        "- Nama lembaga atau regulasi\n\n"
+        "**Tabel:** jika ada data yang lebih jelas disajikan sebagai tabel, gunakan tabel Markdown\n\n"
+        "Output: HANYA ringkasan Markdown. Tanpa kata 'Ringkasan:', pengantar, atau komentar."
     ),
     "poin": lambda title, content: (
-        "Ubah teks berikut menjadi daftar poin-poin informatif yang mudah dibaca.\n\n"
-        + (f"Topik: {title}\n\n" if title else "")
-        + f"Teks:\n{content}\n\n"
-        "INSTRUKSI:\n"
-        "- Setiap fakta/informasi penting = 1 bullet point `-`\n"
-        "- Poin harus mandiri dan informatif (tidak menggantung)\n"
-        "- Gunakan **bold** di awal setiap poin untuk kata kunci\n"
-        "- Kelompokkan dengan `##` jika ada kategori yang berbeda\n"
-        "- Buang semua teks yang tidak informatif (basa-basi, iklan, dll)\n"
-        "Output: HANYA daftar poin Markdown. Tanpa narasi pembuka."
+        "Kamu adalah kurator KB-AINA. Ubah teks berikut menjadi daftar poin informatif yang optimal untuk retrieval Q&A.\n\n"
+        + (f"**Topik:** {title}\n\n" if title else "")
+        + f"**Teks sumber:**\n{content}\n\n"
+        "## INSTRUKSI\n\n"
+        "**Aturan poin:**\n"
+        "- Setiap fakta/hukum/keputusan/data = 1 poin bullet `-` yang berdiri sendiri\n"
+        "- Poin harus lengkap: bisa dibaca dan dimengerti tanpa membaca poin lain\n"
+        "- **Bold** di awal setiap poin untuk kata kunci (nama hukum, tokoh, istilah, lembaga)\n"
+        "- Satu poin = satu informasi — jangan gabungkan dua fakta berbeda\n"
+        "- Minimal 6 poin, maksimal sesuai kedalaman konten sumber\n\n"
+        "**Pengelompokan:**\n"
+        "- Gunakan `##` untuk kategori berbeda jika konten memiliki beberapa aspek\n"
+        "- Urutan: hukum/keputusan utama → detail → konteks → pengecualian\n\n"
+        "**Buang:** iklan, basa-basi, navigasi, konten tidak informatif\n\n"
+        "**Tabel:** jika ada data perbandingan atau matriks, gunakan tabel Markdown setelah poin terkait\n\n"
+        "Output: HANYA daftar poin Markdown. Tanpa narasi pembuka atau penutup."
     ),
     "briefing": lambda title, content: (
-        "Kamu adalah analis intelijen. Buat briefing ringkas dari teks berikut.\n\n"
-        + (f"Subjek: {title}\n\n" if title else "")
-        + f"Sumber:\n{content}\n\n"
-        "INSTRUKSI — format briefing diplomatik/intelijen:\n"
-        "- **SITUASI**: 1-2 kalimat gambaran keseluruhan\n"
-        "- **FAKTA KUNCI**: bullet list fakta terverifikasi (angka, nama, tanggal)\n"
-        "- **AKTOR**: siapa saja yang terlibat dan perannya\n"
-        "- **IMPLIKASI**: apa artinya / apa yang perlu diperhatikan (jika ada dalam teks)\n"
-        "- Bahasa: singkat, presisi, faktual — tidak ada opini tambahan\n"
-        "Output: HANYA konten briefing Markdown. Tanpa pengantar."
+        "Kamu adalah analis KB-AINA. Buat briefing intelijen/diplomatik yang presisi dari teks berikut untuk digunakan AINA menjawab pertanyaan kebijakan dan geopolitik Islam.\n\n"
+        + (f"**Subjek:** {title}\n\n" if title else "")
+        + f"**Sumber:**\n{content}\n\n"
+        "## INSTRUKSI — Format briefing wajib:\n\n"
+        "## SITUASI\n"
+        "Satu paragraf singkat (2-3 kalimat): apa yang terjadi, di mana, kapan, mengapa signifikan.\n\n"
+        "## FAKTA KUNCI\n"
+        "Bullet list fakta terverifikasi dari teks:\n"
+        "- **[Label]**: deskripsi singkat dengan angka/nama/tanggal spesifik\n"
+        "- Hanya fakta yang ADA di teks sumber — jangan asumsi atau tambah\n\n"
+        "## AKTOR\n"
+        "- **[Nama/Lembaga]** — peran/posisi/tindakan mereka\n"
+        "(Jika banyak aktor, gunakan tabel: | Aktor | Posisi | Tindakan |)\n\n"
+        "## IMPLIKASI\n"
+        "- Dampak kebijakan, hukum, atau sosial yang disebutkan dalam teks\n"
+        "- Apa yang perlu diketahui AINA untuk menjawab pertanyaan terkait\n\n"
+        "**Gaya:** singkat, presisi, faktual — bahasa netral seperti laporan intelijen\n\n"
+        "Output: HANYA konten briefing Markdown. Tanpa pengantar atau komentar dari kamu."
     ),
 }
 
@@ -1133,16 +1217,19 @@ def api_format_text():
             model = "gpt-4o"   # GPT-4o lebih akurat untuk Arab daripada gpt-4o-mini
             logger.info(f"[FORMAT-TEXT] Arab mode (ratio={arabic_ratio:.2f}), fmt={fmt}")
         else:
-            # ── Mode biasa: prompt lama ──────────────────────────────────────────
-            prompt = FORMAT_PROMPTS[fmt](title, content[:7000])
-            messages = [{"role": "user", "content": prompt}]
+            # ── Mode biasa: gunakan system message AINA ──────────────────────
+            prompt = FORMAT_PROMPTS[fmt](title, content[:8000])
+            messages = [
+                {"role": "system", "content": _AINA_SYSTEM},
+                {"role": "user", "content": prompt},
+            ]
             model = "gpt-4o-mini"
             logger.info(f"[FORMAT-TEXT] Non-Arab mode, fmt={fmt}")
 
         response = client.chat.completions.create(
             model=model,
             messages=messages,
-            max_tokens=3500,
+            max_tokens=4000,
             temperature=0.1,
         )
         formatted = response.choices[0].message.content.strip()
