@@ -2515,6 +2515,33 @@ def kb_delete():
     return jsonify({"status": "ok", "deleted": article_id})
 
 
+@app.route("/kb/bulk-delete", methods=["POST"])
+def kb_bulk_delete():
+    """Hapus banyak artikel KB sekaligus berdasarkan array ids."""
+    data = request.get_json(force=True)
+    ids = data.get("ids", [])
+    if not ids:
+        return jsonify({"error": "Tidak ada ID yang dipilih"}), 400
+
+    id_set = set(ids)
+    kb = _load_kb()
+    new_kb = [a for a in kb if a.get("id") not in id_set]
+    deleted = len(kb) - len(new_kb)
+    _save_kb(new_kb)
+
+    for fpath in [KB_APPROVED_FILE, KB_EXPORTED_FILE]:
+        try:
+            items = _load_file(fpath)
+            filtered = [a for a in items if a.get("id") not in id_set]
+            if len(filtered) != len(items):
+                with open(fpath, "w", encoding="utf-8") as f:
+                    json.dump(filtered, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    return jsonify({"status": "ok", "deleted": deleted})
+
+
 @app.route("/kb/reset", methods=["POST"])
 def kb_reset():
     """Hapus semua KB draft (reset total)."""

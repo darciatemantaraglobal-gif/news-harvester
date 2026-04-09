@@ -251,6 +251,29 @@ export default function ReviewDashboard() {
     setBulkLoading(false);
   };
 
+  const doBulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`Hapus ${selected.size} artikel yang dipilih? Tindakan ini tidak dapat dibatalkan.`)) return;
+    setBulkLoading(true);
+    setBulkMsg("");
+    try {
+      const res = await fetch(apiUrl("/kb/bulk-delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selected) }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulkMsg(`${data.deleted} artikel berhasil dihapus`);
+        setSelected(new Set());
+        await fetchArticles();
+        await fetchStats();
+        setTimeout(() => setBulkMsg(""), 4000);
+      }
+    } catch {}
+    setBulkLoading(false);
+  };
+
   const doPushApproved = async () => {
     setPushLoading(true);
     setPushResult(null);
@@ -487,6 +510,11 @@ export default function ReviewDashboard() {
                     {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : ba.label}
                   </Button>
                 ))}
+                <Button size="sm" disabled={bulkLoading}
+                  onClick={doBulkDelete}
+                  className="text-white text-xs py-1 h-7 px-2.5 rounded-full bg-red-700 hover:bg-red-800 gap-1">
+                  {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Trash2 className="w-3 h-3" />Hapus</>}
+                </Button>
                 <button onClick={() => setSelected(new Set())}
                   className="text-slate-500 hover:text-white ml-0.5 p-1 rounded-full hover:bg-white/10">
                   <X className="w-3.5 h-3.5" />
@@ -931,6 +959,11 @@ export default function ReviewDashboard() {
                     {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : ba.label}
                   </button>
                 ))}
+                <button disabled={bulkLoading}
+                  onClick={doBulkDelete}
+                  className="text-white text-xs h-7 px-2.5 rounded-full whitespace-nowrap shrink-0 font-semibold transition-colors bg-red-700 hover:bg-red-800 flex items-center gap-1">
+                  {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Trash2 className="w-3 h-3" />Hapus</>}
+                </button>
               </div>
               <button onClick={() => setSelected(new Set())}
                 className="text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 shrink-0">

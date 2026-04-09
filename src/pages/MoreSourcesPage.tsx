@@ -6,10 +6,11 @@ import {
   CheckCircle2, AlertCircle, ArrowRight, Upload, X, Hash,
   RefreshCw, ExternalLink, Wand2, Sparkles,
   Newspaper, BookOpen, Zap, List, Radio, ThumbsUp, ThumbsDown,
-  CloudUpload, Clock, XCircle,
+  CloudUpload, Clock, XCircle, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BottomNav } from "@/components/BottomNav";
 import { getToken } from "@/lib/auth";
 
@@ -108,6 +109,11 @@ export default function MoreSourcesPage() {
 
   // ── Push to Supabase state ──
   const [pushState, setPushState] = useState<PushState>({ loading: false, result: null });
+
+  // ── Bulk delete state (per result box, keyed by label) ──
+  const [bulkSelected, setBulkSelected] = useState<Record<string, Set<string>>>({});
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState<Record<string, boolean>>({});
+  const [bulkDeleteMsg, setBulkDeleteMsg] = useState<Record<string, string>>({});
 
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` };
 
@@ -352,17 +358,21 @@ export default function MoreSourcesPage() {
     );
   }
 
-  function ArticleCard({ article }: { article: KbResult }) {
+  function ArticleCard({ article, isSelected, onToggle }: { article: KbResult; isSelected?: boolean; onToggle?: () => void }) {
     const status = articleStatus[article.id] || "pending";
     const loading = approveLoading[article.id] ?? false;
     const statusUi = STATUS_UI[status];
     const isExported = status === "exported";
 
     return (
-      <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 space-y-2">
+      <div className={`bg-white/5 border rounded-xl px-3 py-2.5 space-y-2 transition-colors ${isSelected ? "border-violet-500/50 bg-violet-900/10" : "border-white/8"}`}>
         {/* Title row */}
         <div className="flex items-start gap-2">
-          <Hash className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
+          {onToggle !== undefined ? (
+            <Checkbox checked={!!isSelected} onCheckedChange={onToggle} className="mt-0.5 shrink-0" />
+          ) : (
+            <Hash className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />
+          )}
           <p className="text-xs text-slate-300 flex-1 font-medium leading-snug">{article.title || "(Tanpa Judul)"}</p>
           <div className="flex items-center gap-1.5 shrink-0 ml-1">
             <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${statusUi.cls}`}>
@@ -423,6 +433,55 @@ export default function MoreSourcesPage() {
     const approvedCount = articles.filter(a => (articleStatus[a.id] || "pending") === "approved").length;
     const hasApproved = approvedCount > 0;
 
+    const selectedIds: Set<string> = bulkSelected[label] ?? new Set();
+    const deleteLoading = bulkDeleteLoading[label] ?? false;
+    const deleteMsg = bulkDeleteMsg[label] ?? "";
+
+    const shownArticles = articles.slice(0, 5);
+    const allShownSelected = shownArticles.length > 0 && shownArticles.every(a => selectedIds.has(a.id));
+    const someShownSelected = shownArticles.some(a => selectedIds.has(a.id));
+
+    const toggleOne = (id: string) => {
+      setBulkSelected(prev => {
+        const cur = new Set(prev[label] ?? []);
+        cur.has(id) ? cur.delete(id) : cur.add(id);
+        return { ...prev, [label]: cur };
+      });
+    };
+
+    const toggleAll = () => {
+      setBulkSelected(prev => {
+        const cur = new Set(prev[label] ?? []);
+        if (allShownSelected) {
+          shownArticles.forEach(a => cur.delete(a.id));
+        } else {
+          shownArticles.forEach(a => cur.add(a.id));
+        }
+        return { ...prev, [label]: cur };
+      });
+    };
+
+    const doDeleteSelected = async () => {
+      if (selectedIds.size === 0) return;
+      if (!confirm(`Hapus ${selectedIds.size} artikel yang dipilih dari KB Draft? Tindakan ini tidak bisa dibatalkan.`)) return;
+      setBulkDeleteLoading(prev => ({ ...prev, [label]: true }));
+      setBulkDeleteMsg(prev => ({ ...prev, [label]: "" }));
+      try {
+        const res = await fetch(apiUrl("/kb/bulk-delete"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: Array.from(selectedIds) }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setBulkDeleteMsg(prev => ({ ...prev, [label]: `${data.deleted} artikel berhasil dihapus dari KB Draft` }));
+          setBulkSelected(prev => ({ ...prev, [label]: new Set() }));
+          setTimeout(() => setBulkDeleteMsg(prev => ({ ...prev, [label]: "" })), 4000);
+        }
+      } catch {}
+      setBulkDeleteLoading(prev => ({ ...prev, [label]: false }));
+    };
+
     return (
       <div className={`rounded-xl border p-3.5 space-y-3 ${
         result.status === "ok"
@@ -465,10 +524,38 @@ export default function MoreSourcesPage() {
               ))}
             </div>
 
-            {/* Article list */}
+            {/* Article list with bulk select */}
             <div className="space-y-2">
-              {articles.slice(0, 5).map((a, i) => (
-                <ArticleCard key={i} article={a} />
+              {/* Select-all bar */}
+              {shownArticles.length > 1 && (
+                <div className="flex items-center gap-2 px-1 pb-1 border-b border-white/8">
+                  <Checkbox
+                    checked={allShownSelected}
+                    onCheckedChange={toggleAll}
+                    className={someShownSelected && !allShownSelected ? "data-[state=checked]:bg-slate-400" : ""}
+                  />
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                    {selectedIds.size > 0 ? `${selectedIds.size} dari ${shownArticles.length} dipilih` : `Pilih semua (${shownArticles.length})`}
+                  </span>
+                  {selectedIds.size > 0 && (
+                    <Button size="sm" disabled={deleteLoading}
+                      onClick={doDeleteSelected}
+                      className="h-6 px-2 text-[10px] rounded-full bg-red-700 hover:bg-red-800 text-white gap-1">
+                      {deleteLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Trash2 className="w-3 h-3" />Hapus Terpilih</>}
+                    </Button>
+                  )}
+                </div>
+              )}
+              {deleteMsg && (
+                <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 px-2.5 py-1.5 rounded-lg">
+                  <CheckCircle2 className="w-3.5 h-3.5" />{deleteMsg}
+                </div>
+              )}
+              {shownArticles.map((a, i) => (
+                <ArticleCard key={i} article={a}
+                  isSelected={selectedIds.has(a.id)}
+                  onToggle={() => toggleOne(a.id)}
+                />
               ))}
               {count > 5 && (
                 <p className="text-xs text-slate-500 pl-2">...dan {count - 5} lainnya tersimpan di KB</p>
