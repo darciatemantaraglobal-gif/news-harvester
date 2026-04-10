@@ -8,7 +8,7 @@ openai
 supabase
 gunicorn
 pdfplumber
-PyMuPDF==1.24.14
+PyMuPDF
 feedparser
 python-docx
 youtube-transcript-api
