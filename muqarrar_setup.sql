@@ -1,12 +1,14 @@
 -- ============================================================
 -- AINA Scraper — Muqarrar Chunks Table
--- Jalankan sekali di Supabase SQL Editor
+-- Run once in Supabase SQL Editor.
+-- Safe to re-run: all statements use IF NOT EXISTS.
+-- Requires: pgvector extension enabled (handled below).
 -- ============================================================
 
--- ── 0. Aktifkan pgvector extension ──────────────────────────
+-- ── 0. Enable pgvector extension ────────────────────────────
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- ── 1. Buat tabel (aman dijalankan berulang kali) ───────────
+-- ── 1. Create table (idempotent) ────────────────────────────
 CREATE TABLE IF NOT EXISTS muqarrar_chunks (
   id            text        PRIMARY KEY,
   kitab_id      text        NOT NULL,
@@ -23,27 +25,41 @@ CREATE TABLE IF NOT EXISTS muqarrar_chunks (
   created_at    timestamptz DEFAULT now()
 );
 
--- ── 2. Migrasi kolom DULU sebelum buat index ────────────────
--- (aman dijalankan berulang kali — ADD COLUMN IF NOT EXISTS)
+-- ── 2. Migrate columns (safe: ADD COLUMN IF NOT EXISTS) ─────
 ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS description   text DEFAULT '';
 ALTER TABLE muqarrar_chunks ADD COLUMN IF NOT EXISTS embedding_vec vector(1536);
 
--- ── 3. Disable RLS (pakai service role key) ─────────────────
+-- ── 3. Disable RLS (service role key bypasses anyway) ────────
 ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;
 
--- ── 4. Index standar ────────────────────────────────────────
+-- ── 4. Standard indexes ──────────────────────────────────────
 CREATE INDEX IF NOT EXISTS muqarrar_kitab_id_idx ON muqarrar_chunks (kitab_id);
 CREATE INDEX IF NOT EXISTS muqarrar_page_idx     ON muqarrar_chunks (kitab_id, page_number);
 
--- ── 5. Index pgvector (setelah kolom embedding_vec ada) ─────
-CREATE INDEX IF NOT EXISTS muqarrar_embedding_vec_idx
-  ON muqarrar_chunks
-  USING ivfflat (embedding_vec vector_cosine_ops)
-  WITH (lists = 10);
+-- ── 5. pgvector IVFFlat index ────────────────────────────────
+-- NOTE: IVFFlat requires at least `lists` rows in the table to build.
+-- Run this block AFTER uploading at least one kitab (10+ chunks).
+-- It is safe to re-run — the DO block catches "already exists" errors.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE tablename = 'muqarrar_chunks'
+      AND indexname  = 'muqarrar_embedding_vec_idx'
+  ) THEN
+    CREATE INDEX muqarrar_embedding_vec_idx
+      ON muqarrar_chunks
+      USING ivfflat (embedding_vec vector_cosine_ops)
+      WITH (lists = 10);
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'muqarrar_embedding_vec_idx: % — run again after uploading data.', SQLERRM;
+END;
+$$;
 
 -- ============================================================
 -- RPC: match_muqarrar_chunks
--- Digunakan oleh AINA Website untuk semantic search ke kitab muqarrar
+-- Used by AINA Website for semantic search over muqarrar kitab.
 -- ============================================================
 CREATE OR REPLACE FUNCTION match_muqarrar_chunks(
   query_embedding vector(1536),

@@ -3549,7 +3549,9 @@ def _chunk_page_text(text: str, max_chars: int = 900, overlap: int = 120) -> lis
             break_at = end
 
         chunk = text[start:break_at].strip()
-        if chunk:
+        if len(chunk) < 20:
+            logger.warning(f"[MUQARRAR] _chunk_page_text: chunk terlalu pendek ({len(chunk)} chars), skip")
+        else:
             chunks.append(chunk)
 
         # Mulai chunk berikut dengan overlap (jaga konteks)
@@ -3643,7 +3645,16 @@ def _process_muqarrar_upload(
         job["status"] = "processing"
         job["phase"] = "extract"
         job["phase_label"] = "Ekstraksi teks"
-        logger.info(f"[MUQARRAR] {job_id}: mulai proses {total} hal — {kitab_name}")
+        logger.info(
+            f"[MUQARRAR] ============================================================"
+        )
+        logger.info(
+            f"[MUQARRAR] PDF upload MULAI — job={job_id} | kitab={kitab_name} | "
+            f"halaman={total} | ocr={'on' if use_ocr_for_scans else 'off'}"
+        )
+        logger.info(
+            f"[MUQARRAR] ============================================================"
+        )
 
         # ══ FASE 1: Ekstrak & chunk teks per halaman ════════════════════════
         # extracted: list of dicts, SATU entry per sub-chunk (bukan per halaman)
@@ -3661,46 +3672,51 @@ def _process_muqarrar_upload(
             job["pages_done"] = page_idx
             job["current_page"] = page_num
 
-            # ── Ekstrak teks digital ─────────────────────────────────────────
-            fitz_page = fitz_doc[page_idx]
-            raw_text = _clean_arabic_text(fitz_page.get_text("text"))
-            is_ocr_page = False
+            try:
+                # ── Ekstrak teks digital ─────────────────────────────────────────
+                fitz_page = fitz_doc[page_idx]
+                raw_text = _clean_arabic_text(fitz_page.get_text("text"))
+                is_ocr_page = False
 
-            # ── Fallback OCR Vision untuk halaman scan/teks tipis ────────────
-            if (not raw_text or len(raw_text) < 30) and use_ocr_for_scans:
-                ocr_result = _ocr_page_with_retry(fitz_doc, page_idx, page_num, client)
-                if ocr_result:
-                    raw_text = _clean_arabic_text(ocr_result)
-                    is_ocr_page = True
-                    ocr_count += 1
-                job["ocr_count"] = ocr_count   # update live untuk frontend
+                # ── Fallback OCR Vision untuk halaman scan/teks tipis ────────────
+                if (not raw_text or len(raw_text) < 30) and use_ocr_for_scans:
+                    ocr_result = _ocr_page_with_retry(fitz_doc, page_idx, page_num, client)
+                    if ocr_result:
+                        raw_text = _clean_arabic_text(ocr_result)
+                        is_ocr_page = True
+                        ocr_count += 1
+                    job["ocr_count"] = ocr_count   # update live untuk frontend
 
-            # ── Skip halaman kosong ──────────────────────────────────────────
-            if not raw_text or len(raw_text) < 15:
-                logger.debug(f"[MUQARRAR] hal {page_num}: skip (kosong/terlalu pendek)")
-                continue
+                # ── Skip halaman kosong ──────────────────────────────────────────
+                if not raw_text or len(raw_text) < 15:
+                    logger.debug(f"[MUQARRAR] hal {page_num}: skip (kosong/terlalu pendek)")
+                    continue
 
-            pages_with_text += 1
+                pages_with_text += 1
 
-            # ── Deteksi chapter/section title dari baris awal ────────────────
-            # Field 'chapter' = section_title dalam konteks muqarrar_chunks.
-            # Nama kolom dipertahankan 'chapter' untuk kompatibilitas Supabase Phase 1.
-            chapter = _detect_chapter_mq(raw_text)
+                # ── Deteksi chapter/section title dari baris awal ────────────────
+                # Field 'chapter' = section_title dalam konteks muqarrar_chunks.
+                # Nama kolom dipertahankan 'chapter' untuk kompatibilitas Supabase Phase 1.
+                chapter = _detect_chapter_mq(raw_text)
 
-            # ── Chunking: split 500–900 karakter per sub-chunk ───────────────
-            # Halaman pendek → 1 chunk. Halaman panjang → beberapa chunk.
-            # page_number tetap sama di semua sub-chunk halaman yang sama.
-            page_chunks = _chunk_page_text(raw_text, max_chars=900, overlap=120)
+                # ── Chunking: split 500–900 karakter per sub-chunk ───────────────
+                # Halaman pendek → 1 chunk. Halaman panjang → beberapa chunk.
+                # page_number tetap sama di semua sub-chunk halaman yang sama.
+                page_chunks = _chunk_page_text(raw_text, max_chars=900, overlap=120)
 
-            for chunk_idx, chunk_text in enumerate(page_chunks):
-                extracted.append({
-                    "page_num":   page_num,
-                    "chunk_idx":  chunk_idx,
-                    "text":       chunk_text,
-                    "chapter":    chapter,
-                    "word_count": len(chunk_text.split()),
-                    "is_ocr":     is_ocr_page,
-                })
+                for chunk_idx, chunk_text in enumerate(page_chunks):
+                    extracted.append({
+                        "page_num":   page_num,
+                        "chunk_idx":  chunk_idx,
+                        "text":       chunk_text,
+                        "chapter":    chapter,
+                        "word_count": len(chunk_text.split()),
+                        "is_ocr":     is_ocr_page,
+                    })
+
+            except Exception as page_err:
+                logger.warning(f"[MUQARRAR] hal {page_num}: gagal diproses, skip — {page_err}")
+                job["errors"].append(f"Hal {page_num}: {page_err}")
 
         fitz_doc.close()
         del pdf_bytes   # bebaskan memori PDF asli

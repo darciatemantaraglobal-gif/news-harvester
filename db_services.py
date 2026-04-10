@@ -349,6 +349,19 @@ def muqarrar_save_chunk(chunk: dict) -> bool:
         sb = get_supabase()
         row = dict(chunk)
 
+        # Validate required fields before sending to Supabase
+        for required_field in ("id", "kitab_id", "kitab_name", "page_number", "content"):
+            if not row.get(required_field):
+                logger.warning(
+                    f"[MUQARRAR] chunk inválid: field '{required_field}' kosong — skip "
+                    f"(hal {chunk.get('page_number')}, id={chunk.get('id')})"
+                )
+                return False
+
+        if not isinstance(row.get("page_number"), int):
+            logger.warning(f"[MUQARRAR] page_number bukan int — skip id={chunk.get('id')}")
+            return False
+
         # Konversi embedding list → string format pgvector "[x, y, ...]"
         # Chunk tanpa embedding (list kosong) → embedding_vec = NULL (tetap tersimpan,
         # namun tidak bisa digunakan untuk vector search)
@@ -356,6 +369,11 @@ def muqarrar_save_chunk(chunk: dict) -> bool:
         if emb and isinstance(emb, list) and len(emb) == 1536:
             row["embedding_vec"] = _json.dumps(emb)
         else:
+            if emb:
+                logger.warning(
+                    f"[MUQARRAR] embedding size tidak valid ({len(emb) if isinstance(emb, list) else type(emb)}) "
+                    f"— disimpan tanpa vector (hal {chunk.get('page_number')})"
+                )
             row["embedding_vec"] = None
 
         # Upsert: re-upload kitab akan menimpa chunks lama dengan ID yang sama

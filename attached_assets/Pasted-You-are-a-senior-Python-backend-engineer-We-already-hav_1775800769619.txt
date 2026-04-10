@@ -1,0 +1,167 @@
+You are a senior Python backend engineer.
+
+We already have a working Muqarrar AI pipeline in this scraper repo.
+
+Now we are in REFINEMENT PHASE (not feature-building).
+
+========================================
+GOAL
+====
+
+Make the Muqarrar AI pipeline:
+
+* stable
+* clean
+* deploy-safe
+* production-ready
+
+DO NOT add new features.
+DO NOT change architecture.
+
+========================================
+
+1. FIX SQL SETUP FILE (CRITICAL)
+   ========================================
+
+The file `muqarrar_setup.sql` must be executable without errors.
+
+Tasks:
+
+* Remove or properly comment any non-SQL text
+* Ensure all statements are valid SQL
+* Add IF NOT EXISTS for tables and indexes
+* Ensure compatibility with Supabase (PostgreSQL + pgvector)
+
+Make sure this file can be directly executed without manual edits.
+
+========================================
+2. REQUIREMENTS.TXT (CRITICAL)
+==============================
+
+Currently dependencies are not clearly defined.
+
+Create/update `requirements.txt` to include ALL required libraries:
+
+Must include (if used in code):
+
+* Flask
+* pdfplumber
+* PyMuPDF (fitz)
+* numpy
+* openai
+* pytesseract (if OCR used)
+* pillow
+* apscheduler
+
+Make sure:
+
+* versions are pinned (e.g. flask==x.x.x)
+* file is complete for fresh deployment
+
+========================================
+3. PDF PROCESSING STABILITY
+===========================
+
+Ensure:
+
+* PDF extraction works for both:
+
+  * digital PDFs
+  * scanned PDFs (OCR)
+
+Add:
+
+* try/catch for each page extraction
+* fallback if a page fails (skip but continue)
+
+========================================
+4. CHUNK CONSISTENCY
+====================
+
+Ensure `_chunk_page_text()` always:
+
+* produces chunks between 500–900 characters
+* maintains overlap ~120 characters
+* never outputs empty or extremely short chunks
+
+Add validation:
+
+* skip invalid chunks
+* log warnings if chunking fails
+
+========================================
+5. DATA CLEANING (IMPORTANT)
+============================
+
+Ensure `_clean_arabic_text()`:
+
+* runs on ALL extracted text (digital + OCR)
+* removes control characters
+* normalizes whitespace
+* preserves Arabic characters correctly
+
+========================================
+6. DATABASE SAFETY
+==================
+
+Ensure insert logic:
+
+* uses upsert (no duplicates)
+* uses deterministic chunk IDs
+* validates embedding size (1536)
+
+Add:
+
+* logging if insert fails
+* skip invalid rows safely
+
+========================================
+7. ENVIRONMENT VARIABLES
+========================
+
+Ensure `.env.example` exists and includes:
+
+* OPENAI_API_KEY
+* SUPABASE_URL
+* SUPABASE_SERVICE_ROLE_KEY
+
+Remove any real `.env` from repo (do not expose secrets)
+
+========================================
+8. LOGGING & DEBUGGING
+======================
+
+Add clear logs for:
+
+* PDF upload start/end
+* number of pages processed
+* number of chunks generated
+* number of chunks saved
+
+Make logs readable and useful for debugging.
+
+========================================
+9. DO NOT BREAK EXISTING FEATURES
+=================================
+
+Do NOT modify:
+
+* article scraping pipeline
+* knowledge_base insertion
+* other non-Muqarrar features
+
+Muqarrar AI must remain isolated.
+
+========================================
+DELIVERABLE
+===========
+
+Show me:
+
+1. Updated `muqarrar_setup.sql`
+2. Updated `requirements.txt`
+3. Any modified files
+4. Example log output from one PDF upload
+5. Confirmation that legacy pipeline is untouched
+
+Keep changes minimal but solid.
