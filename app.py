@@ -3560,16 +3560,48 @@ def _chunk_page_text(text: str, max_chars: int = 900, overlap: int = 120) -> lis
     return chunks
 
 
-def _ocr_page_with_retry(fitz_doc, page_idx: int, page_num: int, client, max_retries: int = 3) -> str:
-    """OCR satu halaman scan dengan retry dan timeout. Return teks atau ''."""
+def _ocr_tesseract(img_bytes: bytes) -> str:
+    """
+    [MUQARRAR OCR — Layer 1] Tesseract OCR gratis untuk teks Arab cetak.
+    Return teks hasil OCR, atau '' jika gagal.
+    """
+    try:
+        import pytesseract
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(img_bytes))
+        # psm 6 = assume a single uniform block of text (cocok untuk halaman kitab)
+        result = pytesseract.image_to_string(
+            img,
+            lang="ara",
+            config="--psm 6 --oem 3",
+        )
+        return result.strip()
+    except Exception as e:
+        logger.debug(f"[MUQARRAR-TESS] Tesseract error: {e}")
+        return ""
+
+
+def _is_tesseract_result_good(text: str, min_arabic_chars: int = 80) -> bool:
+    """
+    Cek apakah hasil Tesseract cukup baik untuk dipakai.
+    Hitung jumlah karakter Arab asli (U+0600–U+06FF) dalam output.
+    """
+    arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06ff')
+    return arabic_chars >= min_arabic_chars
+
+
+def _ocr_gpt4o(img_bytes: bytes, page_num: int, client, max_retries: int = 3) -> str:
+    """
+    [MUQARRAR OCR — Layer 2] GPT-4o Vision OCR (akurat, berbayar).
+    Dipanggil hanya jika Tesseract gagal/hasilnya jelek.
+    """
     import base64
+    b64 = base64.b64encode(img_bytes).decode()
+    del img_bytes
+
     for attempt in range(max_retries):
         try:
-            # Render halaman ke PNG — 150 DPI cukup untuk OCR teks (hemat RAM vs 200 DPI)
-            img_bytes = _page_to_image_bytes(fitz_doc, page_idx, dpi=150)
-            b64 = base64.b64encode(img_bytes).decode()
-            del img_bytes  # bebaskan memori segera
-
             resp = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{
@@ -3593,19 +3625,42 @@ def _ocr_page_with_retry(fitz_doc, page_idx: int, page_num: int, client, max_ret
                 }],
                 max_tokens=2500,
                 temperature=0.0,
-                timeout=120,   # 2 menit per halaman OCR
+                timeout=120,
             )
-            del b64  # bebaskan memori base64 setelah terpakai
             return resp.choices[0].message.content.strip()
 
         except Exception as e:
-            wait = 3 ** attempt  # 1s, 3s, 9s
+            wait = 3 ** attempt
             if attempt < max_retries - 1:
-                logger.warning(f"[MUQARRAR-OCR] hal {page_num} gagal (attempt {attempt+1}/{max_retries}), retry {wait}s: {e}")
+                logger.warning(f"[MUQARRAR-GPT4O] hal {page_num} gagal (attempt {attempt+1}/{max_retries}), retry {wait}s: {e}")
                 time.sleep(wait)
             else:
-                logger.error(f"[MUQARRAR-OCR] hal {page_num} gagal setelah {max_retries} percobaan: {e}")
+                logger.error(f"[MUQARRAR-GPT4O] hal {page_num} gagal setelah {max_retries} percobaan: {e}")
     return ""
+
+
+def _ocr_page_with_retry(fitz_doc, page_idx: int, page_num: int, client, max_retries: int = 3) -> str:
+    """
+    [MUQARRAR OCR — Hybrid 2-Layer]
+    Layer 1: Tesseract (gratis, lokal) — coba duluan.
+    Layer 2: GPT-4o Vision (berbayar, akurat) — hanya jika Tesseract kurang baik.
+
+    Hemat ~60% biaya OCR dibanding pakai GPT-4o untuk semua halaman.
+    """
+    img_bytes = _page_to_image_bytes(fitz_doc, page_idx, dpi=150)
+
+    # ── Layer 1: Tesseract ──────────────────────────────────────────────────
+    tess_result = _ocr_tesseract(img_bytes)
+    if _is_tesseract_result_good(tess_result):
+        logger.debug(f"[MUQARRAR-OCR] hal {page_num}: Tesseract OK ({len(tess_result)} chars)")
+        return tess_result
+
+    # ── Layer 2: GPT-4o Vision (fallback) ──────────────────────────────────
+    logger.info(
+        f"[MUQARRAR-OCR] hal {page_num}: Tesseract kurang ({len(tess_result)} chars Arab) "
+        f"→ fallback GPT-4o"
+    )
+    return _ocr_gpt4o(img_bytes, page_num, client, max_retries=max_retries)
 
 
 def _process_muqarrar_upload(
