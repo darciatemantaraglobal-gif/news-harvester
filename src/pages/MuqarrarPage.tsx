@@ -516,21 +516,24 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
 
       <main className="flex-1 px-4 pb-nav-safe pt-3 max-w-3xl mx-auto w-full">
 
-        {/* Tab bar */}
+        {/* Tab bar — mobile-first: icon + label pendek */}
         <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.15)" }}>
           {([
-            { id: "library", label: `Perpustakaan${kitabList.length > 0 ? ` (${kitabList.length})` : ""}`, icon: <BookOpen className="w-3.5 h-3.5" /> },
-            { id: "upload",  label: "Upload Kitab", icon: <Upload className="w-3.5 h-3.5" /> },
-            { id: "ask",     label: "Tanya AINA",   icon: <Sparkles className="w-3.5 h-3.5" /> },
-          ] as { id: Tab; label: string; icon: React.ReactNode }[]).map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all"
+            { id: "library", label: "Kitab", sublabel: kitabList.length > 0 ? String(kitabList.length) : "", icon: <BookOpen className="w-4 h-4" /> },
+            { id: "upload",  label: "Upload",  sublabel: "", icon: <Upload className="w-4 h-4" /> },
+            { id: "ask",     label: "Tanya",   sublabel: "", icon: <Sparkles className="w-4 h-4" /> },
+          ] as { id: Tab; label: string; sublabel: string; icon: React.ReactNode }[]).map(t => (
+            <button key={t.id} onClick={() => setTab(t.id as Tab)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all"
               style={{
                 background: tab === t.id ? "rgba(139,92,246,0.25)" : "transparent",
                 color: tab === t.id ? "#a78bfa" : "#6b7280",
                 border: tab === t.id ? "1px solid rgba(139,92,246,0.4)" : "1px solid transparent",
               }}>
-              {t.icon}{t.label}
+              {t.icon}
+              <span className="text-[10px] font-semibold leading-none">
+                {t.label}{t.sublabel ? ` (${t.sublabel})` : ""}
+              </span>
             </button>
           ))}
         </div>
@@ -567,58 +570,73 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
             )}
 
             {kitabList.map(k => (
-              <div key={k.kitab_id} className="rounded-xl p-4 border border-violet-900/30"
-                style={{ background: "rgba(139,92,246,0.06)" }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-violet-900/40 border border-violet-700/30 flex items-center justify-center shrink-0 mt-0.5">
-                      <BookOpen className="w-4.5 h-4.5 text-violet-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-white leading-tight">{k.kitab_name}</p>
-                      {k.author && <p className="text-[11px] text-slate-400 mt-0.5 italic">{k.author}</p>}
-                      {k.description && (
-                        <p className="text-[11px] text-slate-400/80 mt-1.5 leading-relaxed line-clamp-2">{k.description}</p>
-                      )}
-                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
-                          {k.total_pages} halaman
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {new Date(k.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                        </span>
-                      </div>
+              <div key={k.kitab_id} className="rounded-2xl overflow-hidden"
+                style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.18)" }}>
+
+                {/* ── Info kitab ── */}
+                <div className="flex items-start gap-3 p-4 pb-3">
+                  {/* Ikon buku */}
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: "rgba(109,40,217,0.25)", border: "1px solid rgba(139,92,246,0.3)" }}>
+                    <BookOpen className="w-5 h-5 text-violet-400" />
+                  </div>
+
+                  {/* Teks info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white leading-snug line-clamp-2">{k.kitab_name}</p>
+                    {k.author && (
+                      <p className="text-[11px] text-violet-300/70 mt-0.5 italic truncate">{k.author}</p>
+                    )}
+                    {k.description && (
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2">{k.description}</p>
+                    )}
+                    {/* Badges */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "rgba(139,92,246,0.18)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
+                        {k.total_pages} hal
+                      </span>
+                      <span className="text-[10px] text-slate-600">
+                        {new Date(k.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => openReview(k)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                      style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}>
-                      <Eye className="w-3 h-3" />Review
-                    </button>
-                    <button
-                      onClick={() => openPush(k)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                      style={{ background: "rgba(16,185,129,0.12)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }}>
-                      <Send className="w-3 h-3" />Push
-                    </button>
-                    <button
-                      onClick={() => { setSelectedKitab(k.kitab_id); setTab("ask"); }}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                      style={{ background: "rgba(139,92,246,0.2)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
-                      <Sparkles className="w-3 h-3" />Tanya
-                    </button>
-                    <button
-                      onClick={() => handleDelete(k)}
-                      disabled={deletingId === k.kitab_id}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-900/20 transition-all disabled:opacity-50">
-                      {deletingId === k.kitab_id
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        : <Trash2 className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
+                </div>
+
+                {/* ── Action strip ── */}
+                <div className="grid grid-cols-4 border-t"
+                  style={{ borderColor: "rgba(139,92,246,0.15)" }}>
+                  <button
+                    onClick={() => openReview(k)}
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all active:scale-95"
+                    style={{ color: "#818cf8" }}>
+                    <Eye className="w-4 h-4" />
+                    Review
+                  </button>
+                  <button
+                    onClick={() => openPush(k)}
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all active:scale-95 border-l"
+                    style={{ color: "#34d399", borderColor: "rgba(139,92,246,0.15)" }}>
+                    <Send className="w-4 h-4" />
+                    Push
+                  </button>
+                  <button
+                    onClick={() => { setSelectedKitab(k.kitab_id); setTab("ask"); }}
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all active:scale-95 border-l"
+                    style={{ color: "#a78bfa", borderColor: "rgba(139,92,246,0.15)" }}>
+                    <Sparkles className="w-4 h-4" />
+                    Tanya
+                  </button>
+                  <button
+                    onClick={() => handleDelete(k)}
+                    disabled={deletingId === k.kitab_id}
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all active:scale-95 border-l disabled:opacity-40"
+                    style={{ color: "#f87171", borderColor: "rgba(139,92,246,0.15)" }}>
+                    {deletingId === k.kitab_id
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Trash2 className="w-4 h-4" />}
+                    Hapus
+                  </button>
                 </div>
               </div>
             ))}
