@@ -22,8 +22,16 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
+        cache: "no-store",
       });
-      const data = await res.json();
+      let data: Record<string, string> = {};
+      try {
+        data = await res.json();
+      } catch {
+        setError(`Server mengembalikan respons tidak valid (HTTP ${res.status}). Coba refresh halaman.`);
+        setLoading(false);
+        return;
+      }
       if (res.ok && data.token) {
         setToken(data.token);
         setIsAdmin(!!data.is_admin);
@@ -32,8 +40,8 @@ export default function LoginPage() {
       } else {
         setError(data.error || "Login gagal.");
       }
-    } catch {
-      setError("Tidak dapat terhubung ke server.");
+    } catch (err) {
+      setError("Tidak dapat terhubung ke server. Pastikan koneksi internet kamu stabil, lalu refresh halaman.");
     }
     setLoading(false);
   };
