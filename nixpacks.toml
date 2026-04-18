@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "tesseract"]
+
+[phases.install]
+cmds = [
+  "pip install -r requirements.txt",
+  "npm ci"
+]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "gunicorn --bind=0.0.0.0:$PORT --workers=1 --timeout=180 --preload app:app"

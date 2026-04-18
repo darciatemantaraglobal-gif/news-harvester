@@ -5,7 +5,7 @@ from functools import wraps
 import pdfplumber
 import fitz  # PyMuPDF
 from datetime import datetime, date, timedelta
-from flask import Flask, render_template, request, jsonify, Response, g
+from flask import Flask, send_from_directory, request, jsonify, Response, g
 import hashlib
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -105,7 +105,7 @@ def _get_valid_tokens() -> dict:
         tokens[tok] = (user["username"], False)
     return tokens
 
-_PUBLIC_ENDPOINTS = {"login", "static"}
+_PUBLIC_ENDPOINTS = {"login", "static", "serve_react"}
 
 @app.before_request
 def _check_auth():
@@ -773,16 +773,16 @@ def _run_scrape(url: str, settings: dict, mode: str,
 
 # ─── Routes ─────────────────────────────────────────
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/article/<article_id>")
-def article_detail(article_id):
-    articles = _load_articles()
-    article = next((a for a in articles if a["id"] == article_id), None)
-    return render_template("article.html", article=article)
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_react(path):
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+    if not os.path.exists(dist_dir):
+        return jsonify({"error": "Frontend build tidak ditemukan. Jalankan: npm run build"}), 503
+    file_path = os.path.join(dist_dir, path)
+    if path and os.path.isfile(file_path):
+        return send_from_directory(dist_dir, path)
+    return send_from_directory(dist_dir, "index.html")
 
 
 @app.route("/settings", methods=["GET"])
