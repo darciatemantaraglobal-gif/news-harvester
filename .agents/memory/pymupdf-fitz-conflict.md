@@ -12,3 +12,5 @@ If the bare `fitz` package ends up installed alongside `PyMuPDF`, it can shadow 
 **Why:** This has recurred across re-imports/re-installs of the same project — a stray `fitz` line sometimes reappears in `requirements.txt` (e.g. from duplicated/merged requirement blocks) and gets pulled in by bulk installs.
 
 **How to apply:** When installing/reinstalling Python deps for a project that uses `PyMuPDF`, check `requirements.txt` for a bare `fitz` entry and remove it; only `PyMuPDF`/`PyMuPDFb` should be present. If `pip show fitz` reports the neuroimaging package, uninstall it.
+
+A second, unrelated failure mode with the same symptom (`import fitz` succeeds but `fitz.open` is missing, `fitz.__file__` is `None`): the installed `PyMuPDF` package itself is missing `fitz/__init__.py` on disk even though `pip show -f PyMuPDF` lists it — `fitz` then loads as an empty namespace package. Check with `ls .../site-packages/fitz/` (should contain `__init__.py`); if it's absent, `pip install --force-reinstall --no-deps PyMuPDF==<version>` restores it without touching other deps.

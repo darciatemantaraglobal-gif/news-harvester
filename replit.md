@@ -65,6 +65,19 @@ AI provider is OpenRouter-only (`ai_services.get_openai_client()` uses the `open
 - To enable AI summaries and Supabase sync, provide `OPENROUTER_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` as secrets; the app runs fine without them, those features just stay inactive.
 - Re-imported and re-verified (2026-07-10): reinstalled Python deps from `requirements.txt` and npm deps from `package.json`; both workflows started cleanly. Keep the database on Supabase — do not migrate to Replit's built-in Postgres.
 
+## Vercel Serverless Migration (2026-07-10)
+
+The app was migrated to run on Vercel serverless functions (in addition to still running on Replit for dev). Key changes:
+
+- `api/index.py` — Vercel Python entry point; re-exports the Flask `app` from `app.py`.
+- `vercel.json` — routes `/api/*`, `/settings`, `/export/*`, `/kb*` to the Python function, builds the frontend to `dist/` as static, and defines the `crons` entry for scheduled ingestion.
+- **Persistence moved fully to Supabase** — `data/scraped_articles.json` and `data/kb_articles.json` are no longer used; `_load_articles`/`_save_articles`/`_load_kb`/`_save_kb` now read/write the Supabase tables `scraped_articles_draft` and `kb_articles_draft` (DDL in `supabase_vercel_migration.sql`). Local disk is ephemeral on Vercel, so there is intentionally no local fallback — if Supabase env vars are missing, these calls raise a clear error instead of silently doing nothing.
+- **Scraping is now synchronous per-request** instead of a background `threading.Thread` (Vercel serverless has no persistent background execution). `POST /api/scrape` runs until it either finishes or hits a `max_new_articles` cap (default 20) for that invocation, returning `status: "done" | "incomplete" | "error"`. Progress is written to the new Supabase table `scrape_jobs` (keyed by `job_id`) so `GET /api/progress?job_id=...` can be polled from a separate invocation. The frontend (`src/pages/Index.tsx`) automatically re-calls `/api/scrape` with the same `job_id` while `status === "incomplete"`.
+- **APScheduler removed from the main process** — background schedulers can't survive across serverless invocations. Scheduled ingestion is now triggered externally by Vercel Cron hitting `POST /api/cron/run-ingestion`, guarded by a `CRON_SECRET` env var checked against the `Authorization: Bearer <token>` header. It calls the existing `run_scheduled_news_ingestion()` in `integration/pipeline.py`. The `/api/scheduler/*` settings endpoints still exist purely to store the schedule config for the UI; update `vercel.json`'s `crons.schedule` manually to match.
+- **Out of scope / follow-up needed**: four other endpoints still use `threading.Thread` background jobs and were intentionally left untouched — `api_pdf_job`, `api_youtube_scrape`, `api_telegram_scrape`, `api_muqarrar_job`. These will not work correctly on Vercel serverless (no persistent background thread) and need the same synchronous-with-job-table treatment before relying on them in production.
+- New env vars needed in the Vercel project settings: `CRON_SECRET` (any random secret string, must match what's sent by Vercel Cron — Vercel injects it automatically as a Bearer token when set), plus the existing `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`.
+- Before first deploy, run `supabase_vercel_migration.sql` once in the Supabase SQL editor to create `scraped_articles_draft`, `kb_articles_draft`, and `scrape_jobs`. Both JSON data files were empty at migration time, so no data migration was needed.
+
 ## Dependencies
 
 ### Python

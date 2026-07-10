@@ -71,6 +71,7 @@ interface KbDraft {
 
 interface ScrapeProgress {
   running: boolean;
+  status?: "running" | "done" | "incomplete" | "error";
   phase: "idle" | "listing" | "scraping" | "done";
   current: number;
   total: number;
@@ -518,18 +519,18 @@ const Index = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
 
+  // job_id of the scrape currently running (or last one started) — the backend
+  // now runs each /api/scrape call synchronously and reports progress per
+  // job_id in Supabase, so we need to know which job to poll for.
+  const jobIdRef = useRef<string | null>(null);
+
   const pollProgress = useCallback(async () => {
+    const jobId = jobIdRef.current;
+    if (!jobId) return;
     try {
-      const res = await fetch(apiUrl("/api/progress"), { cache: "no-store" });
+      const res = await fetch(apiUrl(`/api/progress?job_id=${encodeURIComponent(jobId)}`), { cache: "no-store" });
       if (!res.ok) return;
       const data: ScrapeProgress = await res.json();
-
-      // Auto-resume polling if backend is already running (e.g. page refresh mid-scrape)
-      if (data.running && !pollRef.current) {
-        wasRunningRef.current = true;
-        pollTickRef.current = 0;
-        pollRef.current = setInterval(pollProgress, 1000);
-      }
 
       // Preserve last known logs — if backend briefly resets, keep old logs visible
       if (data.logs && data.logs.length > 0) {
@@ -545,23 +546,11 @@ const Index = () => {
       if (data.running && pollTickRef.current % 2 === 0) {
         fetchArticles();
       }
-
-      if (wasRunningRef.current && !data.running && data.phase === "done") {
-        stopPoll();
-        pollTickRef.current = 0;
-        setJustFinished(true);
-        await fetchArticles();
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 200);
-        toast({
-          title: "Scraping selesai!",
-          description: `${data.success} berhasil · ${data.partial} partial · ${data.failed} gagal · ${data.duplicate} duplikat`,
-        });
-      }
       wasRunningRef.current = data.running;
-    } catch {}
-  }, [fetchArticles, toast]);
+    } catch {
+      // ignore transient polling errors
+    }
+  }, [fetchArticles]);
 
   useEffect(() => {
     fetchArticles();
@@ -569,7 +558,6 @@ const Index = () => {
     fetchKbDraft();
     fetchSchedulerSettings();
     fetchIngestionHistory();
-    pollProgress();
     return () => stopPoll();
   }, []);
 
@@ -582,24 +570,62 @@ const Index = () => {
       return;
     }
     setJustFinished(false);
+
+    const jobId = crypto.randomUUID();
+    jobIdRef.current = jobId;
+    wasRunningRef.current = true;
+    pollTickRef.current = 0;
+    pollRef.current = setInterval(pollProgress, 1000);
+
+    const body: Record<string, unknown> = { url, mode, date_filter: scrapeRange, job_id: jobId };
+    if (scrapeRange === "custom") {
+      if (customStart) body.start_date = customStart;
+      if (customEnd) body.end_date = customEnd;
+    }
+
     try {
-      const body: Record<string, string> = { url, mode, date_filter: scrapeRange };
-      if (scrapeRange === "custom") {
-        if (customStart) body.start_date = customStart;
-        if (customEnd) body.end_date = customEnd;
-      }
-      const res = await fetch(apiUrl("/api/scrape"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      let data: Record<string, string> = {};
-      try { data = await res.json(); } catch { /* non-JSON response */ }
-      if (!res.ok) { setUrlError(data.error || `Server error ${res.status}`); return; }
-      wasRunningRef.current = true;
+      // The backend runs each call synchronously and may report "incomplete"
+      // if it hit its per-invocation article limit before finishing the whole
+      // site — in that case we keep calling with the same job_id (incremental)
+      // until it reports "done" or "error", while the interval above keeps
+      // polling /api/progress for live counters/logs in the meantime.
+      let status = "";
+      let lastData: Record<string, unknown> = {};
+      let guard = 0;
+      do {
+        const res = await fetch(apiUrl("/api/scrape"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...body, incremental: true }),
+        });
+        let data: Record<string, unknown> = {};
+        try { data = await res.json(); } catch { /* non-JSON response */ }
+        if (!res.ok) { setUrlError((data.error as string) || `Server error ${res.status}`); break; }
+        lastData = data;
+        status = (data.status as string) || "done";
+        guard += 1;
+      } while (status === "incomplete" && guard < 200);
+
+      stopPoll();
+      jobIdRef.current = null;
       pollTickRef.current = 0;
-      pollRef.current = setInterval(pollProgress, 1000);
+      wasRunningRef.current = false;
+      setJustFinished(true);
+      await fetchArticles();
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+      if (status === "done") {
+        toast({
+          title: "Scraping selesai!",
+          description: `${lastData.success ?? 0} berhasil · ${lastData.partial ?? 0} partial · ${lastData.failed ?? 0} gagal`,
+        });
+      } else if (status === "error") {
+        toast({ title: "Scraping gagal", description: String(lastData.error || ""), variant: "destructive" });
+      }
     } catch (err: unknown) {
+      stopPoll();
+      jobIdRef.current = null;
       const msg = err instanceof Error ? err.message : String(err);
       setUrlError(`Gagal: ${msg}`);
     }

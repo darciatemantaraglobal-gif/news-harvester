@@ -8,12 +8,10 @@ from datetime import datetime, date, timedelta
 from flask import Flask, send_from_directory, request, jsonify, Response, g
 import hashlib
 from flask_cors import CORS
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
 from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch, get_active_model
+import db_services
 from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
@@ -429,9 +427,12 @@ DEFAULT_SCHEDULER = {
     "last_run_mode": "full",
 }
 
-# APScheduler — background, survives across requests
-_scheduler = BackgroundScheduler(timezone="Asia/Jakarta")
-_scheduler.start()
+# [VERCEL SERVERLESS] APScheduler dihapus dari alur utama — background scheduler
+# tidak bisa hidup lintas invocation di serverless. Penjadwalan sekarang dilakukan
+# oleh Vercel Cron yang memanggil POST /api/cron/run-ingestion (lihat vercel.json
+# `crons` + handler di bawah). `_load_scheduler_settings`/`_save_scheduler_settings`
+# TETAP dipakai murni sebagai penyimpanan konfigurasi jadwal untuk UI —
+# eksekusinya sendiri sudah tidak lagi dipicu dari proses Flask ini.
 
 
 def _load_scheduler_settings() -> dict:
@@ -451,10 +452,12 @@ def _save_scheduler_settings(data: dict):
 
 
 def _next_run_iso() -> str | None:
-    """Kembalikan waktu eksekusi berikutnya dari APScheduler sebagai ISO string."""
-    job = _scheduler.get_job("scheduled_scrape")
-    if job and job.next_run_time:
-        return job.next_run_time.strftime("%Y-%m-%dT%H:%M:%S")
+    """
+    [VERCEL SERVERLESS] Tidak ada lagi APScheduler in-process untuk ditanya
+    next_run_time-nya — jadwal berikutnya sekarang ditentukan oleh ekspresi
+    cron di vercel.json (dikelola Vercel, bukan proses ini). Dibiarkan sebagai
+    stub agar endpoint lama yang memanggilnya tidak error; selalu None.
+    """
     return None
 
 
@@ -523,11 +526,6 @@ def _run_scheduled_scrape():
         logging.warning("[SCHEDULER] Tidak ada sumber yang dikonfigurasi, scraping dibatalkan.")
         return
 
-    with state_lock:
-        if scrape_state["running"]:
-            logging.warning("[SCHEDULER] Scraping sedang berjalan, jadwal dilewati.")
-            return
-
     added = 0
 
     # ── Web scraping ──
@@ -535,7 +533,8 @@ def _run_scheduled_scrape():
         logging.info(f"[SCHEDULER] Web scraping terjadwal: {url} | mode={mode}")
         settings = _load_settings()
         before_count = len(_load_articles())
-        _run_scrape(url, settings, mode, scheduled=True, incremental=incremental)
+        job_id = str(_uuid.uuid4())
+        _run_scrape_sync(job_id, url, settings, mode, scheduled=True, incremental=incremental, max_new_articles=0)
         after_count = len(_load_articles())
         added += max(0, after_count - before_count)
 
@@ -554,40 +553,15 @@ def _run_scheduled_scrape():
 
 
 def _apply_scheduler(cfg: dict):
-    """Terapkan job APScheduler sesuai settings. Hapus job lama dahulu."""
-    _scheduler.remove_job("scheduled_scrape") if _scheduler.get_job("scheduled_scrape") else None
+    """
+    [VERCEL SERVERLESS] Stub — tidak ada lagi APScheduler in-process job untuk
+    didaftarkan. Jadwal aktual (kapan `POST /api/cron/run-ingestion` dipicu)
+    dikonfigurasi lewat `crons` di vercel.json, yang harus di-set ulang manual
+    di Vercel dashboard/`vercel.json` kalau user mengubah interval/jam di sini.
+    Dibiarkan sebagai no-op agar endpoint lama yang memanggilnya tidak error.
+    """
+    return
 
-    if not cfg.get("enabled") or cfg.get("interval") == "manual":
-        return  # Tidak ada jadwal
-
-    time_str = cfg.get("time_of_day", "06:00")
-    try:
-        h, m = time_str.split(":")
-        hour, minute = int(h), int(m)
-    except Exception:
-        hour, minute = 6, 0
-
-    interval = cfg.get("interval")
-    if interval == "daily":
-        trigger = CronTrigger(hour=hour, minute=minute, timezone="Asia/Jakarta")
-    elif interval == "weekly":
-        dow = cfg.get("day_of_week", "mon")
-        trigger = CronTrigger(day_of_week=dow, hour=hour, minute=minute, timezone="Asia/Jakarta")
-    else:
-        return
-
-    _scheduler.add_job(
-        _run_scheduled_scrape,
-        trigger=trigger,
-        id="scheduled_scrape",
-        replace_existing=True,
-        misfire_grace_time=300,
-    )
-    logging.info(f"[SCHEDULER] Job terdaftar: interval={interval}, jam={hour:02d}:{minute:02d}")
-
-
-# Terapkan scheduler dari settings yang tersimpan saat startup
-_apply_scheduler(_load_scheduler_settings())
 
 DEFAULT_SETTINGS = {
     "article_link_selector": 'a[href*="/berita/"]',
@@ -639,62 +613,65 @@ def _save_last_job(url: str, mode: str, start_date: date | None, end_date: date 
         json.dump(job, f, ensure_ascii=False, indent=2)
 
 
-# State global untuk progress tracking
-scrape_state = {
-    "running": False,
-    "cancelled": False,   # set by reset-all to abort in-flight scrape saves
-    "phase": "idle",      # idle, listing, scraping, done
-    "current": 0,
-    "total": 0,
-    "success": 0,
-    "partial": 0,
-    "failed": 0,
-    "duplicate": 0,
-    "logs": [],
-    "articles": [],
-}
-state_lock = threading.Lock()
+# [VERCEL SERVERLESS] Tidak ada lagi state in-memory / threading.Lock global —
+# tiap invocation serverless adalah proses terpisah, jadi progress scraping
+# sekarang disimpan per job_id di tabel Supabase scrape_jobs (lihat db_services.py
+# create_scrape_job / update_scrape_job / get_scrape_job).
+
+
+class _ScrapeLimitReached(Exception):
+    """Internal signal: cukup artikel baru sudah didapat di invocation ini."""
+    pass
 
 
 def _load_articles() -> list:
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    """
+    [VERCEL SERVERLESS] Sumber kebenaran satu-satunya: tabel Supabase
+    scraped_articles_draft. Disk lokal TIDAK dipakai lagi (ephemeral di Vercel).
+    """
+    return db_services.get_scraped_articles()
 
 
 def _save_articles(data: list):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    db_services.save_scraped_articles(data)
 
 
-def _progress_callback(msg, **kwargs):
-    with state_lock:
-        scrape_state["logs"].append(msg)
-        for k, v in kwargs.items():
-            if k in scrape_state:
-                scrape_state[k] = v
+def _run_scrape_sync(job_id: str, url: str, settings: dict, mode: str,
+                      start_date: date | None = None, end_date: date | None = None,
+                      incremental: bool = True, scheduled: bool = False,
+                      max_new_articles: int = 20) -> dict:
+    """
+    [VERCEL SERVERLESS] Versi sinkron dari scraping — jalan sampai selesai di dalam
+    SATU request/response cycle (tidak ada background thread lagi).
 
+    Karena serverless function punya batas waktu (default Vercel Hobby: 10s,
+    Pro: hingga 60s/300s tergantung config maxDuration), `max_new_articles`
+    membatasi jumlah artikel BARU yang diambil per invocation. Kalau limit
+    tercapai sebelum semua halaman selesai di-scrape, status job jadi
+    "incomplete" — frontend harus memanggil ulang endpoint yang sama
+    (incremental=True) untuk melanjutkan, karena progress sudah tersimpan.
 
-def _run_scrape(url: str, settings: dict, mode: str,
-                start_date: date | None = None, end_date: date | None = None,
-                incremental: bool = True, scheduled: bool = False):
+    Progress ditulis ke tabel Supabase scrape_jobs (job_id) supaya bisa
+    di-poll oleh request/invocation lain (GET /api/progress?job_id=...).
+    """
     run_label = "[SCHEDULED]" if scheduled else "[MANUAL]"
-    # Simpan parameter job ini agar bisa di-restart setelah reset
     if not scheduled:
         _save_last_job(url, mode, start_date, end_date)
-    with state_lock:
-        scrape_state["running"] = True
-        scrape_state["cancelled"] = False   # clear any previous cancellation
-        scrape_state["phase"] = "listing"
-        scrape_state["current"] = 0
-        scrape_state["total"] = 0
-        scrape_state["success"] = 0
-        scrape_state["partial"] = 0
-        scrape_state["failed"] = 0
-        scrape_state["duplicate"] = 0
-        scrape_state["logs"] = [f"{run_label} Memulai scraping: {url}"]
-        scrape_state["articles"] = []
+
+    logs = [f"{run_label} Memulai scraping: {url}"]
+    counters = {"success": 0, "partial": 0, "failed": 0, "duplicate": 0}
+    db_services.create_scrape_job(
+        job_id, status="running", phase="listing", current=0, total=0,
+        logs=logs[-50:], **counters,
+    )
+
+    def _progress_callback(msg, **kwargs):
+        logs.append(msg)
+        fields = {"logs": logs[-50:]}
+        for k in ("phase", "current", "total"):
+            if k in kwargs:
+                fields[k] = kwargs[k]
+        db_services.update_scrape_job(job_id, **fields)
 
     try:
         # ── Auto-detect selectors untuk non-kemlu sites ───────────────────────
@@ -702,7 +679,6 @@ def _run_scrape(url: str, settings: dict, mode: str,
             detected = auto_detect_selectors(url, log_fn=_progress_callback)
             if detected:
                 settings = {**settings, **detected}
-                # Simpan selector yang terdeteksi ke file settings agar persistent
                 try:
                     cfg = _load_settings()
                     cfg.update(detected)
@@ -715,59 +691,61 @@ def _run_scrape(url: str, settings: dict, mode: str,
         if not incremental:
             _progress_callback(f"{run_label} Mode full refresh — data lama dibersihkan.")
 
-        # Merged list yang akan di-update secara inkremental
         merged = list(existing)
         merged_urls = {a["url"] for a in existing}
+        new_count = 0
 
         def _article_callback(article):
-            """Dipanggil setelah setiap artikel berhasil di-scrape — simpan segera ke disk."""
+            """Dipanggil setelah setiap artikel berhasil di-scrape — simpan segera."""
+            nonlocal new_count
             url_key = article.get("url", "")
-            with state_lock:
-                # If reset was called while we were scraping, discard this write
-                if scrape_state.get("cancelled"):
-                    return
-                if url_key and url_key in merged_urls:
-                    return
-                if url_key:
-                    merged_urls.add(url_key)
-                merged.append(article)
-                # Update running counters
-                s = article.get("status", "")
-                if s == "success":
-                    scrape_state["success"] += 1
-                elif s == "partial":
-                    scrape_state["partial"] += 1
-                elif s == "failed":
-                    scrape_state["failed"] += 1
+            if url_key and url_key in merged_urls:
+                return
+            if url_key:
+                merged_urls.add(url_key)
+            merged.append(article)
+            s = article.get("status", "")
+            if s in counters:
+                counters[s] += 1
+            new_count += 1
             _save_articles(merged)
+            db_services.update_scrape_job(job_id, **counters)
+            if max_new_articles and new_count >= max_new_articles:
+                raise _ScrapeLimitReached()
 
-        scrape_all(
-            url,
-            settings=settings,
-            mode=mode,
-            existing_articles=existing,
-            progress_callback=_progress_callback,
-            start_date=start_date,
-            end_date=end_date,
-            article_callback=_article_callback,
+        incomplete = False
+        try:
+            scrape_all(
+                url,
+                settings=settings,
+                mode=mode,
+                existing_articles=existing,
+                progress_callback=_progress_callback,
+                start_date=start_date,
+                end_date=end_date,
+                article_callback=_article_callback,
+            )
+        except _ScrapeLimitReached:
+            incomplete = True
+            logs.append(f"{run_label} Batas {max_new_articles} artikel baru tercapai — panggil ulang untuk lanjut.")
+
+        _save_articles(merged)
+
+        final_status = "incomplete" if incomplete else "done"
+        db_services.update_scrape_job(
+            job_id, status=final_status, phase="done", logs=logs[-50:], **counters,
         )
-
-        # Final save — skip if reset was called mid-scrape
-        with state_lock:
-            was_cancelled = scrape_state.get("cancelled", False)
-        if not was_cancelled:
-            _save_articles(merged)
-
-        with state_lock:
-            scrape_state["articles"] = merged
-            scrape_state["phase"] = "done"
+        return {
+            "job_id": job_id,
+            "status": final_status,
+            "new_articles": new_count,
+            "total_articles": len(merged),
+            **counters,
+        }
     except Exception as e:
-        with state_lock:
-            scrape_state["logs"].append(f"FATAL ERROR: {str(e)}")
-            scrape_state["phase"] = "done"
-    finally:
-        with state_lock:
-            scrape_state["running"] = False
+        logs.append(f"FATAL ERROR: {str(e)}")
+        db_services.update_scrape_job(job_id, status="error", phase="done", logs=logs[-50:], error=str(e))
+        return {"job_id": job_id, "status": "error", "error": str(e)}
 
 
 # ─── Routes ─────────────────────────────────────────
@@ -835,9 +813,16 @@ def _parse_date_param(s: str | None) -> date | None:
 
 @app.route("/api/scrape", methods=["POST"])
 def api_scrape():
-    with state_lock:
-        if scrape_state["running"]:
-            return jsonify({"error": "Scraping sedang berjalan"}), 409
+    """
+    [VERCEL SERVERLESS] Scraping sekarang berjalan SINKRON di dalam request ini
+    (tidak ada threading.Thread lagi — tidak ada proses background yang bisa
+    hidup lebih lama dari invocation function ini).
+
+    Kirim `job_id` yang sama di request berikutnya (dengan `incremental: true`,
+    default) untuk MELANJUTKAN scraping yang sama kalau response sebelumnya
+    berstatus "incomplete" (artinya limit `max_new_articles` tercapai duluan
+    sebelum semua halaman selesai).
+    """
     data = request.get_json(force=True)
     url = (data.get("url") or "").strip()
     mode = (data.get("mode") or "full").strip()
@@ -864,31 +849,51 @@ def api_scrape():
     else:
         end_date = None  # "all" → no cap
 
+    max_new_articles = data.get("max_new_articles")
+    try:
+        max_new_articles = int(max_new_articles) if max_new_articles is not None else 20
+    except (TypeError, ValueError):
+        max_new_articles = 20
+
+    job_id = (data.get("job_id") or "").strip() or str(_uuid.uuid4())
+    incremental = bool(data.get("incremental", True))
+
     settings = _load_settings()
-    threading.Thread(
-        target=_run_scrape,
-        args=(url, settings, mode, start_date, end_date),
-        daemon=True,
-    ).start()
-    return jsonify({"status": "started", "date_filter": date_filter,
-                    "start_date": start_date.isoformat() if start_date else None,
-                    "end_date": end_date.isoformat() if end_date else None})
+    result = _run_scrape_sync(
+        job_id, url, settings, mode,
+        start_date=start_date, end_date=end_date,
+        incremental=incremental, max_new_articles=max_new_articles,
+    )
+    return jsonify({
+        **result,
+        "date_filter": date_filter,
+        "start_date": start_date.isoformat() if start_date else None,
+        "end_date": end_date.isoformat() if end_date else None,
+    })
 
 
 @app.route("/api/progress")
 def api_progress():
-    with state_lock:
-        return jsonify({
-            "running": scrape_state["running"],
-            "phase": scrape_state["phase"],
-            "current": scrape_state["current"],
-            "total": scrape_state["total"],
-            "success": scrape_state["success"],
-            "partial": scrape_state["partial"],
-            "failed": scrape_state["failed"],
-            "duplicate": scrape_state["duplicate"],
-            "logs": scrape_state["logs"][-50:],  # kirim 50 log terakhir
-        })
+    """Baca progress scraping dari Supabase scrape_jobs by job_id (?job_id=...)."""
+    job_id = (request.args.get("job_id") or "").strip()
+    if not job_id:
+        return jsonify({"error": "job_id wajib diisi (dikembalikan oleh POST /api/scrape)"}), 400
+    job = db_services.get_scrape_job(job_id)
+    if not job:
+        return jsonify({"error": "Job tidak ditemukan"}), 404
+    return jsonify({
+        "job_id": job_id,
+        "running": job.get("status") == "running",
+        "status": job.get("status"),
+        "phase": job.get("phase"),
+        "current": job.get("current", 0),
+        "total": job.get("total", 0),
+        "success": job.get("success", 0),
+        "partial": job.get("partial", 0),
+        "failed": job.get("failed", 0),
+        "duplicate": job.get("duplicate", 0),
+        "logs": (job.get("logs") or [])[-50:],
+    })
 
 
 @app.route("/api/articles")
@@ -1458,22 +1463,17 @@ def api_articles_clear_all():
 
 @app.route("/api/reset-all", methods=["POST"])
 def api_reset_all():
-    """Reset semua data: artikel, KB Draft, dan progress/log."""
-    global scrape_state
+    """
+    Reset semua data: artikel, KB Draft.
+    [VERCEL SERVERLESS] Tidak ada lagi background thread untuk dibatalkan —
+    scraping selalu selesai (atau berstatus "incomplete") sebelum request
+    /api/scrape sebelumnya mengembalikan response, jadi tidak ada race
+    condition untuk ditangani di sini lagi.
+    """
     # Count existing items for the response
     article_count = len(_load_articles())
     kb_count = len(_load_kb())
 
-    # Step 1: cancel any in-flight scrape BEFORE clearing files, so the
-    # background thread won't overwrite the empty files when it finishes
-    with state_lock:
-        scrape_state["cancelled"] = True
-
-    # Step 2: brief pause so any _save_articles call already inside the lock
-    # can finish, then our write wins cleanly
-    time.sleep(0.15)
-
-    # Step 3: now safe to clear files
     _save_articles([])
     _save_kb([])
 
@@ -1484,22 +1484,6 @@ def api_reset_all():
                 os.remove(f)
         except Exception:
             pass
-
-    # Reset progress/log and lift the cancellation flag
-    with state_lock:
-        scrape_state.update({
-            "running": False,
-            "cancelled": False,
-            "phase": "idle",
-            "current": 0,
-            "total": 0,
-            "success": 0,
-            "partial": 0,
-            "failed": 0,
-            "duplicate": 0,
-            "logs": [],
-            "articles": [],
-        })
 
     return jsonify({
         "status": "ok",
@@ -1581,18 +1565,15 @@ def _now_iso() -> str:
 
 
 def _load_kb() -> list:
-    if os.path.exists(KB_FILE):
-        try:
-            with open(KB_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return []
+    """
+    [VERCEL SERVERLESS] Sumber kebenaran satu-satunya: tabel Supabase
+    kb_articles_draft. Disk lokal TIDAK dipakai lagi (ephemeral di Vercel).
+    """
+    return db_services.get_kb_articles()
 
 
 def _save_kb(data: list):
-    with open(KB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    db_services.save_kb_articles(data)
 
 
 def _load_file(path: str) -> list:
@@ -2941,21 +2922,17 @@ def scheduler_status():
         "last_run_url": cfg.get("last_run_url", ""),
         "last_run_mode": cfg.get("last_run_mode", "full"),
         "next_run_at": _next_run_iso(),
-        "scraper_running": scrape_state["running"],
     })
 
 
 @app.route("/api/scheduler/run-now", methods=["POST"])
 def scheduler_run_now():
-    """Jalankan scheduled scrape sekarang juga (manual trigger)."""
-    with state_lock:
-        if scrape_state["running"]:
-            return jsonify({"error": "Scraping sedang berjalan"}), 409
+    """Jalankan scheduled scrape sekarang juga (manual trigger, sinkron)."""
     cfg = _load_scheduler_settings()
     if not cfg.get("url", "").strip():
         return jsonify({"error": "URL scheduler belum dikonfigurasi"}), 400
-    threading.Thread(target=_run_scheduled_scrape, daemon=True).start()
-    return jsonify({"status": "started"})
+    _run_scheduled_scrape()
+    return jsonify({"status": "done"})
 
 
 def _log_startup_info():
@@ -4494,7 +4471,45 @@ def api_muqarrar_ask():
         return jsonify({"error": str(e)}), 500
 
 
+# ─── Vercel Cron entry point ──────────────────────────────────────────────────
+# [VERCEL SERVERLESS] Replaces the in-process APScheduler job. Configure a
+# matching `crons` entry in vercel.json pointing at this path; Vercel invokes
+# it on schedule with a GET request carrying an `Authorization: Bearer
+# <CRON_SECRET>` header (Vercel sets this automatically to the value of the
+# CRON_SECRET env var — see vercel.json comments / migration report).
+@app.route("/api/cron/run-ingestion", methods=["GET", "POST"])
+def api_cron_run_ingestion():
+    expected = os.environ.get("CRON_SECRET")
+    if not expected:
+        return jsonify({"error": "CRON_SECRET belum di-set di environment"}), 500
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header != f"Bearer {expected}":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    from integration.pipeline import run_scheduled_news_ingestion
+
+    cfg = _load_scheduler_settings()
+    url = cfg.get("url", "").strip()
+    mode = cfg.get("scrape_mode", "full")
+    incremental = cfg.get("incremental", True)
+
+    try:
+        result = run_scheduled_news_ingestion(url=url, mode=mode, incremental=incremental)
+    except Exception as e:
+        logger.error(f"[CRON] run-ingestion gagal: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    try:
+        cfg["last_run_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        cfg["last_run_articles_added"] = result.get("scraped_count", 0)
+        cfg["last_run_url"] = url
+        cfg["last_run_mode"] = mode
+        _save_scheduler_settings(cfg)
+    except Exception:
+        pass
+
+    return jsonify(result)
+
+
 if __name__ == "__main__":
-    # use_reloader=False: prevents Werkzeug stat reloader from restarting the process
-    # mid-scrape (which would wipe in-memory scrape_state and cause progress log to blank out)
     app.run(host="0.0.0.0", port=8000, debug=False, use_reloader=False)

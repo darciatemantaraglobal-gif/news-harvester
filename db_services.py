@@ -441,6 +441,118 @@ def muqarrar_list_kitab() -> list:
         return []
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# VERCEL SERVERLESS MIGRATION — persistence moved from local JSON to Supabase
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# scraped_articles_draft — replaces data/scraped_articles.json
+# kb_articles_draft      — replaces data/kb_articles.json
+# scrape_jobs            — replaces the in-memory scrape_state global
+#
+# Local disk is ephemeral/read-only on Vercel serverless, so these tables are
+# now the SOLE source of truth (no local fallback). If Supabase env vars are
+# missing, callers get a clear RuntimeError instead of a silent no-op.
+# See supabase_setup.sql / muqarrar_setup.sql for the existing DDL pattern —
+# DDL for these three new tables ships alongside this migration.
+
+def get_scraped_articles() -> list:
+    """Ambil semua draft artikel hasil scrape dari scraped_articles_draft, urut terbaru duluan."""
+    sb = get_supabase()
+    result = (
+        sb.table("scraped_articles_draft")
+        .select("data")
+        .order("scraped_at", desc=True)
+        .execute()
+    )
+    return [row["data"] for row in (result.data or [])]
+
+
+def save_scraped_articles(articles: list) -> None:
+    """
+    Ganti TOTAL isi scraped_articles_draft dengan `articles` (replace-all semantics,
+    sama seperti _save_articles() versi file JSON lama).
+    Setiap artikel disimpan sebagai satu baris: url (unique key) + data (JSONB penuh).
+    """
+    sb = get_supabase()
+    sb.table("scraped_articles_draft").delete().neq("url", "").execute()
+    if not articles:
+        return
+    rows = [{"url": a.get("url") or a.get("id") or "", "data": a} for a in articles]
+    batch_size = 200
+    for i in range(0, len(rows), batch_size):
+        sb.table("scraped_articles_draft").upsert(rows[i:i + batch_size], on_conflict="url").execute()
+
+
+def get_kb_articles() -> list:
+    """Ambil semua KB draft dari kb_articles_draft, urut terbaru duluan."""
+    sb = get_supabase()
+    result = (
+        sb.table("kb_articles_draft")
+        .select("data")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return [row["data"] for row in (result.data or [])]
+
+
+def save_kb_articles(articles: list) -> None:
+    """Ganti TOTAL isi kb_articles_draft dengan `articles` (replace-all semantics)."""
+    sb = get_supabase()
+    sb.table("kb_articles_draft").delete().neq("article_id", "").execute()
+    if not articles:
+        return
+    rows = [{"article_id": str(a.get("id") or a.get("url") or ""), "data": a} for a in articles]
+    batch_size = 200
+    for i in range(0, len(rows), batch_size):
+        sb.table("kb_articles_draft").upsert(rows[i:i + batch_size], on_conflict="article_id").execute()
+
+
+def create_scrape_job(job_id: str, **fields) -> None:
+    """Buat baris job baru di scrape_jobs (dipanggil saat scrape dimulai)."""
+    sb = get_supabase()
+    row = {
+        "job_id": job_id,
+        "status": fields.pop("status", "running"),
+        "phase": fields.pop("phase", "listing"),
+        "current": fields.pop("current", 0),
+        "total": fields.pop("total", 0),
+        "success": fields.pop("success", 0),
+        "partial": fields.pop("partial", 0),
+        "failed": fields.pop("failed", 0),
+        "duplicate": fields.pop("duplicate", 0),
+        "logs": fields.pop("logs", []),
+    }
+    row.update(fields)
+    sb.table("scrape_jobs").upsert(row, on_conflict="job_id").execute()
+
+
+def update_scrape_job(job_id: str, **fields) -> None:
+    """Update kolom job yang ada (progress, status, logs, dst). Silent no-op kalau gagal."""
+    try:
+        sb = get_supabase()
+        fields["updated_at"] = _now_iso_utc()
+        sb.table("scrape_jobs").update(fields).eq("job_id", job_id).execute()
+    except Exception as e:
+        logger.warning(f"[SCRAPE-JOB] Gagal update job {job_id}: {e}")
+
+
+def get_scrape_job(job_id: str) -> dict | None:
+    """Baca satu scrape job by id. Return None kalau tidak ditemukan / Supabase tidak tersedia."""
+    try:
+        sb = get_supabase()
+        result = sb.table("scrape_jobs").select("*").eq("job_id", job_id).limit(1).execute()
+        rows = result.data or []
+        return rows[0] if rows else None
+    except Exception as e:
+        logger.warning(f"[SCRAPE-JOB] Gagal ambil job {job_id}: {e}")
+        return None
+
+
+def _now_iso_utc() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def muqarrar_delete_kitab(kitab_id: str) -> bool:
     """Hapus semua chunks milik satu kitab (semua sub-chunks semua halaman)."""
     try:
