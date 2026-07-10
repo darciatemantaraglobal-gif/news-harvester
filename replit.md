@@ -48,12 +48,15 @@ Two workflows run in parallel:
 
 ## Environment Variables
 
-- `OPENAI_API_KEY` — Required for AI summary generation (not yet set; feature disabled until provided)
-- `SUPABASE_URL` — Required for Supabase database sync (not yet set; feature disabled until provided)
-- `SUPABASE_SERVICE_ROLE_KEY` — Required for Supabase database sync (not yet set; feature disabled until provided)
-- `VITE_API_URL` — Optional; frontend uses relative URLs by default
+- `OPENROUTER_API_KEY` — Set. AI Summary/OCR now route through OpenRouter (OpenAI-compatible API) instead of OpenAI directly.
+- `OPENROUTER_MODEL` — Optional; defaults to `openai/gpt-4o-mini` on OpenRouter.
+- `OPENAI_API_KEY` — Fallback only; used if `OPENROUTER_API_KEY` is not set (not currently set).
+- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — Required for Supabase database sync (not yet set; feature disabled until provided).
+- `VITE_API_URL` — Optional; frontend uses relative URLs by default.
 
 Database stays on Supabase — do not migrate to Replit's built-in database.
+
+`ai_services.py` picks OpenRouter over OpenAI automatically whenever `OPENROUTER_API_KEY` is present (see `get_openai_client`/`get_active_model`). All AI call sites in `app.py` were updated to use `get_active_model()` instead of hardcoded `gpt-4o`/`gpt-4o-mini` strings, and the two spots that built their own `openai.OpenAI(...)` client directly were switched to `ai_services.get_openai_client()` so they respect the same provider switch.
 
 ## Setup Notes (Replit import)
 
