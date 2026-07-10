@@ -1,0 +1,43 @@
+KERJAKAN TAHAP INI BERURUTAN. Jangan lompat ke tahap berikutnya kalau tahap sebelumnya menemukan masalah yang belum diselesaikan — laporkan dulu di tengah proses kalau menemukan sesuatu yang kontradiktif dengan asumsi di bawah.
+
+## TAHAP 0 — Verifikasi realita deployment (WAJIB, jangan skip)
+
+Sebelum ubah kode apapun, konfirmasi ulang:
+1. Cek apakah project ini benar-benar terhubung ke Vercel — cari file `.vercel/project.json` (biasanya ada kalau pernah di-link via Vercel CLI), atau environment variable apapun yang mengandung "VERCEL".
+2. Kalau tidak ada `vercel.json` maupun folder `api/`, dan tidak ada bukti link ke Vercel di repo ini — laporkan temuan ini SEBELUM lanjut, karena artinya konfigurasi deployment Vercel yang sebenarnya kemungkinan besar diatur manual di luar repo (lewat Vercel dashboard, root directory settings, dsb) dan mungkin TIDAK menjalankan app.py dengan cara yang saya kira. Tuliskan hipotesis terbaik Anda soal bagaimana app ini sebenarnya berjalan di Vercel saat ini.
+3. Tetap lanjut ke Tahap 1-2 di bawah setelah melaporkan temuan Tahap 0 — karena apapun hasilnya, perbaikan di bawah ini tetap dibutuhkan supaya app kompatibel dengan serverless.
+
+## TAHAP 1 — Buat app ini benar-benar kompatibel Vercel serverless
+
+### 1a. Entry point serverless
+- Buat `vercel.json` di root dengan konfigurasi Python runtime (`@vercel/python`) yang mengarahkan semua request ke `app.py`, DAN build step untuk frontend React/Vite (`npm run build`, output ke `dist`, di-serve sebagai static).
+- Buat folder `api/` berisi entry point yang mengekspos Flask app `app.py` sebagai WSGI handler sesuai konvensi Vercel Python runtime terbaru (cek dokumentasi format yang saat ini didukung Vercel untuk Flask/WSGI apps — jangan pakai pola lama yang sudah deprecated).
+- Pastikan static build frontend (dari `npm run build`) ke-serve dengan benar berdampingan dengan API routes, dan routing SPA (React Router) tetap berfungsi (fallback ke index.html untuk route non-API).
+
+### 1b. Hilangkan ketergantungan pada background thread untuk scraping
+- Ganti pola `threading.Thread(daemon=True)` di endpoint scrape jadi EKSEKUSI SINKRON dalam satu request-response cycle, dengan timeout yang wajar (target di bawah 60 detik — kalau ada scraping yang berpotensi lebih lama dari itu, batasi jumlah halaman/artikel yang diproses per-request dan desain endpoint agar bisa dipanggil ulang secara bertahap/pagination dari frontend, bukan mengandalkan proses background).
+- Hapus state in-memory `scrape_state` global — ganti dengan menyimpan progress ke Supabase (tabel baru `scrape_jobs` dengan kolom job_id, status, progress_current, progress_total, updated_at) supaya progress bisa dibaca lintas invocation/instance.
+- Update frontend (halaman yang menampilkan progress scraping) untuk polling status dari endpoint baru yang membaca `scrape_jobs` di Supabase, bukan dari state in-memory.
+
+### 1c. Ganti APScheduler dengan Vercel Cron
+- Hapus dependency APScheduler dari alur utama.
+- Buat endpoint baru `POST /api/cron/run-ingestion` yang menjalankan logic yang sama seperti `run_scheduled_news_ingestion()` di integration/pipeline.py, tapi dipicu oleh HTTP request (bukan scheduler internal).
+- Tambahkan konfigurasi `crons` di `vercel.json` yang memanggil endpoint ini sesuai jadwal yang sebelumnya dipakai APScheduler.
+- Amankan endpoint ini dengan cek header `Authorization` terhadap secret khusus cron (env var baru `CRON_SECRET`), supaya tidak sembarang orang bisa memicu ingestion manual lewat endpoint publik ini.
+
+## TAHAP 2 — Persistence draft artikel ke Supabase
+
+Saat ini `scraped_articles.json` dan `kb_articles.json` hanya ditulis ke disk lokal (`_load_articles`/`_save_articles`, `_load_kb`/`_save_kb` di app.py) — ini TIDAK AKAN JALAN di Vercel serverless (filesystem read-only/ephemeral).
+
+- Buat tabel Supabase baru: `kb_articles_draft` (semua field yang ada di kb_articles.json saat ini) dan `scraped_articles_draft` (raw hasil scrape, semua field di scraped_articles.json saat ini).
+- Ganti total `_load_kb`/`_save_kb`/`_load_articles`/`_save_articles` supaya Supabase jadi SATU-SATUNYA source of truth (bukan lagi file JSON lokal + sync — karena di Vercel serverless, tulis ke disk lokal tidak ada gunanya sama sekali, akan hilang tiap invocation berbeda).
+- Kalau Supabase env var belum di-set saat startup, endpoint yang butuh data ini harus return error jelas ("Supabase belum dikonfigurasi") alih-alih diam-diam gagal atau nulis ke file yang tidak akan pernah terbaca lagi.
+- Migrasikan data yang SUDAH ADA di kb_articles.json/scraped_articles.json (kalau ada isinya) ke tabel Supabase yang baru dibuat, supaya tidak hilang saat perubahan ini di-deploy.
+
+## Catatan penting
+- JANGAN kerjakan apapun terkait fitur filter relevansi masisir di task ini — itu task terpisah yang menyusul setelah ini selesai dan sudah dites.
+- JANGAN ubah logic auth/CORS/security.
+- JANGAN hapus data artikel yang sudah ada.
+- Test setelah deploy ulang ke Vercel (bukan cuma Replit dev): scrape 1 artikel beneran sampai tersimpan dan bisa dibaca lagi lewat GET, cek progress job scraping bisa dipoll dan statusnya update dengan benar, cek endpoint cron bisa dipanggil manual dengan CRON_SECRET yang benar dan ditolak tanpa itu.
+
+Setelah selesai, laporkan: (1) hasil temuan Tahap 0 lengkap, (2) file yang dibuat/diubah, (3) DDL SQL lengkap untuk tabel Supabase baru (kb_articles_draft, scraped_articles_draft, scrape_jobs) yang perlu saya jalankan manual di SQL Editor, (4) env var baru yang perlu saya set di Vercel dashboard (termasuk CRON_SECRET), (5) konfirmasi apakah data lama berhasil dimigrasi, (6) hasil test end-to-end scrape setelah deploy ulang.
