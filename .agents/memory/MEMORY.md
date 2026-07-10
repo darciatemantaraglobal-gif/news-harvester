@@ -1,0 +1,1 @@
+- [PyMuPDF fitz package conflict](pymupdf-fitz-conflict.md) — never install a separate PyPI `fitz` package alongside PyMuPDF; it shadows PyMuPDF's own `fitz` module.

@@ -48,10 +48,19 @@ Two workflows run in parallel:
 
 ## Environment Variables
 
-- `OPENAI_API_KEY` — Required for AI summary generation
-- `SUPABASE_URL` — Required for Supabase database sync
-- `SUPABASE_KEY` — Required for Supabase database sync
+- `OPENAI_API_KEY` — Required for AI summary generation (not yet set; feature disabled until provided)
+- `SUPABASE_URL` — Required for Supabase database sync (not yet set; feature disabled until provided)
+- `SUPABASE_SERVICE_ROLE_KEY` — Required for Supabase database sync (not yet set; feature disabled until provided)
 - `VITE_API_URL` — Optional; frontend uses relative URLs by default
+
+Database stays on Supabase — do not migrate to Replit's built-in database.
+
+## Setup Notes (Replit import)
+
+- Both workflows are configured and run cleanly: **Start application** (`npm run dev`, port 5000) and **Flask Backend** (`python app.py`, port 8000).
+- `vitest` was bumped past `^3.2.4` because that exact version was blocked by Replit's package security firewall (CVE).
+- A stray PyPI package literally named `fitz` (unrelated neuroimaging tool) was installed alongside `PyMuPDF`, shadowing PyMuPDF's own `fitz` module and crashing the backend on import. It was removed — only `PyMuPDF` should ever be installed, never a separate `fitz` package.
+- To enable AI summaries and Supabase sync, provide `OPENAI_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` as secrets; the app runs fine without them, those features just stay inactive.
 
 ## Dependencies
 

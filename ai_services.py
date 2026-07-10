@@ -4,21 +4,46 @@ from formatter import format_aina_response
 
 _client = None
 
+# Jika OPENROUTER_API_KEY tersedia, pakai OpenRouter (kompatibel dengan OpenAI SDK).
+# Kalau tidak, fallback ke OPENAI_API_KEY langsung ke OpenAI.
+_OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+_OPENAI_MODEL = "gpt-4o-mini"
+
+
+def _using_openrouter() -> bool:
+    return bool(os.environ.get("OPENROUTER_API_KEY"))
+
+
+def get_active_model() -> str:
+    return _OPENROUTER_MODEL if _using_openrouter() else _OPENAI_MODEL
+
 
 def get_openai_client():
     global _client
     if _client is None:
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError(
-                "OPENAI_API_KEY tidak ditemukan di environment. "
-                "Fitur AI Summary tidak tersedia."
-            )
         try:
             from openai import OpenAI
-            _client = OpenAI(api_key=api_key)
         except ImportError:
             raise RuntimeError("Package 'openai' belum terinstall. Jalankan: pip install openai")
+
+        if _using_openrouter():
+            api_key = os.environ.get("OPENROUTER_API_KEY")
+            _client = OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1",
+                default_headers={
+                    "HTTP-Referer": os.environ.get("APP_URL", "https://replit.com"),
+                    "X-Title": "AINA Scraper",
+                },
+            )
+        else:
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                raise RuntimeError(
+                    "OPENAI_API_KEY atau OPENROUTER_API_KEY tidak ditemukan di environment. "
+                    "Fitur AI Summary tidak tersedia."
+                )
+            _client = OpenAI(api_key=api_key)
     return _client
 
 
@@ -32,7 +57,7 @@ def generate_ai_summary(title: str, content: str) -> str:
         "Fokus pada fakta utama, siapa yang terlibat, dan apa yang terjadi."
     )
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=get_active_model(),
         messages=[{"role": "user", "content": prompt}],
         max_tokens=300,
         temperature=0.3,
@@ -78,7 +103,7 @@ def ocr_arabic_pages_batch(page_images: list[bytes]) -> list[str]:
         })
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=get_active_model(),
         messages=[{"role": "user", "content": content}],
         max_tokens=800 * len(page_images),
         temperature=0.1,
@@ -113,5 +138,5 @@ def ocr_arabic_page(page_image_bytes: bytes) -> str:
 
 
 def check_openai_available() -> bool:
-    """Return True jika OpenAI API key tersedia."""
-    return bool(os.environ.get("OPENAI_API_KEY"))
+    """Return True jika OpenRouter atau OpenAI API key tersedia."""
+    return bool(os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"))

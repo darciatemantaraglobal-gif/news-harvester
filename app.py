@@ -14,7 +14,7 @@ from apscheduler.triggers.cron import CronTrigger
 import openai
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
-from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch
+from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch, get_active_model
 from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
 from kb_processor import generate_slug, generate_summary, generate_tags, convert_to_kb_format
 
@@ -956,7 +956,7 @@ def api_format_article(article_id):
             "PENTING: Tulis HANYA konten Markdown. Jangan tambahkan kata pengantar, penutup, atau komentar apapun dari kamu."
         )
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=get_active_model(),
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2500,
             temperature=0.1,
@@ -1378,7 +1378,7 @@ def api_ocr_poster():
         client = get_openai_client()
         ocr_prompt = OCR_TYPE_PROMPTS[ocr_type]
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=get_active_model(),
             messages=[{
                 "role": "user",
                 "content": [
@@ -2110,9 +2110,10 @@ Berdasarkan informasi di atas, buatlah analisis dalam format JSON berikut (jawab
 
 Jika bab tidak terdeteksi otomatis, identifikasi dari konten teks. Maksimal 20 bab."""
 
-        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+        from ai_services import get_openai_client, get_active_model
+        client = get_openai_client()
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=get_active_model(),
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2000,
             temperature=0.3,
@@ -2468,7 +2469,7 @@ def api_pdf_rapikan_file():
                 f"Teks:\n{raw_content[:4000]}"
             )
             resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=get_active_model(),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=2000,
                 temperature=0.05,
@@ -3603,7 +3604,7 @@ def _ocr_gpt4o(img_bytes: bytes, page_num: int, client, max_retries: int = 3) ->
     for attempt in range(max_retries):
         try:
             resp = client.chat.completions.create(
-                model="gpt-4o",
+                model=get_active_model(),
                 messages=[{
                     "role": "user",
                     "content": [
@@ -3901,7 +3902,7 @@ def api_muqarrar_detect():
 
         client = get_openai_client()
         resp = client.chat.completions.create(
-            model="gpt-4o",
+            model=get_active_model(),
             messages=[
                 {
                     "role": "system",
@@ -4231,7 +4232,8 @@ def api_muqarrar_clean_page():
     page_num = body.get("page_number", "?")
     kitab_name = body.get("kitab_name", "")
 
-    client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+    from ai_services import get_openai_client, get_active_model
+    client = get_openai_client()
     prompt = f"""Kamu adalah editor teks Arab yang ahli. Tugasmu: bersihkan hasil OCR dari kitab PDF Arab berikut.
 
 Aturan WAJIB:
@@ -4250,7 +4252,7 @@ Teks OCR mentah:
 
     try:
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=get_active_model(),
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             max_tokens=4096,
@@ -4471,7 +4473,7 @@ def api_muqarrar_ask():
         )
 
         resp = client.chat.completions.create(
-            model="gpt-4o",
+            model=get_active_model(),
             messages=[
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": user_msg},
