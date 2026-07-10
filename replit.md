@@ -62,7 +62,8 @@ AI provider is OpenRouter-only (`ai_services.get_openai_client()` uses the `open
 - Both workflows are configured and run cleanly: **Start application** (`npm run dev`, port 5000) and **Flask Backend** (`python app.py`, port 8000).
 - `vitest` was bumped past `^3.2.4` because that exact version was blocked by Replit's package security firewall (CVE).
 - A stray PyPI package literally named `fitz` (unrelated neuroimaging tool) was installed alongside `PyMuPDF`, shadowing PyMuPDF's own `fitz` module and crashing the backend on import. It was removed — only `PyMuPDF` should ever be installed, never a separate `fitz` package.
-- To enable AI summaries and Supabase sync, provide `OPENAI_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` as secrets; the app runs fine without them, those features just stay inactive.
+- To enable AI summaries and Supabase sync, provide `OPENROUTER_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` as secrets; the app runs fine without them, those features just stay inactive.
+- Re-imported and re-verified (2026-07-10): reinstalled Python deps from `requirements.txt` and npm deps from `package.json`; both workflows started cleanly. Keep the database on Supabase — do not migrate to Replit's built-in Postgres.
 
 ## Dependencies
 

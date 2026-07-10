@@ -1,0 +1,19 @@
+Tolong JANGAN ubah kode apapun dulu. Ini murni tugas investigasi/audit — laporkan temuan ke saya dalam bentuk ringkasan jelas.
+
+Saya perlu tau status deployment aplikasi ini yang sebenarnya. Tolong cek dan laporkan:
+
+1. Apakah ada file `vercel.json` di root repo? Kalau ada, tampilkan isinya lengkap.
+2. Apakah ada folder `api/` di root repo (pola yang dipakai Vercel untuk serverless functions Python)? Kalau ada, list isinya.
+3. Cek file `.replit`, `replit.nix`, `nixpacks.toml`, `Procfile` — apakah ada indikasi platform deployment yang sedang aktif dipakai vs yang cuma peninggalan config lama?
+4. Cek git remote/git log terakhir — apakah ada commit yang menyinggung "vercel", "deploy", atau perubahan konfigurasi deployment dalam 20 commit terakhir? Tampilkan commit message yang relevan.
+5. Cek apakah ada environment variable yang mereferensikan Vercel secara spesifik (misal VERCEL, VERCEL_URL, VERCEL_ENV) yang dipakai di app.py atau file config manapun.
+6. PENTING — cek apakah aplikasi ini pernah berhasil dites end-to-end setelah deploy: apakah ada bukti (log, catatan di replit.md, atau file lain) bahwa fitur login/scrape/simpan artikel BENERAN berfungsi di environment production saat ini (bukan cuma di Replit dev)?
+7. Konfirmasi: apakah folder `data/` (tempat users.json, kb_articles.json, scraped_articles.json disimpan) ini ditulis ke disk lokal container, atau sudah dialihkan untuk pakai Supabase sebagai storage utama? Cek semua fungsi `_load_*` dan `_save_*` di app.py untuk konfirmasi mana yang benar-benar jadi sumber kebenaran (source of truth) saat ini.
+
+Setelah investigasi selesai, buat ringkasan dalam format:
+- Platform deployment yang TERKONFIRMASI aktif dipakai (atau "tidak jelas/belum ada bukti" kalau memang tidak ketemu)
+- Status persistence data/*.json di production (works / tidak works / tidak yakin)
+- Status background scraping thread di production (works / tidak works / tidak yakin)
+- Rekomendasi singkat kalau memang ada mismatch antara kode (yang didesain untuk long-running server) dengan platform deployment yang sebenarnya dipakai
+
+JANGAN membuat asumsi atau menebak — kalau suatu informasi tidak bisa dipastikan dari isi repo, laporkan sebagai "tidak dapat dipastikan dari kode" saja.
