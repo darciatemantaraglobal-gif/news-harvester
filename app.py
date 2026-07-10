@@ -11,7 +11,6 @@ from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-import openai
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
 from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch, get_active_model
@@ -912,7 +911,7 @@ def api_format_article(article_id):
     """Rapikan konten artikel menggunakan AI."""
     from ai_services import get_openai_client, check_openai_available
     if not check_openai_available():
-        return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur ini membutuhkan OPENAI_API_KEY."}), 503
+        return jsonify({"error": "OpenRouter API key tidak ditemukan. Fitur ini membutuhkan OPENROUTER_API_KEY."}), 503
 
     articles = _load_articles()
     article = next((a for a in articles if a["id"] == article_id), None)
@@ -1216,7 +1215,7 @@ def api_format_text():
     """Rapikan teks artikel. Auto-deteksi Arab untuk rekonstruksi OCR yang kuat."""
     from ai_services import get_openai_client, check_openai_available
     if not check_openai_available():
-        return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur ini membutuhkan OPENAI_API_KEY."}), 503
+        return jsonify({"error": "OpenRouter API key tidak ditemukan. Fitur ini membutuhkan OPENROUTER_API_KEY."}), 503
 
     data = request.get_json(force=True) or {}
     title = data.get("title", "").strip()
@@ -1342,7 +1341,7 @@ def api_ocr_poster():
     import base64
     from PIL import Image as PILImage, ImageEnhance, ImageFilter
     if not check_openai_available():
-        return jsonify({"error": "OpenAI API key tidak ditemukan. Fitur OCR membutuhkan OPENAI_API_KEY."}), 503
+        return jsonify({"error": "OpenRouter API key tidak ditemukan. Fitur OCR membutuhkan OPENROUTER_API_KEY."}), 503
     if "image" not in request.files:
         return jsonify({"error": "Tidak ada file gambar yang dikirim."}), 400
     img_file = request.files["image"]
@@ -1992,7 +1991,7 @@ def api_pdf_learn():
     if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
         return jsonify({"error": "File harus berformat PDF."}), 400
     if not check_openai_available():
-        return jsonify({"error": "OPENAI_API_KEY tidak tersedia — fitur analisis AI tidak aktif."}), 503
+        return jsonify({"error": "OPENROUTER_API_KEY tidak tersedia — fitur analisis AI tidak aktif."}), 503
 
     try:
         pdf_bytes = pdf_file.read()
@@ -2189,7 +2188,7 @@ def _pdf_job_worker(job_id: str, files_data: list, category: str, chunk_size: in
         with _pdf_jobs_lock:
             _pdf_jobs[job_id].update({
                 "status": "done",
-                "progress": "OCR tidak bisa dijalankan — OPENAI_API_KEY belum diset.",
+                "progress": "OCR tidak bisa dijalankan — OPENROUTER_API_KEY belum diset.",
                 "done_files": 0,
                 "results": {
                     "status": "ok",
@@ -2197,11 +2196,11 @@ def _pdf_job_worker(job_id: str, files_data: list, category: str, chunk_size: in
                     "total": total_files,
                     "total_chunks": 0,
                     "results": [{"filename": f, "status": "error",
-                                 "error": "OPENAI_API_KEY tidak ditemukan. Set secret OPENAI_API_KEY di environment untuk menggunakan OCR."}
+                                 "error": "OPENROUTER_API_KEY tidak ditemukan. Set secret OPENROUTER_API_KEY di environment untuk menggunakan OCR."}
                                 for f, _ in files_data],
                 },
             })
-        logger.warning(f"[PDF JOB] {job_id} dibatalkan — OPENAI_API_KEY tidak ada")
+        logger.warning(f"[PDF JOB] {job_id} dibatalkan — OPENROUTER_API_KEY tidak ada")
         return
 
     _set_progress(f"Memulai pemrosesan {total_files} file...")
@@ -2966,9 +2965,9 @@ def _log_startup_info():
     logger.info("=" * 60)
 
     if check_openai_available():
-        logger.info("[ENV] OPENAI_API_KEY: tersedia ✓")
+        logger.info("[ENV] OPENROUTER_API_KEY: tersedia ✓")
     else:
-        logger.warning("[ENV] OPENAI_API_KEY: TIDAK DITEMUKAN — fitur AI Summary tidak aktif")
+        logger.warning("[ENV] OPENROUTER_API_KEY: TIDAK DITEMUKAN — fitur AI Summary tidak aktif")
 
     if check_supabase_available():
         logger.info("[ENV] SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY: tersedia ✓")
@@ -3874,7 +3873,7 @@ def api_muqarrar_detect():
     from ai_services import get_openai_client, check_openai_available
 
     if not check_openai_available():
-        return jsonify({"error": "OPENAI_API_KEY tidak ditemukan."}), 503
+        return jsonify({"error": "OPENROUTER_API_KEY tidak ditemukan."}), 503
 
     if "file" not in request.files:
         return jsonify({"error": "Tidak ada file yang dikirim."}), 400
@@ -4094,7 +4093,7 @@ def api_muqarrar_upload():
     """Mulai proses upload & embedding muqarrar PDF. Return job_id."""
     from ai_services import check_openai_available
     if not check_openai_available():
-        return jsonify({"error": "OPENAI_API_KEY tidak ditemukan."}), 503
+        return jsonify({"error": "OPENROUTER_API_KEY tidak ditemukan."}), 503
 
     if "file" not in request.files:
         return jsonify({"error": "Tidak ada file yang dikirim."}), 400
@@ -4384,7 +4383,7 @@ def api_muqarrar_ask():
     from db_services import muqarrar_fetch_chunks_for_search
 
     if not check_openai_available():
-        return jsonify({"error": "OPENAI_API_KEY tidak ditemukan."}), 503
+        return jsonify({"error": "OPENROUTER_API_KEY tidak ditemukan."}), 503
 
     data = request.get_json(force=True) or {}
     question = (data.get("question") or "").strip()

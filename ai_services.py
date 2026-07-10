@@ -4,18 +4,12 @@ from formatter import format_aina_response
 
 _client = None
 
-# Jika OPENROUTER_API_KEY tersedia, pakai OpenRouter (kompatibel dengan OpenAI SDK).
-# Kalau tidak, fallback ke OPENAI_API_KEY langsung ke OpenAI.
+# Semua fitur AI menggunakan OpenRouter (kompatibel dengan OpenAI SDK).
 _OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
-_OPENAI_MODEL = "gpt-4o-mini"
-
-
-def _using_openrouter() -> bool:
-    return bool(os.environ.get("OPENROUTER_API_KEY"))
 
 
 def get_active_model() -> str:
-    return _OPENROUTER_MODEL if _using_openrouter() else _OPENAI_MODEL
+    return _OPENROUTER_MODEL
 
 
 def get_openai_client():
@@ -26,24 +20,20 @@ def get_openai_client():
         except ImportError:
             raise RuntimeError("Package 'openai' belum terinstall. Jalankan: pip install openai")
 
-        if _using_openrouter():
-            api_key = os.environ.get("OPENROUTER_API_KEY")
-            _client = OpenAI(
-                api_key=api_key,
-                base_url="https://openrouter.ai/api/v1",
-                default_headers={
-                    "HTTP-Referer": os.environ.get("APP_URL", "https://replit.com"),
-                    "X-Title": "AINA Scraper",
-                },
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OPENROUTER_API_KEY tidak ditemukan di environment. "
+                "Fitur AI Summary tidak tersedia."
             )
-        else:
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                raise RuntimeError(
-                    "OPENAI_API_KEY atau OPENROUTER_API_KEY tidak ditemukan di environment. "
-                    "Fitur AI Summary tidak tersedia."
-                )
-            _client = OpenAI(api_key=api_key)
+        _client = OpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1",
+            default_headers={
+                "HTTP-Referer": os.environ.get("APP_URL", "https://replit.com"),
+                "X-Title": "AINA Scraper",
+            },
+        )
     return _client
 
 
@@ -138,5 +128,5 @@ def ocr_arabic_page(page_image_bytes: bytes) -> str:
 
 
 def check_openai_available() -> bool:
-    """Return True jika OpenRouter atau OpenAI API key tersedia."""
-    return bool(os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+    """Return True jika OpenRouter API key tersedia."""
+    return bool(os.environ.get("OPENROUTER_API_KEY"))
