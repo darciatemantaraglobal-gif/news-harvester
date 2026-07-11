@@ -4,7 +4,7 @@ import {
   ArrowLeft, Upload, BookOpen, Search, Trash2, Loader2,
   AlertCircle, CheckCircle2, Sparkles, FileText, ChevronDown,
   ChevronUp, X, Database, Copy, Check, RefreshCw,
-  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft, Send, Link, ImageIcon,
+  ScanLine, List, Hash, ChevronRight, Eye, ChevronLeft, Send, Link, ImageIcon, Lock,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -521,18 +521,20 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
           {([
             { id: "library", label: "Kitab", sublabel: kitabList.length > 0 ? String(kitabList.length) : "", icon: <BookOpen className="w-4 h-4" /> },
             { id: "upload",  label: "Upload",  sublabel: "", icon: <Upload className="w-4 h-4" /> },
-            { id: "ask",     label: "Tanya",   sublabel: "", icon: <Sparkles className="w-4 h-4" /> },
-          ] as { id: Tab; label: string; sublabel: string; icon: React.ReactNode }[]).map(t => (
-            <button key={t.id} onClick={() => setTab(t.id as Tab)}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all"
+            { id: "ask",     label: "Tanya",   sublabel: "", icon: <Sparkles className="w-4 h-4" />, locked: true },
+          ] as { id: Tab; label: string; sublabel: string; icon: React.ReactNode; locked?: boolean }[]).map(t => (
+            <button key={t.id} onClick={() => !t.locked && setTab(t.id as Tab)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all relative"
               style={{
                 background: tab === t.id ? "rgba(139,92,246,0.25)" : "transparent",
-                color: tab === t.id ? "#a78bfa" : "#6b7280",
+                color: t.locked ? "#374151" : tab === t.id ? "#a78bfa" : "#6b7280",
                 border: tab === t.id ? "1px solid rgba(139,92,246,0.4)" : "1px solid transparent",
+                cursor: t.locked ? "not-allowed" : "pointer",
               }}>
               {t.icon}
-              <span className="text-[10px] font-semibold leading-none">
+              <span className="text-[10px] font-semibold leading-none flex items-center gap-0.5">
                 {t.label}{t.sublabel ? ` (${t.sublabel})` : ""}
+                {t.locked && <Lock className="w-2.5 h-2.5 inline-block ml-0.5" />}
               </span>
             </button>
           ))}
@@ -621,10 +623,10 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                     Push
                   </button>
                   <button
-                    onClick={() => { setSelectedKitab(k.kitab_id); setTab("ask"); }}
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all active:scale-95 border-l"
-                    style={{ color: "#a78bfa", borderColor: "rgba(139,92,246,0.15)" }}>
-                    <Sparkles className="w-4 h-4" />
+                    disabled
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all border-l disabled:opacity-30 cursor-not-allowed"
+                    style={{ color: "#6b7280", borderColor: "rgba(139,92,246,0.15)" }}>
+                    <Lock className="w-4 h-4" />
                     Tanya
                   </button>
                   <button
@@ -1340,17 +1342,13 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                     </div>
                   </div>
 
-                  {/* Tanya tentang halaman ini */}
+                  {/* Tanya tentang halaman ini — dikunci sementara */}
                   <button
-                    onClick={() => {
-                      setSelectedKitab(reviewKitab.kitab_id);
-                      setQuestion(`Jelaskan isi halaman ${page.page_number} dari kitab ${reviewKitab.kitab_name}.`);
-                      setTab("ask");
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all"
-                    style={{ background: "rgba(139,92,246,0.1)", border: "1px dashed rgba(139,92,246,0.3)", color: "#7c6fad" }}>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Tanya AINA tentang halaman ini
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold disabled:opacity-30 cursor-not-allowed"
+                    style={{ background: "rgba(139,92,246,0.05)", border: "1px dashed rgba(139,92,246,0.15)", color: "#6b7280" }}>
+                    <Lock className="w-3.5 h-3.5" />
+                    Tanya AINA tentang halaman ini (dikunci)
                   </button>
                 </div>
               );
