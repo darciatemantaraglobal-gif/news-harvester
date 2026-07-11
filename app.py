@@ -70,12 +70,7 @@ def _load_users() -> list:
         sb_users = fetch_app_users()
         if sb_users:
             # Sinkronkan ke JSON lokal agar konsisten
-            try:
-                os.makedirs(DATA_DIR, exist_ok=True)
-                with open(USERS_FILE, "w") as f:
-                    json.dump(sb_users, f, indent=2)
-            except Exception:
-                pass
+            _safe_write_json(USERS_FILE, sb_users)
             return sb_users
     except Exception:
         pass
@@ -90,9 +85,7 @@ def _load_users() -> list:
 
 def _save_users(users: list) -> None:
     """Simpan ke JSON lokal. Operasi individual (add/delete/reset) juga memanggil Supabase langsung."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
+    _safe_write_json(USERS_FILE, users)
 
 def _get_valid_tokens() -> dict:
     tokens = {_SESSION_SECRET: (_ADMIN_USERNAME, True)}
@@ -325,6 +318,28 @@ USER_ACTIVITY_FILE = os.path.join(DATA_DIR, "user_activity.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
+def _safe_write_json(path: str, data) -> bool:
+    """
+    Tulis JSON ke disk lokal dengan aman. Di Vercel serverless, filesystem
+    bersifat read-only sehingga penulisan ini bisa gagal — kegagalan HARUS
+    tidak pernah menggagalkan request API, karena persistence sesungguhnya
+    di production adalah Supabase, bukan disk lokal.
+    Return True jika berhasil ditulis, False jika gagal (sudah di-log).
+    """
+    try:
+        dirname = os.path.dirname(path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except OSError as e:
+        logger.warning(f"[LOCAL-FS] Gagal tulis {path} (filesystem read-only / disk?): {e}")
+        return False
+    except Exception as e:
+        logger.warning(f"[LOCAL-FS] Gagal tulis {path}: {e}")
+        return False
+
 def _ensure_data_files():
     """Pastikan semua file data wajib ada — buat dengan nilai default jika belum ada."""
     defaults = {
@@ -376,9 +391,13 @@ def _load_activity() -> dict:
     return _activity_cache
 
 def _save_activity() -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(USER_ACTIVITY_FILE, "w", encoding="utf-8") as f:
-        json.dump(_activity_cache, f, indent=2)
+    """
+    Tulis cache aktivitas ke JSON lokal (best-effort). Di production Vercel,
+    filesystem read-only sehingga ini bisa gagal — kegagalan tidak boleh
+    menggagalkan request (mis. login), karena Supabase (save_user_activity)
+    adalah jalur persistence sesungguhnya di production.
+    """
+    _safe_write_json(USER_ACTIVITY_FILE, _activity_cache)
 
 def _update_last_seen(username: str) -> None:
     import time as _time
@@ -446,8 +465,7 @@ def _load_scheduler_settings() -> dict:
 
 
 def _save_scheduler_settings(data: dict):
-    with open(SCHEDULER_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    _safe_write_json(SCHEDULER_FILE, data)
 
 
 def _next_run_iso() -> str | None:
@@ -584,8 +602,7 @@ def _load_settings() -> dict:
 
 
 def _save_settings(data: dict):
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    _safe_write_json(SETTINGS_FILE, data)
 
 
 def _load_last_job() -> dict | None:
@@ -608,8 +625,7 @@ def _save_last_job(url: str, mode: str, start_date: date | None, end_date: date 
         "end_date": end_date.isoformat() if end_date else None,
         "saved_at": datetime.now().isoformat(),
     }
-    with open(LAST_JOB_FILE, "w", encoding="utf-8") as f:
-        json.dump(job, f, ensure_ascii=False, indent=2)
+    _safe_write_json(LAST_JOB_FILE, job)
 
 
 # [VERCEL SERVERLESS] Tidak ada lagi state in-memory / threading.Lock global —
@@ -1539,8 +1555,7 @@ def _record_push(username: str, source: str, count: int, titles: list, skipped: 
             with open(PUSH_LOG_FILE, "r", encoding="utf-8") as f:
                 log = json.load(f)
         log.append(entry)
-        with open(PUSH_LOG_FILE, "w", encoding="utf-8") as f:
-            json.dump(log, f, ensure_ascii=False, indent=2)
+        _safe_write_json(PUSH_LOG_FILE, log)
     except Exception as e:
         logger.warning(f"[PUSH-LOG] Gagal tulis JSON: {e}")
     # 2. Simpan ke Supabase (persistent, untuk production)
@@ -1586,8 +1601,7 @@ def _load_file(path: str) -> list:
 
 
 def _save_file(path: str, data: list):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    _safe_write_json(path, data)
 
 
 def _sync_article_to(path: str, article: dict):
@@ -1779,8 +1793,7 @@ def api_push_approved():
         _save_kb(kb)
         # Clear approved file — those articles are now exported
         remaining = [a for a in approved if a.get("id") not in pushed_ids]
-        with open(KB_APPROVED_FILE, "w", encoding="utf-8") as f:
-            json.dump(remaining, f, ensure_ascii=False, indent=2)
+        _safe_write_json(KB_APPROVED_FILE, remaining)
 
     return jsonify({
         "status": "ok",
@@ -1827,8 +1840,7 @@ def api_push_log_clear():
     """Hapus seluruh push log. Hanya admin."""
     if not g.get("is_admin", False):
         return jsonify({"error": "Forbidden — hanya admin"}), 403
-    with open(PUSH_LOG_FILE, "w", encoding="utf-8") as f:
-        json.dump([], f)
+    _safe_write_json(PUSH_LOG_FILE, [])
     return jsonify({"ok": True})
 
 
@@ -2665,8 +2677,7 @@ def kb_delete():
             items = _load_file(fpath)
             filtered = [a for a in items if a.get("id") != article_id]
             if len(filtered) != len(items):
-                with open(fpath, "w", encoding="utf-8") as f:
-                    json.dump(filtered, f, ensure_ascii=False, indent=2)
+                _safe_write_json(fpath, filtered)
         except Exception:
             pass
 
@@ -2692,8 +2703,7 @@ def kb_bulk_delete():
             items = _load_file(fpath)
             filtered = [a for a in items if a.get("id") not in id_set]
             if len(filtered) != len(items):
-                with open(fpath, "w", encoding="utf-8") as f:
-                    json.dump(filtered, f, ensure_ascii=False, indent=2)
+                _safe_write_json(fpath, filtered)
         except Exception:
             pass
 
@@ -2705,11 +2715,7 @@ def kb_reset():
     """Hapus semua KB draft (reset total)."""
     _save_kb([])
     for fpath in [KB_APPROVED_FILE, KB_EXPORTED_FILE]:
-        try:
-            with open(fpath, "w", encoding="utf-8") as f:
-                json.dump([], f)
-        except Exception:
-            pass
+        _safe_write_json(fpath, [])
     return jsonify({"status": "ok"})
 
 
