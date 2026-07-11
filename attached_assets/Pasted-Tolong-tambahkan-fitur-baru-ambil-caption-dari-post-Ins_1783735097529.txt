@@ -1,0 +1,35 @@
+Tolong tambahkan fitur baru: ambil caption dari post Instagram publik (foto/carousel, BUKAN Reels/video), lalu masukkan ke pipeline Knowledge Base yang sudah ada (sama seperti sumber lain: web scrape, YouTube, RSS).
+
+## 1. Buat file baru `instagram_scraper.py`
+
+def scrape_instagram_post(url: str) -> dict:
+- Validasi dulu: hostname URL harus mengandung "instagram.com" (tolak URL lain, cegah endpoint ini disalahgunakan buat fetch alamat sembarangan — reuse fungsi validasi URL yang sudah ada di project kalau ada, misal SSRF guard, kalau belum ada buat validasi sederhana: hanya izinkan hostname instagram.com/www.instagram.com).
+- Fetch HTML halaman post pakai requests, dengan header User-Agent yang menyerupai browser biasa (bukan default python-requests, supaya tidak langsung diblokir).
+- Parse HTML pakai BeautifulSoup, ambil dari meta tag:
+  - `<meta property="og:description">` → berisi caption + info like/comment, biasanya format "X likes, Y comments - username on Month Day, Year: \"caption text\"". Ekstrak caption teksnya dari dalam tanda kutip kalau memungkinkan, kalau format berubah/gagal parse, ambil isi og:description apa adanya sebagai fallback.
+  - `<meta property="og:image">` → URL gambar thumbnail (buat referensi, bukan didownload).
+  - `<meta property="og:title">` → biasanya berisi username.
+- Return dict: {"url": url, "caption": str, "username": str, "thumbnail_url": str, "scraped_at": ISO timestamp}.
+- Kalau gagal fetch/parse (Instagram block, halaman berubah struktur, dsb), raise exception dengan pesan jelas ("Gagal mengambil data dari Instagram, kemungkinan diblokir atau URL tidak valid/post sudah dihapus") — JANGAN silent fail dengan return dict kosong.
+- Deteksi kalau URL yang dikasih itu Reels/video (biasanya path mengandung "/reel/" bukan "/p/") — kalau iya, tetap coba proses tapi kasih warning di return dict ("content_type": "reel", note bahwa caption saja yang diambil, bukan transkrip audio) supaya user tau keterbatasannya.
+
+## 2. Endpoint baru di app.py
+
+`POST /api/instagram/scrape` (body: {"url": "https://instagram.com/p/..."})
+- Auth check seperti endpoint lain (harus login).
+- Panggil scrape_instagram_post(url).
+- Convert hasilnya ke format article standar yang dipakai convert_to_kb_format (title = caption dipotong beberapa kata pertama atau username, content = caption penuh, source = "instagram", url, thumbnail).
+- Lewatkan ke convert_to_kb_format seperti sumber lain (otomatis kena masisir filter kalau toggle-nya aktif, atau langsung pending kalau nonaktif — pakai logic yang sudah ada, jangan duplikasi).
+- Return draft KB yang terbentuk.
+- Rate limit endpoint ini sama seperti endpoint scrape lain kalau rate limiting sudah diimplementasi, kalau belum, lewati saja bagian ini.
+
+## 3. Frontend
+
+Tambahkan opsi source baru "Instagram" di halaman yang sudah punya pilihan source (sejajar dengan Web/YouTube/RSS/DOCX/Telegram) — input field URL post Instagram, tombol submit, loading state, dan tampilkan hasil ekstraksi (caption + info relevansi masisir kalau filter aktif) sama seperti sumber lain.
+
+## Catatan penting
+- JANGAN coba akses story atau post akun private — fitur ini HANYA untuk post publik.
+- JANGAN implementasikan transkripsi video/Reels di task ini — itu di luar scope sekarang (caption teks saja).
+- Test dengan minimal 2 URL post Instagram publik yang beneran ada (boleh pakai akun publik masisir/Al-Azhar related kalau ada, atau akun publik apa saja untuk uji coba teknis), dan 1 URL yang sengaja salah/tidak ada untuk mastiin error handling-nya jelas bukan silent fail.
+
+Laporkan: hasil test 2 URL asli (caption yang berhasil diekstrak), dan konfirmasi error handling untuk URL invalid.
