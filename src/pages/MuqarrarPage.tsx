@@ -520,8 +520,8 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
         <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.15)" }}>
           {([
             { id: "library", label: "Kitab", sublabel: kitabList.length > 0 ? String(kitabList.length) : "", icon: <BookOpen className="w-4 h-4" /> },
-            { id: "upload",  label: "Upload",  sublabel: "", icon: <Upload className="w-4 h-4" /> },
-            { id: "ask",     label: "Tanya",   sublabel: "", icon: <Sparkles className="w-4 h-4" />, locked: true },
+            { id: "upload",  label: "Upload",  sublabel: "", icon: <Upload className="w-4 h-4" />, locked: true },
+            { id: "ask",     label: "Tanya",   sublabel: "", icon: <Sparkles className="w-4 h-4" /> },
           ] as { id: Tab; label: string; sublabel: string; icon: React.ReactNode; locked?: boolean }[]).map(t => (
             <button key={t.id} onClick={() => !t.locked && setTab(t.id as Tab)}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all relative"
@@ -623,10 +623,10 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                     Push
                   </button>
                   <button
-                    disabled
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all border-l disabled:opacity-30 cursor-not-allowed"
-                    style={{ color: "#6b7280", borderColor: "rgba(139,92,246,0.15)" }}>
-                    <Lock className="w-4 h-4" />
+                    onClick={() => { setSelectedKitab(k.kitab_id); setTab("ask"); }}
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-all active:scale-95 border-l"
+                    style={{ color: "#a78bfa", borderColor: "rgba(139,92,246,0.15)" }}>
+                    <Sparkles className="w-4 h-4" />
                     Tanya
                   </button>
                   <button
@@ -1342,13 +1342,17 @@ ALTER TABLE muqarrar_chunks DISABLE ROW LEVEL SECURITY;`}
                     </div>
                   </div>
 
-                  {/* Tanya tentang halaman ini — dikunci sementara */}
+                  {/* Tanya tentang halaman ini */}
                   <button
-                    disabled
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold disabled:opacity-30 cursor-not-allowed"
-                    style={{ background: "rgba(139,92,246,0.05)", border: "1px dashed rgba(139,92,246,0.15)", color: "#6b7280" }}>
-                    <Lock className="w-3.5 h-3.5" />
-                    Tanya AINA tentang halaman ini (dikunci)
+                    onClick={() => {
+                      setSelectedKitab(reviewKitab.kitab_id);
+                      setQuestion(`Jelaskan isi halaman ${page.page_number} dari kitab ${reviewKitab.kitab_name}.`);
+                      setTab("ask");
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: "rgba(139,92,246,0.1)", border: "1px dashed rgba(139,92,246,0.3)", color: "#7c6fad" }}>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Tanya AINA tentang halaman ini
                   </button>
                 </div>
               );
