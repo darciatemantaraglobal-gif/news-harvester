@@ -1,0 +1,20 @@
+Ditemukan bug arsitektur: endpoint /api/push-paste (app.py, ~baris 1466) langsung push artikel hasil "Paste & Rapikan" ke tabel knowledge_base PRODUCTION, BYPASS TOTAL dari draft → review → approve yang dipakai semua sumber lain (scraper web, YouTube, Instagram, dll), dan BYPASS filter relevansi masisir (relevance_filter.py/convert_to_kb_format) yang sudah dibuat di Tahap 3. Ini artinya konten dari Paste & Rapikan masuk ke KB AINA tanpa direview manusia dan tanpa terfilter relevansinya sama sekali.
+
+Tolong perbaiki supaya konsisten dengan sumber lain:
+
+1. Ubah /api/push-paste supaya TIDAK langsung push ke knowledge_base. Sebagai gantinya, buat artikel jadi draft (masuk ke kb_articles_draft di Supabase) dengan melewati convert_to_kb_format() yang sama dipakai sumber lain — supaya otomatis kena filter relevansi masisir (kalau toggle aktif) dan mendapat key_points/action_needed/important_dates.
+
+2. Rename/reorganisasi endpoint ini secara jelas:
+   - Endpoint baru atau endpoint ini yang diubah: terima {title, content}, panggil convert_to_kb_format() dengan source="paste", simpan sebagai draft dengan approval_status sesuai hasil filter (pending / rejected_irrelevant / pending+needs_manual_relevance_check — logic yang sama persis dengan sumber lain).
+   - Return draft yang terbentuk (termasuk relevance_score, key_points kalau ada) ke frontend, supaya user bisa lihat hasilnya sebelum lanjut ke Review Dashboard.
+
+3. Frontend — src/pages/PastePage.tsx:
+   - Ganti tombol yang memicu push langsung ("push-paste" lama) jadi tombol baru bertuliskan "Proses ke Knowledge Base" (atau serupa) yang memanggil endpoint baru di atas.
+   - Setelah berhasil, tampilkan hasil singkat: status relevansi (relevan/tidak/perlu cek manual), skor, dan key_points kalau ada — dengan link/tombol "Lihat di Review Dashboard".
+   - JANGAN ada lagi jalur yang langsung push ke knowledge_base tanpa melalui draft+review, kecuali ada alasan eksplisit yang diminta lain kali.
+
+4. Cek apakah ada artikel yang SUDAH terlanjur masuk ke knowledge_base production lewat endpoint lama ini sebelum perbaikan — kalau ada, laporkan jumlahnya (tidak perlu dihapus otomatis, cukup laporkan supaya saya bisa audit manual apakah kontennya masih relevan/layak).
+
+5. Test: paste 1 artikel contoh yang relevan (soal masisir/Al-Azhar) dan 1 yang jelas tidak relevan (berita umum) melalui halaman Paste & Rapikan yang sudah diperbaiki — pastikan keduanya masuk sebagai DRAFT dengan status yang sesuai (pending vs rejected_irrelevant), BUKAN langsung masuk knowledge_base.
+
+Laporkan: perubahan yang dilakukan, hasil test kedua artikel, dan jumlah artikel lama (kalau ada) yang sempat masuk lewat jalur bypass sebelum perbaikan ini.

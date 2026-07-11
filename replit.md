@@ -64,7 +64,7 @@ AI provider is OpenRouter-only (`ai_services.get_openai_client()` uses the `open
 - A stray PyPI package literally named `fitz` (unrelated neuroimaging tool) was installed alongside `PyMuPDF`, shadowing PyMuPDF's own `fitz` module and crashing the backend on import. It was removed — only `PyMuPDF` should ever be installed, never a separate `fitz` package.
 - To enable AI summaries and Supabase sync, provide `OPENROUTER_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` as secrets; the app runs fine without them, those features just stay inactive.
 - Re-imported and re-verified (2026-07-10): reinstalled Python deps from `requirements.txt` and npm deps from `package.json`; both workflows started cleanly. Keep the database on Supabase — do not migrate to Replit's built-in Postgres.
-- Re-imported and re-verified again (2026-07-11): same steps (fresh `pip install -r requirements.txt` + `npm install`), both workflows start cleanly. `OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` are still not set — AI summaries and Supabase sync stay inactive until the user provides them; everything else works. This is expected: every fresh import wipes `node_modules`/pip packages, so dependency reinstall is required each time.
+- Re-imported and re-verified again (2026-07-11, session 2): same steps (fresh `pip install -r requirements.txt` + `npm install`), both workflows start cleanly. `OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` are still not set — AI summaries and Supabase sync stay inactive until the user provides them; everything else works. This is expected: every fresh import wipes `node_modules`/pip packages, so dependency reinstall is required each time.
 
 ## Vercel Serverless Migration (2026-07-10)
 
