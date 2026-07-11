@@ -121,7 +121,7 @@ def _build_aina_payload(kb_article: dict) -> dict:
         "title":          title,
         "content":        content,
         "category":       category,
-        "status":         "pending",
+        "status":         "approved",   # artikel sudah di-approve admin di KB Review Dashboard
         "hidden":         False,
         "article_type":   "narrative",
         "keywords":       keywords,
