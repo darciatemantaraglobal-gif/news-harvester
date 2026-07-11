@@ -63,37 +63,72 @@ def _build_aina_payload(kb_article: dict) -> dict:
     Convert a local KB draft article into a payload ready for AINA's knowledge_base table.
 
     Maps:
-      title       → title (truncated to 120 chars)
-      content     → content
-      tags        → category (via _map_tags_to_category) + keywords (comma-joined)
-      summary     → summary (truncated to 600 chars)
-      -           → status = "pending"
-      -           → hidden = false
-      -           → article_type = "narrative"
-      -           → author_id = SUPABASE_AUTHOR_ID env var (or fallback admin UUID)
+      title              → title (truncated to 120 chars)
+      content            → content
+      tags               → keywords (comma-joined, max 300 chars)
+      masisir_category   → category (AI-classified — diprioritaskan bila valid)
+      tags               → category (via _map_tags_to_category — fallback)
+      summary            → summary (truncated to 600 chars)
+      masisir_key_points / masisir_action_needed / masisir_important_dates
+                         → important_notes (teks terstruktur, max 500 chars)
+      -                  → status = "pending"
+      -                  → hidden = false
+      -                  → article_type = "narrative"
+      -                  → author_id = SUPABASE_AUTHOR_ID env var (or fallback admin UUID)
     """
     title = (kb_article.get("title") or "").strip()[:120]
     content = (kb_article.get("content") or "").strip()
     summary = (kb_article.get("summary") or "").strip()[:600]
     tags = kb_article.get("tags") or []
 
-    category = _map_tags_to_category(tags)
+    # ── Category: prioritaskan masisir_category (hasil klasifikasi AI, lebih presisi)
+    # dibanding _map_tags_to_category() yang hanya mengandalkan keyword matching biasa.
+    masisir_cat = (kb_article.get("masisir_category") or "").strip()
+    if masisir_cat in AINA_VALID_CATEGORIES:
+        category = masisir_cat
+    else:
+        category = _map_tags_to_category(tags)
 
     # Build keywords string from tags (max 300 chars)
     keywords = ", ".join(str(t) for t in tags if t)[:300]
 
+    # ── important_notes: gabungkan hasil ekstraksi masisir dari Tahap 3 ──────────
+    # Field ini diisi HANYA jika ada data dari relevance_filter.py (masisir_extract).
+    # Kalau toggle filter OFF atau artikel dari sebelum Tahap 3 → important_notes kosong,
+    # tidak error.
+    important_notes = ""
+    key_points  = [str(p).strip() for p in (kb_article.get("masisir_key_points") or []) if str(p).strip()]
+    action      = (kb_article.get("masisir_action_needed")   or "").strip()
+    imp_dates   = (kb_article.get("masisir_important_dates") or "").strip()
+
+    parts = []
+    if key_points:
+        parts.append(f"Poin penting: {'; '.join(key_points)}.")
+    if action:
+        parts.append(f"Tindakan: {action}.")
+    if imp_dates:
+        parts.append(f"Tanggal penting: {imp_dates}.")
+
+    if parts:
+        raw = " ".join(parts)
+        if len(raw) > 500:
+            # Potong di batas kata, bukan di tengah kata
+            raw = raw[:500].rsplit(" ", 1)[0].rstrip(".,;") + "…"
+        important_notes = raw
+
     payload = {
-        "author_id": _get_author_id(),
-        "title": title,
-        "content": content,
-        "category": category,
-        "status": "pending",
-        "hidden": False,
-        "article_type": "narrative",
-        "keywords": keywords,
-        "summary": summary,
+        "author_id":      _get_author_id(),
+        "title":          title,
+        "content":        content,
+        "category":       category,
+        "status":         "pending",
+        "hidden":         False,
+        "article_type":   "narrative",
+        "keywords":       keywords,
+        "summary":        summary,
+        "important_notes": important_notes,
     }
-    # Remove empty strings to avoid overriding DB defaults for optional fields
+    # Hapus string kosong agar tidak override DB defaults untuk field opsional
     return {k: v for k, v in payload.items() if v != ""}
 
 
