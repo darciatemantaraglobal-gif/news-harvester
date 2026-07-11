@@ -2,6 +2,7 @@
 import re
 import unicodedata
 from formatter import format_aina_response
+from relevance_filter import is_masisir_filter_enabled, filter_and_extract
 
 # ─── Tag Configuration ──────────────────────────────────────────────────────
 
@@ -146,7 +147,7 @@ def convert_to_kb_format(article: dict) -> dict:
         "add_trust_footer": False,  # trust footer off by default in KB storage
     }
 
-    return {
+    kb_draft = {
         "id": article.get("id", ""),
         "title": title,
         "slug": generate_slug(title) or article.get("id", ""),
@@ -158,3 +159,43 @@ def convert_to_kb_format(article: dict) -> dict:
         "scrape_status": article.get("status", "unknown"),
         "approval_status": "pending",
     }
+
+    # ─── Fitur Relevansi & Ekstraksi Masisir ────────────────────────────────
+    # Titik tunggal ini dilewati oleh SEMUA jalur yang membuat KB draft
+    # (Web Scraper, Paste & Rapikan, YouTube, DOCX, RSS, Telegram, Instagram)
+    # supaya perilakunya konsisten di seluruh pipeline.
+    if not is_masisir_filter_enabled():
+        kb_draft["is_masisir_relevant"] = None
+        kb_draft["relevance_score"] = None
+        kb_draft["relevance_reason"] = ""
+        kb_draft["masisir_category"] = None
+        kb_draft["masisir_key_points"] = []
+        kb_draft["masisir_action_needed"] = ""
+        kb_draft["masisir_important_dates"] = ""
+        kb_draft["needs_manual_relevance_check"] = False
+        return kb_draft
+
+    filtered = filter_and_extract({"title": title, "content": content})
+    is_relevant = filtered.get("is_masisir_relevant")
+
+    kb_draft["is_masisir_relevant"] = is_relevant
+    kb_draft["relevance_score"] = filtered.get("relevance_score", 0)
+    kb_draft["relevance_reason"] = filtered.get("relevance_reason", "")
+    kb_draft["masisir_category"] = filtered.get("masisir_category")
+    kb_draft["masisir_key_points"] = filtered.get("masisir_key_points", [])
+    kb_draft["masisir_action_needed"] = filtered.get("masisir_action_needed", "")
+    kb_draft["masisir_important_dates"] = filtered.get("masisir_important_dates", "")
+
+    if is_relevant is False:
+        kb_draft["approval_status"] = "rejected_irrelevant"
+        kb_draft["needs_manual_relevance_check"] = False
+    elif is_relevant is None:
+        # AI gagal mengklasifikasi (error/timeout/parsing) — jangan tolak
+        # otomatis, biarkan reviewer manusia yang menilai.
+        kb_draft["approval_status"] = "pending"
+        kb_draft["needs_manual_relevance_check"] = True
+    else:
+        kb_draft["approval_status"] = "pending"
+        kb_draft["needs_manual_relevance_check"] = False
+
+    return kb_draft

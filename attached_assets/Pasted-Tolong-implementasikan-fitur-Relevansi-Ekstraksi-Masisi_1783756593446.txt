@@ -1,0 +1,54 @@
+Tolong implementasikan fitur "Relevansi & Ekstraksi Masisir" — filter otomatis + ekstraksi info terstruktur untuk setiap artikel yang masuk ke Knowledge Base, dengan toggle ON/OFF. Ini fitur INTI aplikasi, harus konsisten dipakai di SEMUA jalur yang menghasilkan draft KB (Scraper Web, Paste & Rapikan, YouTube, DOCX, RSS, Telegram, Instagram, Kitab PDF Arab).
+
+## 1. Buat file baru relevance_filter.py
+
+a) MASISIR_SIGNAL_KEYWORDS — set kata kunci pre-filter murah (case-insensitive), gabungkan dari kategori yang SUDAH ADA di db_services.py (AINA_VALID_CATEGORIES, _TAG_TO_CATEGORY) ditambah istilah spesifik: masisir, PPMI, Al-Azhar, azhar, mahasantri, muqarrar, Kairo, Cairo, Mesir, Egypt, KBRI Kairo, WNI Mesir, iqama, iqomah, visa pelajar, beasiswa Al-Azhar, mahasiswa Indonesia Mesir, konsuler Kairo, dst.
+
+b) quick_keyword_prefilter(title: str, content: str) -> bool — True kalau title+content mengandung minimal 1 keyword dari MASISIR_SIGNAL_KEYWORDS.
+
+c) classify_and_extract(title: str, content: str) -> dict — panggil AI via get_openai_client()/get_active_model() dari ai_services.py (REUSE, jangan bikin client baru). System prompt: AI berperan sebagai kurator knowledge base untuk AINA, asisten AI khusus masisir (mahasiswa Indonesia di Al-Azhar, Kairo, Mesir). Nilai relevansi DAN ekstrak info penting kalau relevan.
+
+Relevan kalau menyangkut: administrasi (paspor/visa/iqama/legalisasi), akademik Al-Azhar/beasiswa, kehidupan sehari-hari di Mesir (transport/tempat tinggal/kuliner halal), kebijakan KBRI/Kemlu berdampak ke WNI Mesir, isu keamanan/politik berdampak ke masisir, kegiatan komunitas masisir. Tidak relevan kalau: berita nasional/internasional tanpa dampak ke Mesir/masisir.
+
+Output HANYA JSON valid (tanpa markdown fence):
+{"is_relevant": true/false, "relevance_score": 0-100, "reason": "1 kalimat", "category": "salah satu AINA_VALID_CATEGORIES atau null", "key_points": ["maks 5 poin"], "action_needed": "atau string kosong", "important_dates": "atau string kosong"}
+
+max_tokens 500, temperature 0.2. Parse dengan try/except (strip markdown fence, ikuti pola parsing yang sudah ada di endpoint /api/muqarrar/detect). Gagal parsing/API error → fallback {"is_relevant": None, "relevance_score": 0, "reason": "AI check gagal, perlu review manual", "category": None, "key_points": [], "action_needed": "", "important_dates": ""} — JANGAN raise exception, JANGAN gagalkan proses scraping.
+
+d) filter_and_extract(article: dict) -> dict — jalankan quick_keyword_prefilter dulu. False → return article + is_masisir_relevant=False, relevance_score=0, relevance_reason="Tidak mengandung sinyal masisir/Mesir", masisir_extract=None. True → panggil classify_and_extract, tambahkan hasilnya ke article. Jangan hilangkan field asli article.
+
+## 2. Setting toggle (simpan di Supabase, BUKAN file lokal — ikuti pola persistence yang sudah dipakai untuk data lain sekarang)
+
+- Tambahkan field masisir_filter_enabled (boolean, default true) ke tabel/mekanisme settings yang sudah ada di Supabase.
+- is_masisir_filter_enabled() -> bool (fallback true kalau field belum ada/Supabase gagal diakses).
+- Endpoint: GET /api/settings/masisir-filter -> {"enabled": bool}, POST /api/settings/masisir-filter (body {"enabled": bool}, khusus admin, pakai auth check yang sudah ada).
+
+## 3. Update kb_processor.py (atau fungsi convert_to_kb_format di manapun itu berada sekarang) — cek dulu lokasinya sebelum edit, karena mungkin sudah dipindah/direfactor sejak migrasi Vercel
+
+- Cek is_masisir_filter_enabled() di awal fungsi.
+- False: SKIP total filter_and_extract() (jangan panggil AI sama sekali, hemat biaya). approval_status="pending" seperti alur original. is_masisir_relevant=None, masisir_extract=None.
+- True: panggil filter_and_extract(article). is_masisir_relevant==False → approval_status="rejected_irrelevant" (TETAP tersimpan di kb_articles_draft, bisa di-override manual, TIDAK dihapus). is_masisir_relevant==True → approval_status="pending", masukkan masisir_extract + relevance_score ke draft KB, summary yang ditampilkan reviewer prioritaskan key_points/action_needed, fallback ke generate_summary() lama kalau extract kosong. is_masisir_relevant is None (AI gagal) → pending + needs_manual_relevance_check=true.
+
+## 4. Wire ke SEMUA jalur pembuat draft KB
+
+Cari SEMUA tempat yang membuat entry di kb_articles_draft (Scraper Web mode KB, Paste & Rapikan, YouTube, DOCX, RSS, Telegram, Instagram, Kitab PDF Arab/Muqarrar kalau dia juga membuat draft KB — cek dulu apakah Muqarrar memang untuk KB atau fitur Q&A terpisah seperti yang terlihat di UI, kalau terpisah tidak perlu difilter). SEMUA jalur draft KB harus lewat fungsi filter yang SAMA, jangan duplikasi logic di tempat lain.
+
+Tambahkan endpoint GET /api/masisir-stats: total artikel, jumlah relevan, jumlah ditolak, jumlah perlu cek manual, rata-rata relevance_score, breakdown per masisir_category — dihitung dari tabel kb_articles_draft di Supabase.
+
+## 5. Frontend
+
+a) Halaman Beranda (Index/Home) — tampilkan ringkasan real-time dari /api/masisir-stats (jumlah relevan pending review, perlu cek manual, skor rata-rata) plus badge status toggle ("Filter: AKTIF"/"NONAKTIF").
+
+b) KB Review Dashboard — badge skor relevansi per card (hijau tinggi, kuning/abu rendah). Tab: "Semua" | "Relevan (pending review)" | "Ditolak (tidak relevan)" | "Perlu cek manual" dengan count di tiap tab. Detail artikel: key_points, action_needed, important_dates ditampilkan menonjol di posisi atas card — reviewer harus langsung lihat "kenapa artikel ini penting buat masisir" tanpa baca summary panjang dulu.
+
+c) Halaman Settings (kalau sudah ada, kalau belum buat section kecil di halaman yang relevan) — toggle switch "Filter Relevansi Masisir" dengan deskripsi: "Kalau AKTIF, artikel difilter otomatis oleh AI berdasarkan relevansi ke komunitas masisir sebelum masuk antrean review. Kalau NONAKTIF, semua artikel langsung masuk antrean review tanpa filter."
+
+## Catatan penting
+
+- JANGAN ubah logic auth/CORS/security.
+- JANGAN hapus data artikel secara permanen di manapun.
+- Default toggle harus ON (true).
+- SEBELUM push, jalankan python3 -m py_compile di semua file Python yang diubah, dan test build frontend (pnpm run build) untuk pastikan tidak ada error — kita ingin minimalkan iterasi bolak-balik build Vercel yang gagal.
+- Test minimal: (1) toggle ON + artikel jelas relevan (soal iqama/visa/Al-Azhar) → cek key_points/action_needed/important_dates terisi masuk akal. (2) toggle ON + artikel jelas tidak relevan (berita olahraga nasional Indonesia) → approval_status jadi rejected_irrelevant. (3) toggle OFF → scrape artikel baru → pastikan TIDAK ada API call ke AI sama sekali (cek log), approval_status tetap pending seperti biasa.
+
+Laporkan: file yang dibuat/diubah, lokasi pasti fungsi convert_to_kb_format yang ditemukan (untuk konfirmasi tidak salah tempat), hasil ketiga test di atas, dan konfirmasi tidak ada regresi di fitur scraper/Instagram/single-article-mode yang sudah dibenerin sebelumnya.

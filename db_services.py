@@ -252,6 +252,38 @@ def save_app_user(username: str, password_hash: str) -> bool:
         return False
 
 
+def get_app_setting(key: str, default=None):
+    """
+    Ambil satu setting dari tabel app_settings di Supabase (generic key/value store).
+    Return `default` jika key tidak ada / Supabase tidak tersedia / terjadi error apapun.
+    Tidak pernah raise — aman dipanggil di request path manapun.
+    """
+    try:
+        sb = get_supabase()
+        result = sb.table("app_settings").select("value").eq("key", key).limit(1).execute()
+        rows = result.data or []
+        if not rows:
+            return default
+        return rows[0].get("value", default)
+    except Exception as e:
+        logger.warning(f"[APP-SETTINGS-DB] Gagal ambil setting '{key}': {e}")
+        return default
+
+
+def set_app_setting(key: str, value) -> bool:
+    """Simpan/update satu setting ke tabel app_settings. Return True jika berhasil."""
+    try:
+        sb = get_supabase()
+        sb.table("app_settings").upsert(
+            {"key": key, "value": value},
+            on_conflict="key"
+        ).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[APP-SETTINGS-DB] Gagal simpan setting '{key}': {e}")
+        return False
+
+
 def delete_app_user(username: str) -> bool:
     """Hapus user dari tabel app_users. Return True jika berhasil."""
     try:

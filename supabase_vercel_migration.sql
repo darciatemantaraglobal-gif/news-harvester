@@ -45,3 +45,12 @@ create table if not exists scrape_jobs (
 -- Optional: periodically clean up old job rows (scrape_jobs grows unbounded
 -- otherwise). Safe to run manually or on a schedule.
 -- delete from scrape_jobs where created_at < now() - interval '7 days';
+
+-- 4) app_settings — generic key/value settings store (persists across redeploy).
+--    Used by the "Relevansi & Ekstraksi Masisir" feature toggle
+--    (key = 'masisir_filter_enabled', value = true/false as jsonb).
+create table if not exists app_settings (
+  key        text primary key,
+  value      jsonb not null,
+  updated_at timestamptz not null default now()
+);

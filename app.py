@@ -1482,6 +1482,24 @@ def api_push_paste():
         if keyword in combined and tag not in tags:
             tags.append(tag)
     article = {"title": title, "content": content, "tags": tags, "summary": ""}
+
+    # ── Fitur Relevansi & Ekstraksi Masisir ──
+    # Paste & Rapikan tidak lewat kb_articles_draft (langsung push ke Supabase
+    # produksi), jadi filter yang sama diterapkan langsung di sini: kalau
+    # AI menandai artikel TIDAK relevan (bukan "gagal klasifikasi"), jangan
+    # push ke KB produksi.
+    from relevance_filter import is_masisir_filter_enabled, filter_and_extract
+    relevance_info = None
+    if is_masisir_filter_enabled():
+        relevance_info = filter_and_extract({"title": title, "content": content})
+        if relevance_info.get("is_masisir_relevant") is False:
+            return jsonify({
+                "status": "rejected_irrelevant",
+                "error": "Artikel ini dinilai AI tidak relevan untuk Masisir, tidak dikirim ke Knowledge Base.",
+                "relevance_reason": relevance_info.get("relevance_reason", ""),
+                "relevance_score": relevance_info.get("relevance_score", 0),
+            }), 200
+
     try:
         result = push_kb_articles([article])
         inserted = result.get("inserted", 0)
@@ -1613,7 +1631,7 @@ def _record_push(username: str, source: str, count: int, titles: list, skipped: 
     except Exception as e:
         logger.warning(f"[PUSH-LOG] Gagal simpan ke Supabase: {e}")
 
-VALID_STATUSES = {"pending", "reviewed", "approved", "rejected", "exported"}
+VALID_STATUSES = {"pending", "reviewed", "approved", "rejected", "exported", "rejected_irrelevant"}
 BULK_ACTION_MAP = {
     "mark_reviewed": "reviewed",
     "approve": "approved",
@@ -1757,9 +1775,17 @@ def api_convert_kb():
     for a in eligible:
         kb = convert_to_kb_format(a)
         prev = existing_kb.get(kb["id"], {})
-        kb["approval_status"] = prev.get("approval_status", "pending")
-        kb["last_updated"] = prev.get("last_updated", now)
-        kb["notes"] = prev.get("notes", "")
+        if prev:
+            # Artikel ini sudah pernah dikonversi sebelumnya — pertahankan status
+            # review manual yang sudah ada, jangan diklasifikasi ulang oleh AI.
+            kb["approval_status"] = prev.get("approval_status", kb.get("approval_status", "pending"))
+            kb["last_updated"] = prev.get("last_updated", now)
+            kb["notes"] = prev.get("notes", "")
+        else:
+            # Artikel baru — pakai approval_status hasil filter Masisir dari
+            # convert_to_kb_format (pending / rejected_irrelevant).
+            kb["last_updated"] = now
+            kb["notes"] = ""
         kb_articles.append(kb)
 
     _save_kb(kb_articles)
@@ -2702,6 +2728,48 @@ def kb_stats():
         if s in counts:
             counts[s] += 1
     return jsonify(counts)
+
+
+@app.route("/api/settings/masisir-filter", methods=["GET"])
+def get_masisir_filter_setting():
+    """Ambil status toggle fitur Relevansi & Ekstraksi Masisir (default ON)."""
+    from relevance_filter import is_masisir_filter_enabled
+    return jsonify({"enabled": is_masisir_filter_enabled()})
+
+
+@app.route("/api/settings/masisir-filter", methods=["POST"])
+def set_masisir_filter_setting():
+    """Ubah status toggle fitur Relevansi & Ekstraksi Masisir. Hanya admin."""
+    if not g.get("is_admin", False):
+        return jsonify({"error": "Forbidden — hanya admin"}), 403
+    from relevance_filter import set_masisir_filter_enabled
+    data = request.get_json(force=True, silent=True) or {}
+    if "enabled" not in data:
+        return jsonify({"error": "Field 'enabled' wajib diisi (true/false)."}), 400
+    enabled = bool(data.get("enabled"))
+    saved = set_masisir_filter_enabled(enabled)
+    if not saved:
+        return jsonify({"error": "Gagal menyimpan setting ke Supabase."}), 500
+    return jsonify({"status": "ok", "enabled": enabled})
+
+
+@app.route("/api/masisir-stats")
+def api_masisir_stats():
+    """Statistik agregat hasil filter Relevansi & Ekstraksi Masisir untuk seluruh KB draft."""
+    from relevance_filter import is_masisir_filter_enabled
+    kb = _load_kb()
+    relevant = sum(1 for a in kb if a.get("is_masisir_relevant") is True)
+    irrelevant = sum(1 for a in kb if a.get("is_masisir_relevant") is False)
+    needs_check = sum(1 for a in kb if a.get("needs_manual_relevance_check") is True)
+    unclassified = sum(1 for a in kb if "is_masisir_relevant" not in a or a.get("is_masisir_relevant") is None and not a.get("needs_manual_relevance_check"))
+    return jsonify({
+        "enabled": is_masisir_filter_enabled(),
+        "total": len(kb),
+        "relevant": relevant,
+        "irrelevant": irrelevant,
+        "needs_manual_check": needs_check,
+        "unclassified": unclassified,
+    })
 
 
 @app.route("/kb/delete", methods=["POST"])

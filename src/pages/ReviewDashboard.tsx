@@ -5,11 +5,12 @@ import {
   Newspaper, CheckCircle2, XCircle, Clock, Eye, Send, Download,
   Loader2, ChevronLeft, RefreshCw, FileJson, CheckSquare,
   AlertCircle, Filter, BarChart3, FileText, Upload, X, ChevronDown,
-  Sparkles, Copy, Check, Save, RotateCcw, Trash2,
+  Sparkles, Copy, Check, Save, RotateCcw, Trash2, ShieldAlert,
+  ListChecks, CalendarClock, Megaphone,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { getToken } from "@/lib/auth";
+import { getToken, getIsAdmin } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +19,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-type ApprovalStatus = "pending" | "reviewed" | "approved" | "rejected" | "exported";
+type ApprovalStatus = "pending" | "reviewed" | "approved" | "rejected" | "exported" | "rejected_irrelevant";
 type KbRapikanFormat = "berita" | "laporan" | "ringkasan" | "poin";
+type RelevanceFilter = "all" | "relevant" | "irrelevant" | "needs_check";
 
 const KB_FORMAT_OPTIONS: { value: KbRapikanFormat; label: string; desc: string }[] = [
   { value: "berita",    label: "Berita",    desc: "Artikel berita terstruktur" },
@@ -44,6 +46,14 @@ interface KbDraft {
   is_duplicate?: boolean;
   duplicate_of_title?: string;
   duplicate_of_status?: string;
+  is_masisir_relevant?: boolean | null;
+  relevance_score?: number | null;
+  relevance_reason?: string;
+  masisir_category?: string | null;
+  masisir_key_points?: string[];
+  masisir_action_needed?: string;
+  masisir_important_dates?: string;
+  needs_manual_relevance_check?: boolean;
 }
 
 interface KbStats {
@@ -53,6 +63,7 @@ interface KbStats {
   approved: number;
   rejected: number;
   exported: number;
+  rejected_irrelevant?: number;
 }
 
 const STATUS_CONFIG: Record<ApprovalStatus, { label: string; color: string; icon: React.ReactNode }> = {
@@ -61,6 +72,7 @@ const STATUS_CONFIG: Record<ApprovalStatus, { label: string; color: string; icon
   approved: { label: "Approved", color: "bg-emerald-900/30 text-emerald-400 border-emerald-700/40", icon: <CheckCircle2 className="w-3 h-3" /> },
   rejected: { label: "Rejected", color: "bg-red-900/40 text-red-300 border-red-700/40",           icon: <XCircle className="w-3 h-3" /> },
   exported: { label: "Exported", color: "bg-indigo-900/30 text-indigo-400 border-indigo-700/40",  icon: <Send className="w-3 h-3" /> },
+  rejected_irrelevant: { label: "Tidak Relevan", color: "bg-orange-900/30 text-orange-300 border-orange-700/40", icon: <ShieldAlert className="w-3 h-3" /> },
 };
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
@@ -70,7 +82,33 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
   { value: "exported", label: "Exported" },
+  { value: "rejected_irrelevant", label: "Tidak Relevan" },
 ];
+
+function RelevanceBadge({ article }: { article: KbDraft }) {
+  if (article.is_masisir_relevant === true) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-fuchsia-900/30 text-fuchsia-300 border border-fuchsia-700/40">
+        <Sparkles className="w-2.5 h-2.5" />Relevan{typeof article.relevance_score === "number" ? ` · ${article.relevance_score}` : ""}
+      </span>
+    );
+  }
+  if (article.is_masisir_relevant === false) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-800/60 text-slate-400 border border-slate-600/40">
+        <ShieldAlert className="w-2.5 h-2.5" />Tidak Relevan
+      </span>
+    );
+  }
+  if (article.needs_manual_relevance_check) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-900/30 text-amber-300 border border-amber-700/40">
+        <AlertCircle className="w-2.5 h-2.5" />Cek Manual
+      </span>
+    );
+  }
+  return null;
+}
 
 const BULK_ACTIONS: { action: string; label: string; color: string }[] = [
   { action: "mark_reviewed", label: "Reviewed", color: "bg-blue-600 hover:bg-blue-700" },
@@ -119,6 +157,11 @@ export default function ReviewDashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Toggle fitur Relevansi & Ekstraksi Masisir (admin-only)
+  const isAdmin = getIsAdmin();
+  const [masisirEnabled, setMasisirEnabled] = useState<boolean | null>(null);
+  const [masisirToggleLoading, setMasisirToggleLoading] = useState(false);
+
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
@@ -142,11 +185,40 @@ export default function ReviewDashboard() {
     } catch {}
   }, []);
 
+  const fetchMasisirToggle = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl("/api/settings/masisir-filter"));
+      if (res.ok) {
+        const data = await res.json();
+        setMasisirEnabled(!!data.enabled);
+      }
+    } catch {}
+  }, []);
+
+  const toggleMasisirFilter = async () => {
+    if (masisirEnabled === null) return;
+    const next = !masisirEnabled;
+    setMasisirToggleLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/settings/masisir-filter"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (res.ok) setMasisirEnabled(next);
+    } catch {}
+    setMasisirToggleLoading(false);
+  };
+
   useEffect(() => {
     fetchArticles();
     fetchStats();
     setSelected(new Set());
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetchMasisirToggle();
+  }, [fetchMasisirToggle]);
 
   const updateStatus = async (id: string, status: ApprovalStatus, notes?: string) => {
     setSavingId(id);
@@ -428,6 +500,31 @@ export default function ReviewDashboard() {
           </div>
         </div>
 
+        {/* ─── Toggle: Relevansi & Ekstraksi Masisir (admin-only) ─── */}
+        {isAdmin && masisirEnabled !== null && (
+          <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-3 shrink-0"
+            style={{ background: "#0d0720", border: "1px solid rgba(139,92,246,0.25)" }}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-fuchsia-900/30 flex items-center justify-center shrink-0">
+                <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-200 leading-tight">Relevansi &amp; Ekstraksi Masisir</p>
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  {masisirEnabled ? "Aktif — artikel disaring & diekstrak otomatis oleh AI" : "Nonaktif — semua artikel masuk sebagai pending tanpa cek AI"}
+                </p>
+              </div>
+            </div>
+            <button
+              data-testid="toggle-masisir-filter"
+              onClick={toggleMasisirFilter}
+              disabled={masisirToggleLoading}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50 ${masisirEnabled ? "bg-fuchsia-600" : "bg-slate-700"}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${masisirEnabled ? "translate-x-5" : ""}`} />
+            </button>
+          </div>
+        )}
+
         {/* ─── Scrollable Content ─── */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-nav-safe min-w-0">
         <div className="max-w-screen-xl mx-auto space-y-3 sm:space-y-4 lg:space-y-5">
@@ -680,7 +777,7 @@ export default function ReviewDashboard() {
                               )}
 
                               {/* Status select */}
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Select
                                   value={article.approval_status}
                                   disabled={isSaving}
@@ -700,9 +797,30 @@ export default function ReviewDashboard() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                <RelevanceBadge article={article} />
                                 {isSaving && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
                                 <span className="text-[10px] text-slate-600 ml-auto">{formatDate(article.last_updated)}</span>
                               </div>
+
+                              {/* Poin penting Masisir (kalau ada) */}
+                              {(article.masisir_key_points?.length || article.masisir_action_needed) ? (
+                                <div className="rounded-lg px-2.5 py-2 bg-fuchsia-950/20 border border-fuchsia-800/30 space-y-1">
+                                  {article.masisir_key_points && article.masisir_key_points.length > 0 && (
+                                    <ul className="space-y-0.5">
+                                      {article.masisir_key_points.slice(0, 3).map((kp, idx) => (
+                                        <li key={idx} className="text-[10px] text-fuchsia-200/90 leading-snug flex gap-1">
+                                          <span className="text-fuchsia-500">•</span>{kp}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                  {article.masisir_action_needed && (
+                                    <p className="text-[10px] text-amber-300 leading-snug flex gap-1">
+                                      <Megaphone className="w-3 h-3 shrink-0 mt-px" />{article.masisir_action_needed}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : null}
 
                               {/* Summary */}
                               {article.summary && (
@@ -856,6 +974,7 @@ export default function ReviewDashboard() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                <RelevanceBadge article={article} />
                                 {isSaving && (
                                   <span className="text-xs text-slate-400 flex items-center gap-1">
                                     <Loader2 className="w-3 h-3 animate-spin" />Menyimpan...
@@ -1072,6 +1191,55 @@ export default function ReviewDashboard() {
                     )}
                   </div>
                 </div>
+
+                {/* Relevansi & Ekstraksi Masisir */}
+                {(a.is_masisir_relevant !== undefined && a.is_masisir_relevant !== null) || a.needs_manual_relevance_check ? (
+                  <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(217,70,239,0.3)", background: "rgba(217,70,239,0.06)" }}>
+                    <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "rgba(217,70,239,0.2)", background: "rgba(217,70,239,0.1)" }}>
+                      <Sparkles className="w-3.5 h-3.5 text-fuchsia-300 shrink-0" />
+                      <span className="text-[10px] font-bold text-fuchsia-200 uppercase tracking-widest flex-1">Relevansi Masisir</span>
+                      <RelevanceBadge article={a} />
+                    </div>
+                    <div className="p-3 space-y-2">
+                      {a.relevance_reason && (
+                        <p className="text-[11px] text-slate-400 leading-relaxed">{a.relevance_reason}</p>
+                      )}
+                      {a.masisir_category && (
+                        <p className="text-[10px] text-slate-500">Kategori: <span className="text-slate-300 font-semibold">{a.masisir_category}</span></p>
+                      )}
+                      {a.masisir_key_points && a.masisir_key_points.length > 0 && (
+                        <div>
+                          <p className="text-[9px] text-fuchsia-400/80 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                            <ListChecks className="w-3 h-3" />Poin Penting
+                          </p>
+                          <ul className="space-y-1">
+                            {a.masisir_key_points.map((kp, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-300 leading-snug flex gap-1.5">
+                                <span className="text-fuchsia-500 shrink-0">•</span>{kp}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {a.masisir_action_needed && (
+                        <div className="rounded-lg px-2.5 py-2 bg-amber-900/20 border border-amber-700/30">
+                          <p className="text-[9px] text-amber-500 uppercase tracking-widest font-bold mb-0.5 flex items-center gap-1">
+                            <Megaphone className="w-3 h-3" />Tindakan Diperlukan
+                          </p>
+                          <p className="text-[11px] text-amber-200 leading-snug">{a.masisir_action_needed}</p>
+                        </div>
+                      )}
+                      {a.masisir_important_dates && (
+                        <div className="rounded-lg px-2.5 py-2 bg-indigo-900/20 border border-indigo-700/30">
+                          <p className="text-[9px] text-indigo-400 uppercase tracking-widest font-bold mb-0.5 flex items-center gap-1">
+                            <CalendarClock className="w-3 h-3" />Tanggal Penting
+                          </p>
+                          <p className="text-[11px] text-indigo-200 leading-snug">{a.masisir_important_dates}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Tags */}
                 {(a.tags || []).length > 0 && (

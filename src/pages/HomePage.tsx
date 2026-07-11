@@ -4,6 +4,7 @@ import { apiUrl } from "@/lib/api";
 import {
   Newspaper, BookOpen, ArrowRight, ClipboardCheck,
   CheckCircle2, Clock, Send, AlertCircle, Zap, Users, LogOut, ClipboardPaste, BarChart2, Layers,
+  Sparkles, ShieldAlert,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { clearToken, getIsAdmin, getUsername } from "@/lib/auth";
@@ -16,11 +17,21 @@ interface Stats {
   exported: number;
 }
 
+interface MasisirStats {
+  enabled: boolean;
+  total: number;
+  relevant: number;
+  irrelevant: number;
+  needs_manual_check: number;
+  unclassified: number;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const isAdmin = getIsAdmin();
   const username = getUsername();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [masisirStats, setMasisirStats] = useState<MasisirStats | null>(null);
 
   const handleLogout = () => {
     clearToken();
@@ -41,6 +52,11 @@ export default function HomePage() {
           exported: articles.filter(a => a.approval_status === "exported").length,
         });
       })
+      .catch(() => {});
+
+    fetch(apiUrl("/api/masisir-stats"), { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setMasisirStats(data); })
       .catch(() => {});
   }, []);
 
@@ -312,6 +328,31 @@ export default function HomePage() {
                         )}
                       </div>
                     )}
+                    {masisirStats && masisirStats.total > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {!masisirStats.enabled ? (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                            <ShieldAlert className="w-2.5 h-2.5" />Filter Masisir nonaktif
+                          </span>
+                        ) : (
+                          <>
+                            <span className="flex items-center gap-1 text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/15 border border-fuchsia-500/25 px-1.5 py-0.5 rounded-full">
+                              <Sparkles className="w-2.5 h-2.5" />{masisirStats.relevant} relevan Masisir
+                            </span>
+                            {masisirStats.irrelevant > 0 && (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                                {masisirStats.irrelevant} tidak relevan
+                              </span>
+                            )}
+                            {masisirStats.needs_manual_check > 0 && (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 rounded-full">
+                                <AlertCircle className="w-2.5 h-2.5" />{masisirStats.needs_manual_check} perlu cek manual
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-white/20 shrink-0 group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
@@ -510,6 +551,31 @@ export default function HomePage() {
                           {stats.approved > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="w-2.5 h-2.5" />{stats.approved} siap push</span>}
                           {stats.rejected > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/15 border border-red-500/25 px-1.5 py-0.5 rounded-full"><AlertCircle className="w-2.5 h-2.5" />{stats.rejected} rejected</span>}
                           {stats.exported > 0 && <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 bg-white/10 border border-white/10 px-1.5 py-0.5 rounded-full"><Send className="w-2.5 h-2.5" />{stats.exported} exported</span>}
+                        </div>
+                      )}
+                      {masisirStats && masisirStats.total > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {!masisirStats.enabled ? (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                              <ShieldAlert className="w-2.5 h-2.5" />Filter Masisir nonaktif
+                            </span>
+                          ) : (
+                            <>
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/15 border border-fuchsia-500/25 px-1.5 py-0.5 rounded-full">
+                                <Sparkles className="w-2.5 h-2.5" />{masisirStats.relevant} relevan Masisir
+                              </span>
+                              {masisirStats.irrelevant > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                                  {masisirStats.irrelevant} tidak relevan
+                                </span>
+                              )}
+                              {masisirStats.needs_manual_check > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 rounded-full">
+                                  <AlertCircle className="w-2.5 h-2.5" />{masisirStats.needs_manual_check} perlu cek manual
+                                </span>
+                              )}
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

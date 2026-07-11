@@ -1,1 +1,2 @@
 - [PyMuPDF fitz package conflict](pymupdf-fitz-conflict.md) — never install a separate PyPI `fitz` package alongside PyMuPDF; it shadows PyMuPDF's own `fitz` module.
+- [Settings storage in AINA scraper's Supabase](masisir-project-settings-table.md) — an unrelated `system_settings` table already exists; don't reuse it, add a purpose-built table instead.
