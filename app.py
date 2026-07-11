@@ -1,6 +1,5 @@
 # app.py — Flask server untuk News Scraper
 import os, json, csv, io, threading, re, unicodedata, logging, time
-import numpy as np
 from functools import wraps
 import pdfplumber
 import fitz  # PyMuPDF
@@ -3434,13 +3433,14 @@ def _embed_texts_batch(texts: list, client, batch_size: int = 100, max_retries: 
 
 
 def _cosine_similarity(a: list, b: list) -> float:
-    """Cosine similarity antara dua embedding vector."""
-    va = np.array(a, dtype=np.float32)
-    vb = np.array(b, dtype=np.float32)
-    denom = np.linalg.norm(va) * np.linalg.norm(vb)
+    """Cosine similarity antara dua embedding vector (pure Python, tanpa numpy)."""
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(y * y for y in b) ** 0.5
+    denom = norm_a * norm_b
     if denom == 0:
         return 0.0
-    return float(np.dot(va, vb) / denom)
+    return dot / denom
 
 
 def _page_to_image_bytes(fitz_doc, page_idx: int, dpi: int = 200) -> bytes:
