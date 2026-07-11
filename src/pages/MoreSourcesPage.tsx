@@ -6,7 +6,7 @@ import {
   CheckCircle2, AlertCircle, ArrowRight, Upload, X, Hash,
   RefreshCw, ExternalLink, Wand2, Sparkles,
   Newspaper, BookOpen, Zap, List, Radio, ThumbsUp, ThumbsDown,
-  CloudUpload, Clock, XCircle, Trash2,
+  CloudUpload, Clock, XCircle, Trash2, Instagram,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { BottomNav } from "@/components/BottomNav";
 import { getToken } from "@/lib/auth";
 
-type Tab = "youtube" | "docx" | "rss" | "telegram";
+type Tab = "youtube" | "docx" | "rss" | "telegram" | "instagram";
 type ArticleStatus = "pending" | "approved" | "rejected" | "exported";
 
 interface KbResult {
@@ -33,7 +33,7 @@ interface ScrapeResult {
   status: "ok" | "error";
   count?: number;
   articles?: KbResult[];
-  article?: KbResult;
+  article?: KbResult & { thumbnail_url?: string; content_type?: "post" | "reel"; note?: string };
   error?: string;
   hint?: "no_cc" | "ip_block";
 }
@@ -69,10 +69,11 @@ const STATUS_UI: Record<ArticleStatus, { label: string; icon: React.ReactNode; c
 };
 
 const TAB_CONFIG: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "youtube", label: "YouTube",  icon: <Youtube className="w-3.5 h-3.5" /> },
-  { id: "docx",    label: "DOCX",     icon: <FileText className="w-3.5 h-3.5" /> },
-  { id: "rss",     label: "RSS Feed", icon: <Rss className="w-3.5 h-3.5" /> },
-  { id: "telegram",label: "Telegram", icon: <Send className="w-3.5 h-3.5" /> },
+  { id: "youtube",  label: "YouTube",   icon: <Youtube className="w-3.5 h-3.5" /> },
+  { id: "docx",     label: "DOCX",      icon: <FileText className="w-3.5 h-3.5" /> },
+  { id: "rss",      label: "RSS Feed",  icon: <Rss className="w-3.5 h-3.5" /> },
+  { id: "telegram", label: "Telegram",  icon: <Send className="w-3.5 h-3.5" /> },
+  { id: "instagram",label: "Instagram", icon: <Instagram className="w-3.5 h-3.5" /> },
 ];
 
 export default function MoreSourcesPage() {
@@ -101,6 +102,11 @@ export default function MoreSourcesPage() {
   const [tgLimit, setTgLimit] = useState(20);
   const [tgLoading, setTgLoading] = useState(false);
   const [tgResult, setTgResult] = useState<ScrapeResult | null>(null);
+
+  // ── Instagram ──
+  const [igUrl, setIgUrl] = useState("");
+  const [igLoading, setIgLoading] = useState(false);
+  const [igResult, setIgResult] = useState<ScrapeResult | null>(null);
 
   // ── AI Fix state (keyed by article ID) ──
   const [aiState, setAiState] = useState<Record<string, AiItemState>>({});
@@ -182,6 +188,21 @@ export default function MoreSourcesPage() {
       initArticleStatus(data);
     } catch { setTgResult({ status: "error", error: "Gagal terhubung ke server." }); }
     setTgLoading(false);
+  };
+
+  const doInstagram = async () => {
+    if (!igUrl.trim()) return;
+    setIgLoading(true); setIgResult(null);
+    try {
+      const res = await fetch(apiUrl("/api/instagram/scrape"), {
+        method: "POST", headers,
+        body: JSON.stringify({ url: igUrl.trim() }),
+      });
+      const data = await res.json();
+      setIgResult(data);
+      initArticleStatus(data);
+    } catch { setIgResult({ status: "error", error: "Gagal terhubung ke server." }); }
+    setIgLoading(false);
   };
 
   const addDocxFiles = (files: FileList | null) => {
@@ -389,6 +410,24 @@ export default function MoreSourcesPage() {
             )}
           </div>
         </div>
+
+        {/* Instagram thumbnail + reel note */}
+        {(article as { thumbnail_url?: string; content_type?: "post" | "reel"; note?: string }).thumbnail_url && (
+          <div className="flex items-start gap-2">
+            <img
+              src={(article as { thumbnail_url?: string }).thumbnail_url}
+              alt=""
+              className="w-12 h-12 rounded-lg object-cover border border-white/10 shrink-0"
+              referrerPolicy="no-referrer"
+            />
+            {(article as { content_type?: "post" | "reel"; note?: string }).content_type === "reel" && (
+              <div className="flex items-start gap-1.5 text-[10px] text-amber-300 bg-amber-900/20 border border-amber-700/30 rounded-lg px-2 py-1.5 leading-snug flex-1">
+                <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
+                <span>{(article as { note?: string }).note || "Konten Reels — hanya caption yang diambil, bukan transkrip audio."}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Duplicate warning */}
         {article.is_duplicate && (
@@ -657,7 +696,7 @@ export default function MoreSourcesPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />AINA
                 </span>
               </div>
-              <p className="text-violet-300/70 text-[11px] lg:text-[13px]">YouTube · DOCX · RSS · Telegram</p>
+              <p className="text-violet-300/70 text-[11px] lg:text-[13px]">YouTube · DOCX · RSS · Telegram · Instagram</p>
             </div>
           </div>
           <Link to="/review">
@@ -912,6 +951,54 @@ export default function MoreSourcesPage() {
                   <ResultBox result={tgResult} label="Telegram" />
                   {tgResult && (
                     <button onClick={() => { setTgChannel(""); setTgResult(null); }}
+                      className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
+                      <RefreshCw className="w-3 h-3" />Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Instagram Tab ── */}
+            {activeTab === "instagram" && (
+              <div className="bg-[#0d0720] rounded-2xl border border-violet-700/40 overflow-hidden"
+                style={{ boxShadow: "0 0 24px rgba(109,40,217,0.14)" }}>
+                <div className="h-[3px] bg-gradient-to-r from-pink-600 via-fuchsia-500 to-orange-500" />
+                <div className="p-4 sm:p-5 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-pink-900/40 border border-pink-500/30 flex items-center justify-center shrink-0">
+                      <Instagram className="w-4 h-4 text-pink-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Instagram Caption</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Ambil caption dari post Instagram publik → KB Draft → Approve → Push Supabase.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 text-[11px] text-pink-300 bg-pink-900/20 border border-pink-700/30 rounded-xl px-3 py-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>Hanya post <strong>publik</strong> (foto/carousel). Caption saja yang diambil — Reels/video tidak ditranskrip, dan akun privat tidak bisa diakses.</span>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">URL Post Instagram</label>
+                    <div className="flex gap-2">
+                      <Input value={igUrl} onChange={e => setIgUrl(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && doInstagram()}
+                        placeholder="https://www.instagram.com/p/..."
+                        className="flex-1 h-9 text-xs bg-[#0f0a1e] border-violet-800/40 text-slate-200 rounded-xl placeholder:text-slate-600 focus-visible:ring-pink-400/40" />
+                      <Button onClick={doInstagram} disabled={igLoading || !igUrl.trim()}
+                        className="h-9 px-4 bg-pink-700 hover:bg-pink-600 text-white text-xs rounded-xl shrink-0 disabled:opacity-50">
+                        {igLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Ambil"}
+                      </Button>
+                    </div>
+                  </div>
+                  {igLoading && (
+                    <div className="flex items-center gap-2 text-xs text-slate-400 bg-white/5 rounded-xl px-3 py-2.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-400" />Mengambil caption dari Instagram...
+                    </div>
+                  )}
+                  <ResultBox result={igResult} label="Instagram" />
+                  {igResult && (
+                    <button onClick={() => { setIgUrl(""); setIgResult(null); }}
                       className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
                       <RefreshCw className="w-3 h-3" />Reset
                     </button>

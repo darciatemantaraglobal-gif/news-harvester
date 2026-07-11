@@ -9,6 +9,7 @@ import hashlib
 from flask_cors import CORS
 from scraper import scrape_all, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
+from instagram_scraper import scrape_instagram_post, is_instagram_url
 from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch, get_active_model
 import db_services
 from db_services import push_kb_articles, fetch_kb_articles_from_db, check_supabase_available
@@ -3368,6 +3369,50 @@ def api_telegram_scrape():
         "articles": articles,
         "channel": channel,
     })
+
+
+@app.route("/api/instagram/scrape", methods=["POST"])
+def api_instagram_scrape():
+    """Ambil caption dari satu post Instagram publik (foto/carousel) dan simpan sebagai KB draft."""
+    data = request.get_json(force=True)
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "URL post Instagram wajib diisi."}), 400
+
+    if not is_instagram_url(url):
+        return jsonify({"error": "URL tidak valid — hanya URL instagram.com/www.instagram.com yang diizinkan."}), 400
+
+    try:
+        result = scrape_instagram_post(url)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 502
+    except Exception as e:
+        app.logger.error(f"[INSTAGRAM] scrape error: {e}")
+        return jsonify({"error": f"Gagal mengambil data dari Instagram: {e}"}), 500
+
+    caption = result.get("caption", "").strip()
+    if not caption:
+        return jsonify({"error": "Caption tidak ditemukan atau kosong pada post ini."}), 400
+
+    username = result.get("username", "")
+    # Judul: potongan awal caption, fallback ke username
+    title_source = caption if caption else username
+    words = title_source.split()
+    title = " ".join(words[:12]) if words else (username or "Post Instagram")
+    if len(words) > 12:
+        title += "..."
+    if not title.strip():
+        title = f"Post Instagram @{username}" if username else "Post Instagram"
+
+    draft = _make_kb_draft(title, caption, result.get("url", url), result.get("scraped_at", ""), source_tag="instagram")
+    draft["thumbnail_url"] = result.get("thumbnail_url", "")
+    draft["content_type"] = result.get("content_type", "post")
+    if result.get("note"):
+        draft["note"] = result["note"]
+
+    return jsonify({"status": "ok", "count": 1, "article": draft})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
