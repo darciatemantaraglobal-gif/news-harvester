@@ -156,8 +156,6 @@ export default function HomePage() {
             {/* Berita card — solid + rotating border beam */}
             <Link to="/scraper" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.02]"
               style={{ background: "#0d0720" }}>
-              <div className="absolute animate-border-beam pointer-events-none"
-                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
               <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex flex-col p-3 sm:p-5 h-full" style={{ background: "#0d0720" }}>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                   <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
@@ -180,8 +178,6 @@ export default function HomePage() {
             {/* PDF card — solid + rotating border beam (offset phase) */}
             <Link to="/pdf" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.02]"
               style={{ background: "#0d0720" }}>
-              <div className="absolute animate-border-beam-delay pointer-events-none"
-                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
               <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex flex-col p-3 sm:p-5 h-full" style={{ background: "#0d0720" }}>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                   <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
@@ -203,8 +199,6 @@ export default function HomePage() {
           {/* Paste card — full width */}
             <Link to="/paste" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.01] col-span-2"
               style={{ background: "#0d0720" }}>
-              <div className="absolute animate-border-beam-slow pointer-events-none"
-                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(99,102,241,0.5) 300deg, rgba(165,180,252,0.9) 345deg, transparent 360deg)" }} />
               <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex items-center gap-3 p-3 sm:p-4" style={{ background: "#0d0720" }}>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl bg-indigo-900/60 border border-indigo-500/40 flex items-center justify-center">
                   <ClipboardPaste className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-300" strokeWidth={1.8} />
@@ -222,8 +216,6 @@ export default function HomePage() {
             {/* Sumber Tambahan card — full width */}
             <Link to="/sources" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.01] col-span-2"
               style={{ background: "#0d0720" }}>
-              <div className="absolute animate-border-beam pointer-events-none"
-                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(14,165,233,0.5) 300deg, rgba(125,211,252,0.9) 345deg, transparent 360deg)" }} />
               <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex items-center gap-3 p-3 sm:p-4" style={{ background: "#0d0720" }}>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl bg-sky-900/60 border border-sky-500/40 flex items-center justify-center">
                   <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300" strokeWidth={1.8} />
@@ -241,8 +233,6 @@ export default function HomePage() {
             {/* Muqarrar AI card — full width */}
             <Link to="/muqarrar" className="group relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-[1.01] col-span-2"
               style={{ background: "#0d0720" }}>
-              <div className="absolute animate-border-beam-slow pointer-events-none"
-                style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(109,40,217,0.6) 300deg, rgba(167,139,250,1) 345deg, transparent 360deg)" }} />
               <div className="relative m-px rounded-[11px] sm:rounded-[15px] flex items-center gap-3 p-3 sm:p-4" style={{ background: "#0d0720" }}>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                   <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-violet-300" strokeWidth={1.8} />
@@ -280,15 +270,6 @@ export default function HomePage() {
             className="group relative overflow-hidden rounded-xl sm:rounded-2xl block transition-all duration-300 hover:scale-[1.01]"
             style={{ background: "#0d0720" }}
           >
-            <div className="absolute animate-border-beam-slow pointer-events-none"
-              style={{
-                inset: "-50%", width: "200%", height: "200%",
-                background: hasPending
-                  ? "conic-gradient(transparent 260deg, rgba(217,119,6,0.6) 300deg, rgba(252,211,77,1) 345deg, transparent 360deg)"
-                  : hasApproved
-                  ? "conic-gradient(transparent 260deg, rgba(5,150,105,0.6) 300deg, rgba(110,231,183,1) 345deg, transparent 360deg)"
-                  : "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)",
-              }} />
             <div className="relative m-px rounded-[11px] sm:rounded-[15px] p-3 sm:p-5" style={{ background: "#0d0720" }}>
 
               <div className="flex items-center justify-between gap-3">
@@ -422,7 +403,6 @@ export default function HomePage() {
             {/* Step 1 cards */}
             <div className="grid grid-cols-2 gap-3">
               <Link to="/scraper" className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02]" style={{ background: "#0d0720" }}>
-                <div className="absolute animate-border-beam pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
                 <div className="relative m-px rounded-[15px] flex flex-col p-5 h-full" style={{ background: "#0d0720" }}>
                   <div className="w-11 h-11 mb-3 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                     <Newspaper className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
@@ -436,7 +416,6 @@ export default function HomePage() {
                 </div>
               </Link>
               <Link to="/pdf" className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02]" style={{ background: "#0d0720" }}>
-                <div className="absolute animate-border-beam-delay pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
                 <div className="relative m-px rounded-[15px] flex flex-col p-5 h-full" style={{ background: "#0d0720" }}>
                   <div className="w-11 h-11 mb-3 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                     <BookOpen className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
@@ -452,7 +431,6 @@ export default function HomePage() {
 
               {/* Paste card — full width desktop */}
               <Link to="/paste" className="group relative overflow-hidden rounded-2xl col-span-2 transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
-                <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(99,102,241,0.5) 300deg, rgba(165,180,252,0.9) 345deg, transparent 360deg)" }} />
                 <div className="relative m-px rounded-[15px] flex items-center gap-4 p-4" style={{ background: "#0d0720" }}>
                   <div className="w-11 h-11 shrink-0 rounded-xl bg-indigo-900/60 border border-indigo-500/40 flex items-center justify-center">
                     <ClipboardPaste className="w-5 h-5 text-indigo-300" strokeWidth={1.8} />
@@ -469,7 +447,6 @@ export default function HomePage() {
 
               {/* Sumber Tambahan card — full width desktop */}
               <Link to="/sources" className="group relative overflow-hidden rounded-2xl col-span-2 transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
-                <div className="absolute animate-border-beam pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(14,165,233,0.5) 300deg, rgba(125,211,252,0.9) 345deg, transparent 360deg)" }} />
                 <div className="relative m-px rounded-[15px] flex items-center gap-4 p-4" style={{ background: "#0d0720" }}>
                   <div className="w-11 h-11 shrink-0 rounded-xl bg-sky-900/60 border border-sky-500/40 flex items-center justify-center">
                     <Layers className="w-5 h-5 text-sky-300" strokeWidth={1.8} />
@@ -486,7 +463,6 @@ export default function HomePage() {
 
               {/* Muqarrar AI card — full width desktop */}
               <Link to="/muqarrar" className="group relative overflow-hidden rounded-2xl col-span-2 transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
-                <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: "conic-gradient(transparent 260deg, rgba(109,40,217,0.6) 300deg, rgba(167,139,250,1) 345deg, transparent 360deg)" }} />
                 <div className="relative m-px rounded-[15px] flex items-center gap-4 p-4" style={{ background: "#0d0720" }}>
                   <div className="w-11 h-11 shrink-0 rounded-xl bg-violet-900/60 border border-violet-500/40 flex items-center justify-center">
                     <BookOpen className="w-5 h-5 text-violet-300" strokeWidth={1.8} />
@@ -516,7 +492,6 @@ export default function HomePage() {
 
             {/* Review card */}
             <Link to="/review" className="group relative overflow-hidden rounded-2xl block transition-all duration-300 hover:scale-[1.01]" style={{ background: "#0d0720" }}>
-              <div className="absolute animate-border-beam-slow pointer-events-none" style={{ inset: "-50%", width: "200%", height: "200%", background: hasPending ? "conic-gradient(transparent 260deg, rgba(217,119,6,0.6) 300deg, rgba(252,211,77,1) 345deg, transparent 360deg)" : hasApproved ? "conic-gradient(transparent 260deg, rgba(5,150,105,0.6) 300deg, rgba(110,231,183,1) 345deg, transparent 360deg)" : "conic-gradient(transparent 260deg, rgba(139,92,246,0.6) 300deg, rgba(196,181,253,1) 345deg, transparent 360deg)" }} />
               <div className="relative m-px rounded-[15px] p-5" style={{ background: "#0d0720" }}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
