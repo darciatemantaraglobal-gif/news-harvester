@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm ci",
+  "installCommand": "npm install -g npm@10.8.2 && npm ci",
   "outputDirectory": "dist",
   "functions": {
     "api/index.py": {
