@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, Send, CheckCircle2, ScanText, ImagePlus, X, Newspaper, BookOpen, FileText, List, Zap, Radio, RotateCcw } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, Check, Loader2, AlertCircle, Trash2, ClipboardPaste, CheckCircle2, ScanText, ImagePlus, X, Newspaper, BookOpen, FileText, List, Zap, Radio, RotateCcw, Database, ExternalLink, HelpCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { apiUrl } from "@/lib/api";
@@ -38,7 +38,18 @@ export default function PastePage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
-  const [pushStatus, setPushStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [pushResult, setPushResult] = useState<{
+    ok: boolean;
+    approval_status?: string;
+    is_masisir_relevant?: boolean | null;
+    relevance_score?: number | null;
+    relevance_reason?: string;
+    masisir_key_points?: string[];
+    masisir_action_needed?: string;
+    masisir_important_dates?: string;
+    needs_manual_relevance_check?: boolean;
+    error?: string;
+  } | null>(null);
   const [ocrImage, setOcrImage] = useState<File | null>(null);
   const [ocrPreview, setOcrPreview] = useState<string>("");
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -61,7 +72,7 @@ export default function PastePage() {
     setOcrImage(null);
     setOcrPreview("");
     setOcrError("");
-    setPushStatus(null);
+    setPushResult(null);
     setActiveFormatLabel("");
     setArabicMode(false);
     setCopied(false);
@@ -107,7 +118,7 @@ export default function PastePage() {
   const handlePush = async () => {
     if (!result.trim()) return;
     setPushLoading(true);
-    setPushStatus(null);
+    setPushResult(null);
     try {
       const res = await fetch(apiUrl("/api/push-paste"), {
         method: "POST",
@@ -118,16 +129,20 @@ export default function PastePage() {
         body: JSON.stringify({ title: title.trim() || "Artikel dari Paste", content: result.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal push ke Supabase.");
-      if (data.inserted > 0) {
-        setPushStatus({ ok: true, msg: `Berhasil masuk ke Supabase (${data.inserted} artikel)` });
-      } else if (data.errors?.length) {
-        setPushStatus({ ok: false, msg: data.errors[0] });
-      } else {
-        setPushStatus({ ok: false, msg: "Tidak ada artikel yang berhasil di-push." });
-      }
+      if (!res.ok) throw new Error(data.error || "Gagal memproses artikel.");
+      setPushResult({
+        ok: true,
+        approval_status: data.approval_status,
+        is_masisir_relevant: data.is_masisir_relevant,
+        relevance_score: data.relevance_score,
+        relevance_reason: data.relevance_reason,
+        masisir_key_points: data.masisir_key_points || [],
+        masisir_action_needed: data.masisir_action_needed,
+        masisir_important_dates: data.masisir_important_dates,
+        needs_manual_relevance_check: data.needs_manual_relevance_check,
+      });
     } catch (e: unknown) {
-      setPushStatus({ ok: false, msg: e instanceof Error ? e.message : "Terjadi kesalahan." });
+      setPushResult({ ok: false, error: e instanceof Error ? e.message : "Terjadi kesalahan." });
     } finally {
       setPushLoading(false);
     }
@@ -138,7 +153,7 @@ export default function PastePage() {
     setContent("");
     setResult("");
     setError("");
-    setPushStatus(null);
+    setPushResult(null);
     setOcrImage(null);
     setOcrPreview("");
     setOcrError("");
@@ -518,34 +533,90 @@ export default function PastePage() {
                         </button>
                         <button
                           onClick={handlePush}
-                          disabled={pushLoading || pushStatus?.ok === true}
+                          disabled={pushLoading || pushResult?.ok === true}
                           className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           style={{
-                            background: pushStatus?.ok ? "rgba(16,185,129,0.2)" : "rgba(59,130,246,0.2)",
-                            color: pushStatus?.ok ? "#34d399" : "#93c5fd",
-                            border: pushStatus?.ok ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(59,130,246,0.4)",
+                            background: pushResult?.ok ? "rgba(16,185,129,0.2)" : "rgba(59,130,246,0.2)",
+                            color: pushResult?.ok ? "#34d399" : "#93c5fd",
+                            border: pushResult?.ok ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(59,130,246,0.4)",
                           }}
                         >
                           {pushLoading
-                            ? <><Loader2 className="w-3 h-3 animate-spin" />Pushing...</>
-                            : pushStatus?.ok
-                              ? <><CheckCircle2 className="w-3 h-3" />Sudah Push</>
-                              : <><Send className="w-3 h-3" />Push Supabase</>
+                            ? <><Loader2 className="w-3 h-3 animate-spin" />Memproses...</>
+                            : pushResult?.ok
+                              ? <><CheckCircle2 className="w-3 h-3" />Draft Tersimpan</>
+                              : <><Database className="w-3 h-3" />Proses ke Knowledge Base</>
                           }
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* Push status bar */}
-                  {pushStatus && (
-                    <div className="flex items-center gap-2 px-3 sm:px-4 py-2 border-b shrink-0"
-                      style={{ borderColor: pushStatus.ok ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)", background: pushStatus.ok ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)" }}>
-                      {pushStatus.ok
-                        ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        : <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                      }
-                      <span className="text-[11px]" style={{ color: pushStatus.ok ? "#34d399" : "#f87171" }}>{pushStatus.msg}</span>
+                  {/* Push result panel */}
+                  {pushResult && (
+                    <div className="px-3 sm:px-4 py-3 border-b shrink-0 flex flex-col gap-2"
+                      style={{ borderColor: "rgba(139,92,246,0.2)", background: "rgba(10,4,30,0.6)" }}>
+                      {!pushResult.ok ? (
+                        /* Error */
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                          <span className="text-[11px] text-red-400">{pushResult.error}</span>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Status badge row */}
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              {pushResult.approval_status === "rejected_irrelevant" ? (
+                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                  style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>
+                                  <AlertCircle className="w-2.5 h-2.5" />Tidak Relevan
+                                </span>
+                              ) : pushResult.needs_manual_relevance_check ? (
+                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                  style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                                  <HelpCircle className="w-2.5 h-2.5" />Perlu Cek Manual
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                  style={{ background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }}>
+                                  <CheckCircle2 className="w-2.5 h-2.5" />Relevan
+                                </span>
+                              )}
+                              {pushResult.relevance_score != null && (
+                                <span className="text-[10px] text-slate-500">
+                                  Skor: <span className="text-slate-300 font-semibold">{pushResult.relevance_score}</span>
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-600">→ Draft tersimpan</span>
+                            </div>
+                            <button
+                              onClick={() => window.location.href = "/review"}
+                              className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all"
+                              style={{ background: "rgba(139,92,246,0.2)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.35)" }}
+                            >
+                              <ExternalLink className="w-2.5 h-2.5" />Lihat di Review Dashboard
+                            </button>
+                          </div>
+                          {/* Relevance reason */}
+                          {pushResult.relevance_reason && (
+                            <p className="text-[10px] text-slate-500 leading-relaxed pl-0.5">{pushResult.relevance_reason}</p>
+                          )}
+                          {/* Key points */}
+                          {pushResult.masisir_key_points && pushResult.masisir_key_points.length > 0 && (
+                            <div className="flex flex-col gap-1 pl-0.5">
+                              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600">Key Points</p>
+                              <ul className="flex flex-col gap-0.5">
+                                {pushResult.masisir_key_points.map((pt, i) => (
+                                  <li key={i} className="flex items-start gap-1.5 text-[10px] text-slate-400">
+                                    <span className="text-violet-500 shrink-0 mt-0.5">•</span>{pt}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
 

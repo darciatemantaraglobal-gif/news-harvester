@@ -1,0 +1,18 @@
+Tolong perbaiki _build_aina_payload() di db_services.py supaya memanfaatkan kolom important_notes (yang sudah ada di skema knowledge_base AINA tapi belum pernah diisi) untuk menampung hasil ekstraksi masisir dari Tahap 3 (relevance_filter.py: key_points, action_needed, important_dates).
+
+1. Update _build_aina_payload(kb_article: dict) -> dict:
+   - Kalau kb_article punya masisir_extract (hasil dari filter_and_extract di Tahap 3) dan berisi key_points/action_needed/important_dates, format jadi teks terstruktur ringkas untuk kolom important_notes, contoh:
+
+     "Poin penting: {key_points digabung dengan titik koma}. Tindakan: {action_needed}. Tanggal penting: {important_dates}."
+
+     Kalau salah satu field kosong (misal important_dates kosong), skip bagian itu dari teks (jangan tampilkan "Tanggal penting: " kosong).
+   - Batasi important_notes maksimal 500 karakter (potong dengan wajar, jangan motong di tengah kata).
+   - Kalau kb_article TIDAK punya masisir_extract (misal toggle filter sedang OFF, atau artikel dari sebelum Tahap 3 ada), important_notes tetap boleh kosong seperti sekarang — JANGAN error.
+
+2. Field summary tetap diisi seperti sekarang (ringkasan umum), important_notes adalah TAMBAHAN, bukan pengganti.
+
+3. Field category: sudah dipetakan lewat _map_tags_to_category() berdasarkan tags — cek apakah kb_article dari Tahap 3 juga punya field masisir_category (hasil klasifikasi AI, lebih akurat daripada keyword-matching tags biasa). Kalau ada masisir_category dan itu termasuk salah satu AINA_VALID_CATEGORIES yang valid, PRIORITASKAN masisir_category itu dibanding hasil _map_tags_to_category() dari tags biasa (karena hasil AI classification lebih presisi daripada keyword matching sederhana).
+
+4. Test: push 1 artikel dummy yang punya masisir_extract lengkap (key_points 3 poin, action_needed ada, important_dates ada) lewat push_kb_articles(), lalu query balik dari Supabase (fetch_articles atau langsung select dari knowledge_base) untuk konfirmasi important_notes dan category terisi dengan benar sesuai payload yang dikirim.
+
+Laporkan hasil test (isi important_notes dan category yang benar-benar tersimpan di Supabase), dan konfirmasi tidak ada regresi untuk artikel yang belum punya masisir_extract (dari toggle OFF atau data lama).

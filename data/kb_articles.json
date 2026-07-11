@@ -1,1 +1,46 @@
-[]
+[
+  {
+    "id": "paste-1783759629579-9f9d95",
+    "title": "Mahasiswa Indonesia di Al-Azhar Terima Beasiswa Tambahan 2026",
+    "slug": "mahasiswa-indonesia-di-al-azhar-terima-beasiswa-tambahan-2026",
+    "source_url": "",
+    "published_date": "2026-07-11T08:47:09",
+    "content": "Sebanyak 500 mahasiswa Indonesia yang tergabung dalam komunitas masisir (Mahasiswa Indonesia di Mesir) menerima beasiswa tambahan dari KBRI Kairo senilai EGP 2.000 per bulan. Beasiswa ini untuk mendukung studi mereka di Universitas Al-Azhar Kairo. Ketua PPI Mesir menyampaikan pencairan dilakukan setiap bulan. Penerima beasiswa meliputi mahasiswa dari Fakultas Syariah, Ushuluddin, dan Bahasa Arab. KBRI Kairo mengimbau seluruh WNI pelajar untuk memastikan data mereka sudah terdaftar di sistem SILN.",
+    "summary": "Sebanyak 500 mahasiswa Indonesia yang tergabung dalam komunitas masisir (Mahasiswa Indonesia di Mesir) menerima beasiswa tambahan dari KBRI Kairo senilai EGP 2.000 per bulan. Beasiswa ini untuk mendukung studi mereka di Universitas Al-Azhar Kairo. Ketua PPI Mesir menyampaikan pencairan dilakukan setiap bulan. Penerima beasiswa meliputi mahasiswa dari Fakultas Syariah, Ushuluddin, dan Bahasa Arab.",
+    "tags": [
+      "paste"
+    ],
+    "scrape_status": "success",
+    "approval_status": "pending",
+    "is_masisir_relevant": null,
+    "relevance_score": 0,
+    "relevance_reason": "Panggilan AI gagal: OPENROUTER_API_KEY tidak ditemukan di environment. Fitur AI Summary tidak tersedia.",
+    "masisir_category": null,
+    "masisir_key_points": [],
+    "masisir_action_needed": "",
+    "masisir_important_dates": "",
+    "needs_manual_relevance_check": true
+  },
+  {
+    "id": "paste-1783759630510-85e480",
+    "title": "Harga Minyak Dunia Naik Tajam Akibat Konflik di Timur Tengah",
+    "slug": "harga-minyak-dunia-naik-tajam-akibat-konflik-di-timur-tengah",
+    "source_url": "",
+    "published_date": "2026-07-11T08:47:10",
+    "content": "Harga minyak mentah dunia mengalami kenaikan tajam hingga 5% pada perdagangan Jumat lalu, dipicu oleh eskalasi konflik di kawasan Timur Tengah. Brent crude naik ke USD 95 per barel sementara WTI mencapai USD 91 per barel. Para analis memperkirakan harga akan terus berfluktuasi. OPEC+ dijadwalkan menggelar pertemuan darurat pekan ini untuk membahas kuota produksi.",
+    "summary": "Harga minyak mentah dunia mengalami kenaikan tajam hingga 5% pada perdagangan Jumat lalu, dipicu oleh eskalasi konflik di kawasan Timur Tengah. Brent crude naik ke USD 95 per barel sementara WTI mencapai USD 91 per barel. Para analis memperkirakan harga akan terus berfluktuasi. OPEC+ dijadwalkan menggelar pertemuan darurat pekan ini untuk membahas kuota produksi.",
+    "tags": [
+      "paste"
+    ],
+    "scrape_status": "success",
+    "approval_status": "rejected_irrelevant",
+    "is_masisir_relevant": false,
+    "relevance_score": 0,
+    "relevance_reason": "Tidak ditemukan kata kunci terkait Masisir/Mesir/KBRI Kairo pada artikel ini.",
+    "masisir_category": null,
+    "masisir_key_points": [],
+    "masisir_action_needed": "",
+    "masisir_important_dates": "",
+    "needs_manual_relevance_check": false
+  }
+]

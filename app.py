@@ -1465,56 +1465,58 @@ def api_ocr_poster():
 
 @app.route("/api/push-paste", methods=["POST"])
 def api_push_paste():
-    """Push artikel hasil Paste & Rapikan langsung ke Supabase knowledge_base."""
-    from db_services import push_kb_articles
-    from kb_processor import KEYWORD_TAG_MAP, DEFAULT_TAGS
+    """
+    Buat KB draft dari artikel Paste & Rapikan — konsisten dengan sumber lain.
+    Artikel TIDAK langsung push ke knowledge_base production; ia masuk ke
+    kb_articles_draft dengan approval_status yang ditentukan oleh filter
+    relevansi masisir (sama persis dengan scraper web, YouTube, Instagram, dll).
+    User harus mereview & approve di Review Dashboard sebelum bisa push ke KB.
+    """
+    import uuid as _uuid_m
     data = request.get_json(force=True) or {}
-    title = data.get("title", "").strip()
-    content = data.get("content", "").strip()
+    title = (data.get("title") or "").strip()
+    content = (data.get("content") or "").strip()
     if not content:
         return jsonify({"error": "Konten tidak boleh kosong."}), 400
     if not title:
         title = "Artikel dari Paste"
-    # Auto-tag dari title + content
-    combined = (title + " " + content).lower()
-    tags = list(DEFAULT_TAGS)
-    for keyword, tag in KEYWORD_TAG_MAP.items():
-        if keyword in combined and tag not in tags:
-            tags.append(tag)
-    article = {"title": title, "content": content, "tags": tags, "summary": ""}
 
-    # ── Fitur Relevansi & Ekstraksi Masisir ──
-    # Paste & Rapikan tidak lewat kb_articles_draft (langsung push ke Supabase
-    # produksi), jadi filter yang sama diterapkan langsung di sini: kalau
-    # AI menandai artikel TIDAK relevan (bukan "gagal klasifikasi"), jangan
-    # push ke KB produksi.
-    from relevance_filter import is_masisir_filter_enabled, filter_and_extract
-    relevance_info = None
-    if is_masisir_filter_enabled():
-        relevance_info = filter_and_extract({"title": title, "content": content})
-        if relevance_info.get("is_masisir_relevant") is False:
-            return jsonify({
-                "status": "rejected_irrelevant",
-                "error": "Artikel ini dinilai AI tidak relevan untuk Masisir, tidak dikirim ke Knowledge Base.",
-                "relevance_reason": relevance_info.get("relevance_reason", ""),
-                "relevance_score": relevance_info.get("relevance_score", 0),
-            }), 200
+    article_id = f"paste-{int(time.time()*1000)}-{_uuid_m.uuid4().hex[:6]}"
+    draft = convert_to_kb_format({
+        "id": article_id,
+        "title": title,
+        "content": content,
+        "url": "",
+        "date": _now_iso(),
+        "status": "success",
+        "summary": "",
+        "source": "paste",
+        "tags": ["paste"],
+    })
 
+    # Simpan ke KB draft list (sama seperti sumber lain)
     try:
-        result = push_kb_articles([article])
-        inserted = result.get("inserted", 0)
-        skipped = result.get("skipped", 0)
-        if inserted > 0 or skipped > 0:
-            _record_push(username=g.current_user, source="paste", count=inserted, titles=[title], skipped=skipped)
-        return jsonify({
-            "status": "ok",
-            "inserted": inserted,
-            "skipped": skipped,
-            "errors": result.get("errors", []),
-        })
+        kb = _load_kb()
+        if not any(a.get("id") == article_id for a in kb):
+            kb.append(draft)
+            _save_kb(kb)
     except Exception as e:
-        logger.error(f"[PUSH-PASTE] Error: {e}")
+        logger.error(f"[PUSH-PASTE] Gagal simpan draft: {e}")
         return jsonify({"error": str(e)}), 500
+
+    logger.info(f"[PUSH-PASTE] Draft '{title}' ({article_id}) disimpan, status={draft.get('approval_status')}")
+    return jsonify({
+        "status": "ok",
+        "draft_id": draft.get("id"),
+        "approval_status": draft.get("approval_status"),
+        "is_masisir_relevant": draft.get("is_masisir_relevant"),
+        "relevance_score": draft.get("relevance_score"),
+        "relevance_reason": draft.get("relevance_reason", ""),
+        "masisir_key_points": draft.get("masisir_key_points", []),
+        "masisir_action_needed": draft.get("masisir_action_needed", ""),
+        "masisir_important_dates": draft.get("masisir_important_dates", ""),
+        "needs_manual_relevance_check": draft.get("needs_manual_relevance_check", False),
+    })
 
 
 @app.route("/api/articles/bulk-delete", methods=["POST"])
@@ -1646,14 +1648,31 @@ def _now_iso() -> str:
 
 def _load_kb() -> list:
     """
-    [VERCEL SERVERLESS] Sumber kebenaran satu-satunya: tabel Supabase
-    kb_articles_draft. Disk lokal TIDAK dipakai lagi (ephemeral di Vercel).
+    Sumber kebenaran: Supabase kb_articles_draft.
+    Fallback ke file lokal jika Supabase tidak tersedia (dev tanpa credentials).
     """
-    return db_services.get_kb_articles()
+    try:
+        return db_services.get_kb_articles()
+    except Exception:
+        pass
+    # Fallback lokal (dev mode)
+    if os.path.exists(KB_FILE):
+        try:
+            with open(KB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
 
 
 def _save_kb(data: list):
-    db_services.save_kb_articles(data)
+    try:
+        db_services.save_kb_articles(data)
+        return
+    except Exception:
+        pass
+    # Fallback lokal (dev mode)
+    _safe_write_json(KB_FILE, data)
 
 
 def _load_file(path: str) -> list:

@@ -1,0 +1,28 @@
+Tolong perbaiki tampilan section "Convert to KB Draft" di halaman KB Pipeline (screenshot: nomor 1 Generate Summary, nomor 2 Auto Tagging, lalu Convert to KB Draft yang kurang menonjol) supaya:
+
+## 1. Jadikan "Convert to KB Draft" langkah nomor 3 yang menonjol, konsisten dengan 2 langkah di atasnya
+
+- Tambahkan badge nomor bulat ungu "3" persis seperti gaya badge "1" dan "2" di atasnya (sekarang cuma pakai ikon centang kecil, tidak konsisten).
+- Perbesar dan perjelas tombol aksi utamanya. Sekarang tombol "Re-convert" (hijau, kecil) kurang terlihat sebagai langkah utama. Jadikan tombol utama lebih besar/prominent, dengan teks yang jelas menunjukkan aksi utama, misal "Proses ke KB Draft" sebagai tombol primer (gunakan warna aksen utama aplikasi, ukuran sama seperti tombol "Generate Summary"/"Auto Tag" di atasnya atau lebih besar karena ini langkah final).
+- "Re-convert" bisa tetap ada sebagai opsi sekunder/kecil di sampingnya untuk kasus artikel yang sudah pernah dikonversi dan perlu diulang, tapi jangan jadi tombol paling dominan di section ini.
+
+## 2. Tambahkan toggle "Filter Relevansi Masisir" LANGSUNG di section ini (bukan di halaman Settings terpisah)
+
+- Toggle switch ON/OFF, posisikan di bagian atas section "Convert to KB Draft", sebelum tombol aksi.
+- Fetch status saat ini dari GET /api/settings/masisir-filter saat halaman/section ini di-load. Update via POST /api/settings/masisir-filter saat toggle diubah (endpoint ini seharusnya sudah dibuat di Tahap 3 — kalau belum ada, buat dulu mengikuti spesifikasi yang sudah diberikan sebelumnya).
+- Label jelas: "Filter Relevansi Masisir" dengan deskripsi singkat di bawahnya yang berubah sesuai state:
+  - Kalau ON: "AKTIF — artikel akan difilter & diekstrak otomatis berdasarkan relevansi ke masisir sebelum masuk draft."
+  - Kalau OFF: "NONAKTIF — semua artikel masuk draft apa adanya tanpa filter."
+- Style toggle: gunakan warna hijau/aktif kalau ON, abu-abu kalau OFF, dengan transisi halus. Toggle harus terlihat jelas sebagai kontrol penting, bukan elemen kecil yang gampang terlewat.
+
+## 3. Tampilkan ringkasan hasil filter setelah proses convert selesai
+
+- Setelah user klik "Proses ke KB Draft" dan proses selesai, tampilkan ringkasan singkat di bawah tombol (card kecil): jumlah artikel relevan, jumlah ditolak (tidak relevan), jumlah perlu cek manual — ambil dari response endpoint convert atau panggil /api/masisir-stats setelah proses selesai.
+- Kalau toggle sedang OFF, tampilkan pesan singkat sebagai pengganti: "Filter nonaktif — semua artikel masuk draft tanpa penyaringan."
+
+## Catatan penting
+- JANGAN ubah logic backend filter_and_extract/convert_to_kb_format yang sudah ada di Tahap 3 — ini murni perbaikan UI/UX di halaman KB Pipeline supaya toggle dan tombol convert lebih terlihat dan mudah diakses.
+- Pastikan responsive, tidak merusak layout "Generate Summary" dan "Auto Tag" yang sudah ada di atasnya.
+- Test: toggle ON/OFF tersimpan dan konsisten kalau halaman di-refresh (baca dari backend, bukan cuma state lokal React yang hilang saat reload). Test proses convert dengan toggle ON dan OFF, pastikan ringkasan hasil yang ditampilkan sesuai.
+
+Laporkan: file yang diubah, screenshot/deskripsi tampilan baru, dan konfirmasi toggle tersimpan persisten setelah refresh halaman.
