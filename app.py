@@ -3440,12 +3440,14 @@ def api_instagram_scrape():
         return jsonify({"error": f"Gagal mengambil data dari Instagram: {e}"}), 500
 
     caption = result.get("caption", "").strip()
-    if not caption:
-        return jsonify({"error": "Caption tidak ditemukan atau kosong pada post ini."}), 400
+    poster_text = result.get("poster_text", "").strip()
+
+    if not caption and not poster_text:
+        return jsonify({"error": "Caption dan teks poster tidak ditemukan atau kosong pada post ini."}), 400
 
     username = result.get("username", "")
     # Judul: potongan awal caption, fallback ke username
-    title_source = caption if caption else username
+    title_source = caption if caption else poster_text
     words = title_source.split()
     title = " ".join(words[:12]) if words else (username or "Post Instagram")
     if len(words) > 12:
@@ -3453,9 +3455,20 @@ def api_instagram_scrape():
     if not title.strip():
         title = f"Post Instagram @{username}" if username else "Post Instagram"
 
-    draft = _make_kb_draft(title, caption, result.get("url", url), result.get("scraped_at", ""), source_tag="instagram")
+    # Gabungkan caption + poster_text sebagai konten agar filter AI/ringkasan bisa lihat keduanya
+    combined_content = caption
+    if poster_text:
+        if combined_content:
+            combined_content += f"\n\n--- Teks dari Foto ---\n{poster_text}"
+        else:
+            combined_content = poster_text
+
+    draft = _make_kb_draft(title, combined_content, result.get("url", url), result.get("scraped_at", ""), source_tag="instagram")
     draft["thumbnail_url"] = result.get("thumbnail_url", "")
     draft["content_type"] = result.get("content_type", "post")
+    draft["poster_text"] = poster_text
+    draft["images_processed"] = result.get("images_processed", 0)
+    draft["images_skipped"] = result.get("images_skipped", 0)
     if result.get("note"):
         draft["note"] = result["note"]
 

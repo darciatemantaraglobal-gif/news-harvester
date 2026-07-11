@@ -33,7 +33,7 @@ interface ScrapeResult {
   status: "ok" | "error";
   count?: number;
   articles?: KbResult[];
-  article?: KbResult & { thumbnail_url?: string; content_type?: "post" | "reel"; note?: string };
+  article?: KbResult & { thumbnail_url?: string; content_type?: "post" | "reel"; note?: string; poster_text?: string; images_processed?: number; images_skipped?: number };
   error?: string;
   hint?: "no_cc" | "ip_block";
 }
@@ -970,13 +970,13 @@ export default function MoreSourcesPage() {
                       <Instagram className="w-4 h-4 text-pink-400" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-sm">Instagram Caption</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Ambil caption dari post Instagram publik → KB Draft → Approve → Push Supabase.</p>
+                      <h3 className="font-bold text-white text-sm">Instagram Caption + OCR Foto</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Ambil caption + OCR teks dari semua foto post (termasuk carousel) → KB Draft → Approve → Push Supabase.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 text-[11px] text-pink-300 bg-pink-900/20 border border-pink-700/30 rounded-xl px-3 py-2.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>Hanya post <strong>publik</strong> (foto/carousel). Caption saja yang diambil — Reels/video tidak ditranskrip, dan akun privat tidak bisa diakses.</span>
+                    <span>Hanya post <strong>publik</strong> (foto/carousel). Caption + OCR teks poster diambil — Reels/video tidak ditranskrip, akun privat tidak bisa diakses.</span>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">URL Post Instagram</label>
@@ -993,10 +993,51 @@ export default function MoreSourcesPage() {
                   </div>
                   {igLoading && (
                     <div className="flex items-center gap-2 text-xs text-slate-400 bg-white/5 rounded-xl px-3 py-2.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-400" />Mengambil caption dari Instagram...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-400" />Mengambil caption + OCR foto dari Instagram... (bisa 15–30 detik)
                     </div>
                   )}
                   <ResultBox result={igResult} label="Instagram" />
+
+                  {/* Poster text OCR result — ditampilkan terpisah dari caption */}
+                  {igResult?.status === "ok" && igResult.article && (
+                    <div className="space-y-2">
+                      {/* OCR stats badge */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {(igResult.article.images_processed ?? 0) > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            {igResult.article.images_processed} foto berhasil di-OCR
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-slate-500">
+                            0 foto berhasil di-OCR
+                          </span>
+                        )}
+                        {(igResult.article.images_skipped ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-900/25 border border-amber-700/30 text-amber-300">
+                            <AlertCircle className="w-2.5 h-2.5" />
+                            {igResult.article.images_skipped} dilewati
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Poster text box */}
+                      {igResult.article.poster_text ? (
+                        <div className="rounded-xl border border-pink-700/30 bg-pink-900/10 overflow-hidden">
+                          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-pink-700/20">
+                            <Instagram className="w-3 h-3 text-pink-400 shrink-0" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-pink-400/80">Teks dari Foto (OCR)</span>
+                          </div>
+                          <pre className="px-3 py-2.5 text-[11px] text-slate-300 whitespace-pre-wrap break-words font-sans leading-relaxed max-h-48 overflow-y-auto">
+                            {igResult.article.poster_text}
+                          </pre>
+                        </div>
+                      ) : (igResult.article.images_processed ?? 0) > 0 ? (
+                        <p className="text-[11px] text-slate-600 italic">Tidak ada teks yang terbaca dari foto post ini.</p>
+                      ) : null}
+                    </div>
+                  )}
+
                   {igResult && (
                     <button onClick={() => { setIgUrl(""); setIgResult(null); }}
                       className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors">

@@ -1,0 +1,38 @@
+Tolong tambahkan kemampuan OCR poster/gambar ke fitur Instagram scraper yang sudah ada (instagram_scraper.py, endpoint /api/instagram/scrape). Sekarang fitur itu cuma ambil caption teks; tambahkan ekstraksi teks dari SEMUA foto di post (termasuk carousel multi-foto), pakai AI Vision — REUSE pola yang SUDAH ADA dan terbukti jalan di fitur Muqarrar/Kitab PDF Arab (sekitar baris 1380-1400 di app.py: kirim gambar sebagai base64 ke model lewat content type "image_url" dengan "detail": "high", via get_openai_client()/OpenRouter). JANGAN pakai pytesseract — itu butuh binary Tesseract yang tidak ter-install di Vercel serverless dan akan gagal diam-diam di production.
+
+## 1. Ekstraksi URL semua gambar carousel — instagram_scraper.py
+
+Meta tag og:image di HTML Instagram cuma memberi 1 gambar (foto pertama), tidak cukup untuk carousel. Tolong tambahkan:
+
+def extract_carousel_image_urls(html: str) -> list[str]:
+- Cari data JSON yang di-embed Instagram di dalam <script> tag pada halaman post (biasanya berupa JSON-LD application/ld+json, atau blob data lain yang berisi array item carousel dengan display_url/image_url masing-masing foto). Parse dan ambil semua URL gambar carousel dari situ.
+- Ini FRAGILE secara desain (struktur halaman Instagram bisa berubah sewaktu-waktu tanpa pemberitahuan) — jadi WAJIB dibungkus try/except yang aman. Kalau parsing multi-gambar gagal atau cuma ketemu nol/API structure tidak dikenali, FALLBACK ke og:image tunggal yang sudah ada sekarang (jangan gagal total, jangan raise exception ke pemanggil — cukup return list berisi 1 URL dari og:image sebagai fallback).
+- Return list of image URLs (bisa 1 item kalau single-photo post atau fallback, bisa banyak kalau carousel berhasil di-parse).
+
+## 2. OCR tiap gambar — instagram_scraper.py atau ai_services.py
+
+def ocr_instagram_images(image_urls: list[str]) -> list[dict]:
+- Untuk setiap image_url: download gambar (requests, dengan timeout wajar misal 15 detik per gambar, dan batasi maksimal 10 gambar per post untuk mencegah biaya AI membengkak tak terkendali kalau carousel-nya sangat panjang — kalau lebih dari 10, proses 10 pertama saja dan catat di hasil bahwa ada gambar yang dilewati).
+- Encode base64, kirim ke AI Vision via get_openai_client() dengan pola PERSIS seperti di Muqarrar (content type "image_url", "detail": "high"). Gunakan model gpt-4o-mini secara default (lebih murah, cukup untuk teks poster/infografis biasa yang umumnya bukan manuskrip Arab kompleks).
+- Prompt ke AI: "Ekstrak semua teks yang terlihat pada gambar ini (poster/infografis/foto). Kalau tidak ada teks yang terbaca, jawab persis dengan kata 'TIDAK_ADA_TEKS'. Jangan menambahkan komentar atau penjelasan lain, hanya teks yang berhasil dibaca."
+- Kalau 1 gambar gagal diproses (network error, AI error, dsb), JANGAN gagalkan seluruh proses — skip gambar itu, catat di hasil sebagai gagal, lanjutkan ke gambar berikutnya.
+- Return list of dict: [{"image_url": ..., "extracted_text": ..., "success": bool}, ...]
+
+## 3. Update scrape_instagram_post() di instagram_scraper.py
+
+- Panggil extract_carousel_image_urls() dan ocr_instagram_images() setelah caption berhasil diambil.
+- Gabungkan hasil OCR semua gambar (yang success=True) jadi 1 field baru "poster_text" (gabungkan dengan pemisah baris baru, kasih label per gambar kalau lebih dari 1, misal "[Gambar 1]\n...\n[Gambar 2]\n...").
+- Field "content" yang dikirim ke convert_to_kb_format (dipakai untuk filter relevansi masisir & ringkasan) HARUS menggabungkan caption + poster_text, supaya AI filter/ekstraksi nanti bisa lihat kedua sumber informasi itu, bukan cuma caption doang.
+- Return dict tambahan field: "poster_text", "images_processed" (jumlah gambar yang berhasil di-OCR), "images_skipped" (jumlah yang dilewati/gagal, kalau ada).
+
+## 4. Frontend — halaman Instagram Caption yang sudah ada
+
+- Update deskripsi fitur, jangan cuma bilang "ambil caption" — sebutkan juga OCR poster (misal: "Ambil caption + OCR teks dari semua foto post (termasuk carousel) → KB Draft → Approve → Push Supabase").
+- Di hasil ekstraksi yang ditampilkan setelah proses "Ambil", tampilkan juga poster_text secara terpisah dari caption (biar user bisa lihat jelas mana dari caption, mana dari OCR gambar), plus info berapa gambar berhasil/gagal diproses.
+
+## Catatan penting
+- JANGAN ubah cara AI Vision dipanggil untuk fitur Muqarrar yang sudah ada — hanya reuse pola pemanggilannya untuk fitur Instagram ini.
+- JANGAN pakai pytesseract untuk fitur ini.
+- Test dengan minimal: (1) 1 URL post single-photo publik → pastikan poster_text terisi kalau ada teks di foto, atau "TIDAK_ADA_TEKS" kalau memang tidak ada. (2) 1 URL post carousel (kalau ada contoh publik yang bisa dites) → pastikan semua/beberapa foto ke-OCR, bukan cuma 1. (3) Kalau tidak menemukan post carousel publik untuk testing, laporkan dengan jelas bagian mana yang tidak sempat divalidasi end-to-end, jangan asumsikan berhasil tanpa bukti.
+
+Laporkan: hasil test di atas, berapa lama waktu proses untuk 1 post multi-foto (perkiraan biaya/waktu tambahan dibanding fitur caption-only sebelumnya), dan konfirmasi fallback ke og:image tunggal benar-benar teruji kalau parsing carousel gagal.
