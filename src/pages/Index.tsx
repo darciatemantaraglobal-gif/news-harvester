@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import ReactMarkdown from "react-markdown";
@@ -273,6 +274,13 @@ const Index = () => {
   const [kbCutoff, setKbCutoff] = useState<string>("all"); // "all"|"7"|"30"|"90"|"180"
   const [kbCount, setKbCount] = useState(0);
   const [kbError, setKbError] = useState("");
+  const [masisirFilterEnabled, setMasisirFilterEnabled] = useState<boolean>(true);
+  const [masisirFilterLoading, setMasisirFilterLoading] = useState(false);
+  const [masisirFilterSaving, setMasisirFilterSaving] = useState(false);
+  const [kbConvertStats, setKbConvertStats] = useState<{
+    total: number; relevant: number; irrelevant: number;
+    needs_manual_check: number; filter_was_enabled: boolean;
+  } | null>(null);
 
   const [kbDraft, setKbDraft] = useState<KbDraft[]>([]);
   const [kbDraftLoading, setKbDraftLoading] = useState(false);
@@ -334,6 +342,64 @@ const Index = () => {
       }
     } catch {}
     setKbDraftLoading(false);
+  };
+
+  const fetchMasisirFilter = async () => {
+    setMasisirFilterLoading(true);
+    try {
+      const tok = getToken();
+      const res = await fetch(apiUrl("/api/settings/masisir-filter"), {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMasisirFilterEnabled(data.enabled ?? true);
+      }
+    } catch {}
+    setMasisirFilterLoading(false);
+  };
+
+  const toggleMasisirFilter = async (val: boolean) => {
+    setMasisirFilterSaving(true);
+    const prev = masisirFilterEnabled;
+    setMasisirFilterEnabled(val); // optimistic update
+    try {
+      const tok = getToken();
+      const res = await fetch(apiUrl("/api/settings/masisir-filter"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
+        },
+        body: JSON.stringify({ enabled: val }),
+      });
+      if (!res.ok) {
+        setMasisirFilterEnabled(prev); // rollback on failure
+        toast({ title: "Gagal menyimpan toggle", variant: "destructive" });
+      }
+    } catch {
+      setMasisirFilterEnabled(prev);
+    }
+    setMasisirFilterSaving(false);
+  };
+
+  const fetchMasisirStats = async () => {
+    try {
+      const tok = getToken();
+      const res = await fetch(apiUrl("/api/masisir-stats"), {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setKbConvertStats({
+          total: data.total ?? 0,
+          relevant: data.relevant ?? 0,
+          irrelevant: data.irrelevant ?? 0,
+          needs_manual_check: data.needs_manual_check ?? 0,
+          filter_was_enabled: data.enabled ?? false,
+        });
+      }
+    } catch {}
   };
 
   const toggleSelectArticle = (id: string) => {
@@ -559,6 +625,7 @@ const Index = () => {
     fetchKbDraft();
     fetchSchedulerSettings();
     fetchIngestionHistory();
+    fetchMasisirFilter();
     return () => stopPoll();
   }, []);
 
@@ -692,7 +759,7 @@ const Index = () => {
   };
 
   const doConvertKb = async () => {
-    setKbLoading(true); setKbError(""); setKbDone(false);
+    setKbLoading(true); setKbError(""); setKbDone(false); setKbConvertStats(null);
     try {
       const body: Record<string, unknown> = {};
       if (kbCutoff !== "all") body.cutoff_days = parseInt(kbCutoff);
@@ -706,6 +773,7 @@ const Index = () => {
       else {
         setKbDone(true); setKbCount(data.count);
         await fetchKbDraft();
+        await fetchMasisirStats();
         const skippedNote = data.skipped > 0 ? ` (${data.skipped} artikel dilewati karena terlalu lama)` : "";
         toast({ title: "KB Draft dibuat", description: `${data.count} artikel berhasil dikonversi ke KB Draft.${skippedNote}` });
       }
@@ -1618,6 +1686,7 @@ const Index = () => {
                           </div>
                           {/* Step 3 */}
                           <div className={`rounded-2xl p-4 space-y-3 transition-all duration-200 ${kbDone ? "bg-emerald-900/20/40" : "bg-white/5"}`}>
+                            {/* Header row — consistent with Steps 1 & 2 */}
                             <div className="flex items-start gap-3">
                               <StepBadge n={3} done={kbDone} />
                               <div className="flex-1 min-w-0 pt-0.5">
@@ -1626,11 +1695,46 @@ const Index = () => {
                                   {kbDone && <span className="text-[10px] font-medium text-emerald-400 bg-emerald-900/20 border border-emerald-700/40 px-2 py-0.5 rounded-full">{kbDraft.length} artikel</span>}
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                                  Konversi artikel success/partial ke format KB draft AINA. Status awal:{" "}
+                                  Konversi artikel ke KB draft AINA dengan filter relevansi Masisir. Status awal:{" "}
                                   <span className="font-mono text-amber-300 bg-amber-900/20 border border-amber-700/40 px-1.5 py-px rounded-full text-[10px] font-medium">pending</span>.
                                 </p>
                               </div>
                             </div>
+
+                            {/* Toggle Filter Relevansi Masisir */}
+                            <div
+                              className="ml-10 rounded-xl p-3 flex items-start justify-between gap-3 transition-all duration-200"
+                              style={{
+                                background: masisirFilterEnabled ? "rgba(16,185,129,0.07)" : "rgba(255,255,255,0.04)",
+                                border: masisirFilterEnabled ? "1px solid rgba(16,185,129,0.22)" : "1px solid rgba(255,255,255,0.09)",
+                              }}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-slate-200">Filter Relevansi Masisir</p>
+                                <p className="text-[11px] mt-0.5 leading-relaxed transition-colors duration-200"
+                                  style={{ color: masisirFilterEnabled ? "#6ee7b7" : "#6b7280" }}>
+                                  {masisirFilterEnabled
+                                    ? "AKTIF — artikel akan difilter & diekstrak otomatis berdasarkan relevansi ke masisir sebelum masuk draft."
+                                    : "NONAKTIF — semua artikel masuk draft apa adanya tanpa filter."}
+                                </p>
+                              </div>
+                              {/* Toggle switch */}
+                              <button
+                                onClick={() => !masisirFilterSaving && !masisirFilterLoading && toggleMasisirFilter(!masisirFilterEnabled)}
+                                disabled={masisirFilterLoading || masisirFilterSaving}
+                                aria-checked={masisirFilterEnabled}
+                                role="switch"
+                                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-1 focus:ring-offset-black disabled:opacity-60 cursor-pointer"
+                                style={{ background: masisirFilterEnabled ? "#10b981" : "#374151" }}
+                              >
+                                <span
+                                  className="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200"
+                                  style={{ transform: masisirFilterEnabled ? "translateX(24px)" : "translateX(4px)" }}
+                                />
+                              </button>
+                            </div>
+
+                            {/* Action row */}
                             <div className="flex flex-wrap items-center gap-2 pl-10">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">Berita dari:</span>
@@ -1646,20 +1750,75 @@ const Index = () => {
                                   <option value="180">6 bulan terakhir</option>
                                 </select>
                               </div>
-                              <Button data-testid="button-convert-kb" onClick={doConvertKb}
+                              {/* PRIMARY action button */}
+                              <Button
+                                data-testid="button-convert-kb"
+                                onClick={doConvertKb}
                                 disabled={kbLoading || isRunning || eligibleArticles.length === 0}
-                                size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 shadow-sm">
-                                {kbLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : kbDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}
-                                {kbLoading ? "Mengkonversi..." : kbDone ? "Re-convert" : "Convert to KB Draft"}
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 shadow-sm font-semibold px-4"
+                              >
+                                {kbLoading
+                                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Memproses...</>
+                                  : <><ClipboardList className="w-3.5 h-3.5" />Proses ke KB Draft</>
+                                }
                               </Button>
+                              {/* SECONDARY: Re-convert (only when already done) */}
+                              {kbDone && !kbLoading && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={doConvertKb}
+                                  disabled={kbLoading || isRunning || eligibleArticles.length === 0}
+                                  className="h-8 text-xs text-slate-500 hover:text-slate-300 gap-1 px-2"
+                                >
+                                  <RotateCcw className="w-3 h-3" />Re-convert
+                                </Button>
+                              )}
                               <Button variant="ghost" size="sm" onClick={fetchKbDraft} disabled={kbDraftLoading}
                                 className="h-8 w-8 p-0 text-slate-400 hover:text-slate-500">
                                 <RefreshCw className={`w-3.5 h-3.5 ${kbDraftLoading ? "animate-spin" : ""}`} />
                               </Button>
                             </div>
+
                             {kbError && <p data-testid="text-kb-error" className="text-red-500 text-xs pl-10 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{kbError}</p>}
                             {eligibleArticles.length === 0 && !kbDone && (
                               <p className="text-xs text-slate-400 pl-10 italic">Tidak ada artikel success/partial untuk dikonversi.</p>
+                            )}
+
+                            {/* Post-convert filter summary */}
+                            {kbDone && kbConvertStats && (
+                              <div
+                                className="ml-10 rounded-xl overflow-hidden"
+                                style={{ border: "1px solid rgba(99,102,241,0.22)", background: "rgba(99,102,241,0.07)" }}
+                              >
+                                {kbConvertStats.filter_was_enabled ? (
+                                  <div className="px-3 py-2.5 flex flex-wrap gap-x-4 gap-y-1">
+                                    <span className="text-[11px] font-semibold text-slate-400 mr-1">Ringkasan Filter:</span>
+                                    <span className="flex items-center gap-1.5 text-[11px]">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                                      <span className="text-emerald-400 font-semibold">{kbConvertStats.relevant}</span>
+                                      <span className="text-slate-500">relevan</span>
+                                    </span>
+                                    <span className="flex items-center gap-1.5 text-[11px]">
+                                      <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                                      <span className="text-red-400 font-semibold">{kbConvertStats.irrelevant}</span>
+                                      <span className="text-slate-500">tidak relevan</span>
+                                    </span>
+                                    {kbConvertStats.needs_manual_check > 0 && (
+                                      <span className="flex items-center gap-1.5 text-[11px]">
+                                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                                        <span className="text-amber-400 font-semibold">{kbConvertStats.needs_manual_check}</span>
+                                        <span className="text-slate-500">perlu cek manual</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="px-3 py-2.5">
+                                    <span className="text-[11px] text-slate-500">Filter nonaktif — semua artikel masuk draft tanpa penyaringan.</span>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>

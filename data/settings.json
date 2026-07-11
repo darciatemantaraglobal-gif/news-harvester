@@ -3,5 +3,6 @@
   "next_page_selector": "a.next",
   "title_selector": "h1.entry-title",
   "date_selector": ".date, .news-date, time, .published-date, .post-date",
-  "content_selector": ".entry-content"
+  "content_selector": ".entry-content",
+  "masisir_filter_enabled": true
 }

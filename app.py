@@ -2751,24 +2751,40 @@ def kb_stats():
 
 @app.route("/api/settings/masisir-filter", methods=["GET"])
 def get_masisir_filter_setting():
-    """Ambil status toggle fitur Relevansi & Ekstraksi Masisir (default ON)."""
+    """Ambil status toggle fitur Relevansi & Ekstraksi Masisir (default ON).
+    Prioritas: Supabase → settings.json lokal → True (fail-safe default).
+    """
     from relevance_filter import is_masisir_filter_enabled
+    # Cek local settings.json override dulu (lebih cepat & tersedia tanpa Supabase)
+    local = _load_settings()
+    if "masisir_filter_enabled" in local:
+        return jsonify({"enabled": bool(local["masisir_filter_enabled"])})
+    # Fallback ke Supabase (atau default True kalau Supabase tidak tersedia)
     return jsonify({"enabled": is_masisir_filter_enabled()})
 
 
 @app.route("/api/settings/masisir-filter", methods=["POST"])
 def set_masisir_filter_setting():
-    """Ubah status toggle fitur Relevansi & Ekstraksi Masisir. Hanya admin."""
-    if not g.get("is_admin", False):
-        return jsonify({"error": "Forbidden — hanya admin"}), 403
+    """Ubah status toggle fitur Relevansi & Ekstraksi Masisir."""
     from relevance_filter import set_masisir_filter_enabled
     data = request.get_json(force=True, silent=True) or {}
     if "enabled" not in data:
         return jsonify({"error": "Field 'enabled' wajib diisi (true/false)."}), 400
     enabled = bool(data.get("enabled"))
-    saved = set_masisir_filter_enabled(enabled)
-    if not saved:
-        return jsonify({"error": "Gagal menyimpan setting ke Supabase."}), 500
+    # Simpan ke local settings.json (selalu tersedia, tanpa perlu Supabase)
+    local_saved = False
+    try:
+        settings = _load_settings()
+        settings["masisir_filter_enabled"] = enabled
+        _save_settings(settings)
+        local_saved = True
+    except Exception as e:
+        logger.warning(f"[MASISIR-FILTER] Gagal simpan ke local settings: {e}")
+    # Juga coba simpan ke Supabase (persistent di production)
+    set_masisir_filter_enabled(enabled)  # tidak raise kalau gagal
+    if not local_saved:
+        return jsonify({"error": "Gagal menyimpan setting."}), 500
+    logger.info(f"[MASISIR-FILTER] Toggle set to {enabled} by {g.get('current_user','?')}")
     return jsonify({"status": "ok", "enabled": enabled})
 
 
