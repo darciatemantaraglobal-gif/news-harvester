@@ -1,0 +1,24 @@
+Ditemukan akar masalah untuk bug mode "Artikel Tunggal" (scrape_mode=single): fungsi scrape_single_article() di scraper.py (baris ~515) memanggil extract_article_detail(url, settings, mode) langsung menggunakan "settings" yang diambil dari _load_settings() (pengaturan global tersimpan, kemungkinan sisa dari percobaan mode listing sebelumnya di situs yang sama). extract_article_detail() menggunakan settings["title_selector"]/settings["content_selector"] itu apa adanya untuk mencari elemen di halaman — kalau selector tersimpan itu sebenarnya untuk mencari LINK artikel (misal "article h3 a"), bukan untuk konten artikel itu sendiri, ekstraksinya gagal total.
+
+Tolong perbaiki scrape_single_article() di scraper.py supaya SELALU menjalankan auto_detect_selectors(url) terlebih dahulu untuk mendapatkan selector title/content/date yang sesuai KHUSUS untuk halaman artikel yang diberikan, alih-alih memakai settings tersimpan/global apa adanya:
+
+def scrape_single_article(url: str, settings: dict = None, mode: str = "full") -> dict:
+    """Scrape SATU artikel spesifik langsung dari url yang diberikan,
+    TANPA mencari link lain di halaman tersebut."""
+    detected = auto_detect_selectors(url)
+    # Gabungkan: pakai selector hasil auto-detect untuk title/content/date,
+    # tapi tetap izinkan override eksplisit dari settings kalau memang
+    # sengaja diisi user secara manual (bukan nyangkut dari sesi listing lain).
+    effective_settings = dict(settings or {})
+    for key in ("title_selector", "content_selector", "date_selector"):
+        if detected.get(key):
+            effective_settings[key] = detected[key]
+    return extract_article_detail(url, effective_settings, mode=mode)
+
+Sesuaikan nama field yang dikembalikan auto_detect_selectors() dengan yang sebenarnya (cek definisinya di scraper.py baris ~118, pastikan key yang dipakai untuk title/content/date selector cocok dengan yang dibaca extract_article_detail()).
+
+PENTING: pastikan auto_detect_selectors() sendiri tidak melakukan crawl/pencarian link (dia hanya boleh menganalisis 1 halaman yang diberikan untuk menentukan pola selector title/content/date), supaya konsisten dengan tujuan mode "single" (1 request, 1 artikel, tidak ada crawling).
+
+Test ulang dengan URL yang sama: https://informatikamesir.net/glenn-kita-bisa-salahkan-al-azhar-dengan-beri-data-dan-rekomendasi/ — pastikan hasilnya sekarang berisi judul dan isi artikel yang BENAR dari halaman itu (bukan gagal, bukan artikel lain). Test juga dengan minimal 1 URL artikel dari situs LAIN yang belum pernah discrape sebelumnya, untuk pastikan auto-detect-nya general, bukan hardcode untuk 1 situs saja.
+
+Laporkan hasil kedua test dengan judul+cuplikan konten yang berhasil diekstrak.

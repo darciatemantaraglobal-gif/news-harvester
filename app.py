@@ -885,7 +885,7 @@ def api_scrape():
             logs=logs, success=0, partial=0, failed=0, duplicate=0,
         )
         try:
-            article = scrape_single_article(url, settings, mode)
+            article = scrape_single_article(url, settings, mode, log_fn=lambda m: logs.append(m))
             existing = _load_articles()
             existing_urls = {a["url"] for a in existing}
             if url in existing_urls:

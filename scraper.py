@@ -115,6 +115,86 @@ def _is_article_url(href: str, base_domain: str) -> bool:
     return True
 
 
+def _detect_content_selectors(soup, log_fn=None) -> dict:
+    """
+    Deteksi title_selector / date_selector / content_selector langsung dari
+    BeautifulSoup sebuah HALAMAN ARTIKEL (bukan halaman listing).
+    Dipakai baik oleh auto_detect_selectors() (pada artikel sampel dari listing)
+    maupun oleh auto_detect_article_selectors() (langsung pada URL artikel
+    tunggal yang diberikan pengguna).
+    """
+    def log(msg):
+        if log_fn:
+            log_fn(msg)
+
+    result = {}
+
+    # Title
+    for sel in _TITLE_CANDIDATES:
+        try:
+            el = soup.select_one(sel)
+            if el and el.get_text(strip=True):
+                result["title_selector"] = sel
+                log(f"[AUTO] Title → '{sel}'")
+                break
+        except Exception:
+            continue
+    else:
+        log("[AUTO] Selector title tidak ditemukan")
+
+    # Date
+    for sel in _DATE_CANDIDATES:
+        try:
+            el = soup.select_one(sel)
+            if el and el.get_text(strip=True):
+                result["date_selector"] = sel
+                log(f"[AUTO] Tanggal → '{sel}'")
+                break
+        except Exception:
+            continue
+    else:
+        log("[AUTO] Selector tanggal tidak ditemukan")
+
+    # Content
+    for sel in _CONTENT_CANDIDATES:
+        try:
+            el = soup.select_one(sel)
+            if el and len(el.get_text(strip=True)) > 100:
+                result["content_selector"] = sel
+                log(f"[AUTO] Konten → '{sel}'")
+                break
+        except Exception:
+            continue
+    else:
+        log("[AUTO] Selector konten tidak ditemukan")
+
+    return result
+
+
+def auto_detect_article_selectors(url: str, log_fn=None) -> dict:
+    """
+    Otomatis deteksi title_selector/date_selector/content_selector LANGSUNG
+    dari halaman artikel `url` itu sendiri — dipakai untuk mode "Artikel
+    Tunggal", di mana kita sudah tahu persis URL artikelnya dan TIDAK boleh
+    reuse article_link_selector/title_selector dari settings global (yang
+    mungkin ter-detect/tersimpan untuk situs lain sepenuhnya berbeda).
+    """
+    def log(msg):
+        if log_fn:
+            log_fn(msg)
+
+    log(f"[AUTO] Mendeteksi selector konten langsung dari artikel: {url}")
+    try:
+        soup = get_soup(url)
+    except Exception as e:
+        log(f"[AUTO] Gagal fetch artikel: {e}")
+        return {}
+
+    result = _detect_content_selectors(soup, log_fn=log_fn)
+    log(f"[AUTO] Deteksi artikel tunggal selesai — {len(result)} selector berhasil diidentifikasi")
+    return result
+
+
 def auto_detect_selectors(url: str, log_fn=None) -> dict:
     """
     Otomatis deteksi CSS selector yang tepat untuk URL yang diberikan.
@@ -185,42 +265,7 @@ def auto_detect_selectors(url: str, log_fn=None) -> dict:
         log(f"[AUTO] Gagal fetch artikel sampel: {e}")
         return result
 
-    # Title
-    for sel in _TITLE_CANDIDATES:
-        try:
-            el = art_soup.select_one(sel)
-            if el and el.get_text(strip=True):
-                result["title_selector"] = sel
-                log(f"[AUTO] Title → '{sel}'")
-                break
-        except Exception:
-            continue
-
-    # Date
-    for sel in _DATE_CANDIDATES:
-        try:
-            el = art_soup.select_one(sel)
-            if el and el.get_text(strip=True):
-                result["date_selector"] = sel
-                log(f"[AUTO] Tanggal → '{sel}'")
-                break
-        except Exception:
-            continue
-    else:
-        log("[AUTO] Selector tanggal tidak ditemukan")
-
-    # Content
-    for sel in _CONTENT_CANDIDATES:
-        try:
-            el = art_soup.select_one(sel)
-            if el and len(el.get_text(strip=True)) > 100:
-                result["content_selector"] = sel
-                log(f"[AUTO] Konten → '{sel}'")
-                break
-        except Exception:
-            continue
-    else:
-        log("[AUTO] Selector konten tidak ditemukan")
+    result.update(_detect_content_selectors(art_soup, log_fn=log_fn))
 
     log(f"[AUTO] Deteksi selesai — {len(result)} selector berhasil diidentifikasi")
     return result
@@ -512,12 +557,22 @@ def extract_article_detail(url: str, settings: dict, mode: str = "full") -> dict
     return article
 
 
-def scrape_single_article(url: str, settings: dict = None, mode: str = "full") -> dict:
+def scrape_single_article(url: str, settings: dict = None, mode: str = "full", log_fn=None) -> dict:
     """Scrape SATU artikel spesifik langsung dari url yang diberikan,
-    TANPA mencari link lain di halaman tersebut."""
-    if settings is None:
-        settings = DEFAULT_SETTINGS
-    return extract_article_detail(url, settings, mode=mode)
+    TANPA mencari link lain di halaman tersebut.
+
+    PENTING: settings global (article_link_selector/title_selector/dst. yang
+    tersimpan di settings.json) mungkin berasal dari situs lain sepenuhnya
+    (mis. hasil auto-detect untuk konfigurasi crawl listing sebelumnya).
+    Karena itu, selalu jalankan auto_detect_article_selectors() langsung
+    terhadap `url` untuk mendapatkan title/date/content selector yang benar
+    khusus untuk halaman ini, lalu gunakan settings global hanya sebagai
+    fallback untuk selector yang gagal terdeteksi otomatis.
+    """
+    base = dict(settings) if settings else dict(DEFAULT_SETTINGS)
+    detected = auto_detect_article_selectors(url, log_fn=log_fn)
+    merged = {**base, **detected}
+    return extract_article_detail(url, merged, mode=mode)
 
 
 def scrape_all(
