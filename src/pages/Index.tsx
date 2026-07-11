@@ -230,6 +230,7 @@ const Index = () => {
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
   const [mode, setMode] = useState("full");
+  const [crawlMode, setCrawlMode] = useState<"listing" | "single">("listing");
   const [scrapeRange, setScrapeRange] = useState("all");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -577,7 +578,7 @@ const Index = () => {
     pollTickRef.current = 0;
     pollRef.current = setInterval(pollProgress, 1000);
 
-    const body: Record<string, unknown> = { url, mode, date_filter: scrapeRange, job_id: jobId };
+    const body: Record<string, unknown> = { url, mode, date_filter: scrapeRange, job_id: jobId, scrape_mode: crawlMode };
     if (scrapeRange === "custom") {
       if (customStart) body.start_date = customStart;
       if (customEnd) body.end_date = customEnd;
@@ -953,6 +954,42 @@ const Index = () => {
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />{urlError}
                   </p>
                 )}
+              </div>
+
+              {/* ─ Crawl Mode toggle: Artikel Tunggal vs Crawl Semua ─ */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <ToggleLeft className="w-3.5 h-3.5 text-violet-500/50 shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">Mode Scraping</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "listing", label: "Crawl Semua Artikel", sub: "Link kategori / halaman daftar berita" },
+                    { value: "single",  label: "Artikel Tunggal",      sub: "Link artikel spesifik yang sudah diketahui" },
+                  ] as const).map(({ value, label, sub }) => (
+                    <button
+                      key={value}
+                      onClick={() => !isRunning && setCrawlMode(value)}
+                      disabled={isRunning}
+                      className={`flex flex-col items-start gap-1 px-4 py-3 rounded-xl border-2 text-left transition-all duration-200
+                        ${crawlMode === value
+                          ? "border-violet-500/70 text-white"
+                          : "border-transparent text-slate-600 hover:text-slate-400"
+                        }`}
+                      style={crawlMode === value ? {
+                        background: "linear-gradient(145deg, rgba(109,40,217,0.28) 0%, rgba(79,20,180,0.14) 100%)",
+                        boxShadow: "0 0 14px rgba(139,92,246,0.2), inset 0 1px 0 rgba(196,181,253,0.12)"
+                      } : { background: "rgba(255,255,255,0.025)", opacity: 0.55 }}>
+                      <span className={`text-[11px] font-bold tracking-wide leading-none ${crawlMode === value ? "text-white" : ""}`}>{label}</span>
+                      <span className={`text-[10px] leading-tight ${crawlMode === value ? "text-violet-400/70" : "text-slate-600"}`}>{sub}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-600 leading-relaxed">
+                  {crawlMode === "single"
+                    ? "Mode ini scrape tepat 1 artikel dari URL yang kamu berikan — tidak akan menyentuh link lain di halaman tersebut."
+                    : "Mode ini scan halaman kategori/beranda dan crawl semua artikel yang ditemukan, termasuk pagination."}
+                </p>
               </div>
 
               {/* ─ Mode icon cards + Mulai Scraping ─ */}

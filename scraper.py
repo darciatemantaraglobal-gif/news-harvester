@@ -512,6 +512,14 @@ def extract_article_detail(url: str, settings: dict, mode: str = "full") -> dict
     return article
 
 
+def scrape_single_article(url: str, settings: dict = None, mode: str = "full") -> dict:
+    """Scrape SATU artikel spesifik langsung dari url yang diberikan,
+    TANPA mencari link lain di halaman tersebut."""
+    if settings is None:
+        settings = DEFAULT_SETTINGS
+    return extract_article_detail(url, settings, mode=mode)
+
+
 def scrape_all(
     start_url: str,
     settings: dict = None,

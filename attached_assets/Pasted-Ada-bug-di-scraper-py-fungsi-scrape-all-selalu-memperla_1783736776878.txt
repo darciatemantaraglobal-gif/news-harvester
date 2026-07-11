@@ -1,0 +1,38 @@
+Ada bug di scraper.py: fungsi scrape_all() selalu memperlakukan URL yang diberikan sebagai halaman LISTING (mencari semua link artikel di dalamnya via extract_article_links), bahkan ketika URL yang diberikan sudah merupakan halaman 1 artikel spesifik. Akibatnya, kalau user paste link artikel tunggal, sistem malah scrape artikel-artikel LAIN yang linknya kebetulan ada di halaman itu (misal dari widget "Artikel Terkait"/"Baca Juga"), bukan artikel yang dimaksud.
+
+Tolong tambahkan mode baru: "Artikel Tunggal" (single article), terpisah dari mode listing/crawl yang sudah ada.
+
+## 1. Backend — scraper.py
+
+Buat fungsi baru:
+
+def scrape_single_article(url: str, settings: dict = None, mode: str = "full") -> dict:
+    """Scrape SATU artikel spesifik langsung dari url yang diberikan, TANPA mencari link lain di halaman tersebut."""
+    if settings is None:
+        settings = DEFAULT_SETTINGS
+    return extract_article_detail(url, settings, mode=mode)
+
+Ini langsung manggil extract_article_detail() yang sudah ada (dipakai juga oleh scrape_all untuk masing-masing artikel), cukup di-reuse, tidak perlu tulis ulang logic ekstraksi konten.
+
+## 2. Endpoint app.py
+
+Cari endpoint /api/scrape yang sekarang. Tambahkan parameter baru di body request: "scrape_mode" dengan nilai "listing" (default, behavior lama tidak berubah) atau "single" (behavior baru).
+
+- Kalau scrape_mode == "single": panggil scrape_single_article(url, settings, mode) untuk SATU url yang diberikan, langsung convert hasilnya jadi 1 draft artikel (lewat convert_to_kb_format kalau mode kb), return sebagai hasil tunggal — TIDAK melalui logic pagination/link-crawling sama sekali.
+- Kalau scrape_mode == "listing" atau tidak ada (default): behavior tetap seperti sekarang (scrape_all, crawl semua link di halaman + pagination) — JANGAN ubah behavior default ini, supaya tidak breaking untuk use case yang memang butuh crawl banyak artikel sekaligus.
+
+## 3. Frontend — src/pages/Index.tsx (halaman scraper)
+
+Tambahkan toggle/pilihan mode di atas input URL, sejajar dengan pilihan "List Only / Full Article / KB Mode" yang sudah ada:
+- "Artikel Tunggal" — scrape 1 artikel spesifik dari URL yang diberikan (untuk saat user sudah punya link artikel langsung)
+- "Crawl Semua Artikel" — behavior lama, scan halaman index/kategori dan crawl semua artikel + pagination (untuk saat user kasih link halaman kategori/beranda)
+
+Beri deskripsi singkat di UI supaya user paham kapan pakai yang mana, contoh: "Pilih 'Artikel Tunggal' kalau kamu sudah punya link artikel spesifik. Pilih 'Crawl Semua Artikel' kalau kamu kasih link halaman kategori/daftar berita dan mau ambil semua artikel di dalamnya."
+
+Default pilihan: "Crawl Semua Artikel" (supaya behavior default tetap sama seperti sekarang, tidak mengejutkan user existing).
+
+## Catatan penting
+- JANGAN ubah behavior mode "Crawl Semua Artikel" (listing) sama sekali — itu tetap harus bekerja seperti sekarang untuk use case yang memang butuh scrape banyak artikel dari 1 halaman kategori.
+- Test: (1) paste URL artikel spesifik (seperti https://informatikamesir.net/glenn-kita-bisa-salahkan-al-azhar-dengan-beri-data-dan-rekomendasi/) dengan mode "Artikel Tunggal" → harus menghasilkan TEPAT 1 draft artikel yang isinya BENERAN dari artikel itu (judul, konten harus cocok dengan artikel aslinya, bukan artikel lain). (2) paste URL halaman kategori/beranda dengan mode "Crawl Semua Artikel" → harus tetap bekerja seperti sebelumnya, menghasilkan banyak artikel.
+
+Laporkan hasil test kedua mode, sertakan judul artikel yang berhasil di-scrape di mode "Artikel Tunggal" untuk verifikasi kecocokan dengan URL yang diberikan.

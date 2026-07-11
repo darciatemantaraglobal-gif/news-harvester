@@ -7,7 +7,7 @@ from datetime import datetime, date, timedelta
 from flask import Flask, send_from_directory, request, jsonify, Response, g
 import hashlib
 from flask_cors import CORS
-from scraper import scrape_all, auto_detect_selectors
+from scraper import scrape_all, scrape_single_article, auto_detect_selectors
 from kemlu_scraper import is_kemlu_url
 from instagram_scraper import scrape_instagram_post, is_instagram_url
 from ai_services import generate_ai_summary, check_openai_available, ocr_arabic_page, ocr_arabic_pages_batch, get_active_model
@@ -873,8 +873,55 @@ def api_scrape():
 
     job_id = (data.get("job_id") or "").strip() or str(_uuid.uuid4())
     incremental = bool(data.get("incremental", True))
+    scrape_mode_input = (data.get("scrape_mode") or "listing").strip()
 
     settings = _load_settings()
+
+    # ── Mode "single": scrape tepat 1 artikel dari URL yang diberikan ──────────
+    if scrape_mode_input == "single":
+        logs = [f"[SINGLE] Scraping artikel: {url}"]
+        db_services.create_scrape_job(
+            job_id, status="running", phase="scraping", current=0, total=1,
+            logs=logs, success=0, partial=0, failed=0, duplicate=0,
+        )
+        try:
+            article = scrape_single_article(url, settings, mode)
+            existing = _load_articles()
+            existing_urls = {a["url"] for a in existing}
+            if url in existing_urls:
+                article["status"] = "duplicate"
+                counters = {"success": 0, "partial": 0, "failed": 0, "duplicate": 1}
+                new_count = 0
+            else:
+                counters = {
+                    "success":  1 if article["status"] == "success"  else 0,
+                    "partial":  1 if article["status"] == "partial"  else 0,
+                    "failed":   1 if article["status"] == "failed"   else 0,
+                    "duplicate": 0,
+                }
+                new_count = 1
+                existing.append(article)
+                _save_articles(existing)
+            logs.append(f"[SINGLE] Selesai: \"{article.get('title') or url}\" — {article['status']}")
+            db_services.update_scrape_job(
+                job_id, status="done", phase="done",
+                current=1, total=1, logs=logs[-50:], **counters,
+            )
+            return jsonify({
+                "job_id": job_id,
+                "status": "done",
+                "new_articles": new_count,
+                "total_articles": len(existing),
+                **counters,
+            })
+        except Exception as e:
+            db_services.update_scrape_job(
+                job_id, status="error", phase="done",
+                logs=[f"FATAL: {str(e)}"],
+            )
+            return jsonify({"job_id": job_id, "status": "error", "error": str(e)})
+
+    # ── Mode "listing" (default): crawl semua link di halaman + pagination ─────
     result = _run_scrape_sync(
         job_id, url, settings, mode,
         start_date=start_date, end_date=end_date,
