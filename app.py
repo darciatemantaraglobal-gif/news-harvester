@@ -3648,41 +3648,11 @@ def _chunk_page_text(text: str, max_chars: int = 900, overlap: int = 120) -> lis
     return chunks
 
 
-def _ocr_tesseract(img_bytes: bytes) -> str:
-    """
-    [MUQARRAR OCR — Layer 1] Tesseract OCR gratis untuk teks Arab cetak.
-    Return teks hasil OCR, atau '' jika gagal.
-    """
-    try:
-        import pytesseract
-        from PIL import Image
-        import io
-        img = Image.open(io.BytesIO(img_bytes))
-        # psm 6 = assume a single uniform block of text (cocok untuk halaman kitab)
-        result = pytesseract.image_to_string(
-            img,
-            lang="ara",
-            config="--psm 6 --oem 3",
-        )
-        return result.strip()
-    except Exception as e:
-        logger.debug(f"[MUQARRAR-TESS] Tesseract error: {e}")
-        return ""
-
-
-def _is_tesseract_result_good(text: str, min_arabic_chars: int = 80) -> bool:
-    """
-    Cek apakah hasil Tesseract cukup baik untuk dipakai.
-    Hitung jumlah karakter Arab asli (U+0600–U+06FF) dalam output.
-    """
-    arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06ff')
-    return arabic_chars >= min_arabic_chars
-
-
 def _ocr_gpt4o(img_bytes: bytes, page_num: int, client, max_retries: int = 3) -> str:
     """
-    [MUQARRAR OCR — Layer 2] GPT-4o Vision OCR (akurat, berbayar).
-    Dipanggil hanya jika Tesseract gagal/hasilnya jelek.
+    [MUQARRAR OCR] AI Vision OCR via OpenRouter (GPT-4o-mini).
+    Satu-satunya layer OCR — Tesseract telah dihapus karena tidak tersedia
+    di lingkungan serverless (Vercel) dan menarik dependensi besar.
     """
     import base64
     b64 = base64.b64encode(img_bytes).decode()
@@ -3729,25 +3699,10 @@ def _ocr_gpt4o(img_bytes: bytes, page_num: int, client, max_retries: int = 3) ->
 
 def _ocr_page_with_retry(fitz_doc, page_idx: int, page_num: int, client, max_retries: int = 3) -> str:
     """
-    [MUQARRAR OCR — Hybrid 2-Layer]
-    Layer 1: Tesseract (gratis, lokal) — coba duluan.
-    Layer 2: GPT-4o Vision (berbayar, akurat) — hanya jika Tesseract kurang baik.
-
-    Hemat ~60% biaya OCR dibanding pakai GPT-4o untuk semua halaman.
+    [MUQARRAR OCR] Ekstrak teks satu halaman PDF via AI Vision (OpenRouter).
+    Render halaman ke PNG → kirim base64 ke model → return teks.
     """
     img_bytes = _page_to_image_bytes(fitz_doc, page_idx, dpi=150)
-
-    # ── Layer 1: Tesseract ──────────────────────────────────────────────────
-    tess_result = _ocr_tesseract(img_bytes)
-    if _is_tesseract_result_good(tess_result):
-        logger.debug(f"[MUQARRAR-OCR] hal {page_num}: Tesseract OK ({len(tess_result)} chars)")
-        return tess_result
-
-    # ── Layer 2: GPT-4o Vision (fallback) ──────────────────────────────────
-    logger.info(
-        f"[MUQARRAR-OCR] hal {page_num}: Tesseract kurang ({len(tess_result)} chars Arab) "
-        f"→ fallback GPT-4o"
-    )
     return _ocr_gpt4o(img_bytes, page_num, client, max_retries=max_retries)
 
 
