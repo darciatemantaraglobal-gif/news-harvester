@@ -47,5 +47,29 @@
       "Laporan Bulanan",
       "Analisis Kebijakan Luar Negeri"
     ]
+  },
+  {
+    "id": "push-1783822906850",
+    "timestamp": "2026-07-12T02:21:46",
+    "username": "admin",
+    "source": "review-all",
+    "count": 2,
+    "skipped": 0,
+    "titles": [
+      "Mahasiswa Indonesia di Al-Azhar Terima Beasiswa Tambahan 2026",
+      "Harga Minyak Dunia Naik Tajam Akibat Konflik di Timur Tengah"
+    ]
+  },
+  {
+    "id": "push-1783822961403",
+    "timestamp": "2026-07-12T02:22:41",
+    "username": "admin",
+    "source": "review-all",
+    "count": 2,
+    "skipped": 0,
+    "titles": [
+      "Mahasiswa Indonesia di Al-Azhar Terima Beasiswa Tambahan 2026",
+      "Harga Minyak Dunia Naik Tajam Akibat Konflik di Timur Tengah"
+    ]
   }
 ]

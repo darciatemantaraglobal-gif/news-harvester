@@ -1,8 +1,8 @@
 {
-  "article_link_selector": "article h3 a",
+  "article_link_selector": "article h2 a",
   "next_page_selector": "a.next",
-  "title_selector": "h1.entry-title",
+  "title_selector": "h1",
   "date_selector": ".date, .news-date, time, .published-date, .post-date",
-  "content_selector": ".entry-content",
+  "content_selector": "article",
   "masisir_filter_enabled": true
 }
