@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["tesseract"]
+nixPkgs = ["tesseract", "python312", "nodejs_20", "pip"]
 
 [phases.install]
 cmds = [
